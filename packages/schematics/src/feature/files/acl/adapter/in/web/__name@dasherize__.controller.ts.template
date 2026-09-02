@@ -1,0 +1,17 @@
+import { Controller, Get, Param } from '@nestjs/common';
+import { <%= classify(name) %>Service } from '../../../service/<%= dasherize(name) %>.service';
+import { to<%= classify(name) %>Response, type <%= classify(name) %>Response } from './response/<%= dasherize(name) %>.response';
+
+@Controller('<%= dasherize(name) %>')
+export class <%= classify(name) %>Controller {
+  constructor(private readonly <%= camelize(name) %>: <%= classify(name) %>Service) {}
+
+  /**
+   * Devuelve la respuesta pelada: el sobre lo pone el interceptor global de la
+   * plataforma, y ningun controlador lo arma a mano.
+   */
+  @Get(':id')
+  async findOne(@Param('id') id: string): Promise<<%= classify(name) %>Response> {
+    return to<%= classify(name) %>Response(await this.<%= camelize(name) %>.execute(id));
+  }
+}

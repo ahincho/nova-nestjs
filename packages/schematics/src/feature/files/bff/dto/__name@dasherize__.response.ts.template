@@ -1,0 +1,7 @@
+/**
+ * Lo que ve el frontend. Es un contrato: agregarle un campo a lo que devuelve
+ * el upstream no deberia cambiarlo sin que alguien lo decida.
+ */
+export type <%= classify(name) %>Response = {
+  id: string;
+};

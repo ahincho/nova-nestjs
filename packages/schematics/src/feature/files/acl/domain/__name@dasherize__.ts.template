@@ -1,0 +1,10 @@
+/**
+ * El modelo de dominio de <%= dasherize(name) %>.
+ *
+ * No conoce ni al transporte ni al upstream: si manana la respuesta del
+ * upstream cambia de forma, cambia el traductor y esto queda igual. Esa es toda
+ * la razon por la que existe un ACL.
+ */
+export type <%= classify(name) %> = {
+  readonly id: string;
+};

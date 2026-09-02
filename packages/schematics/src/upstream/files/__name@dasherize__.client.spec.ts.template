@@ -1,0 +1,33 @@
+import type { HttpClientService } from '@ahincho/nova-nestjs';
+import { <%= classify(name) %>Client } from './<%= dasherize(name) %>.client';
+
+describe('<%= classify(name) %>Client', () => {
+  const config = { url: 'http://<%= dasherize(name) %>.test', timeoutMs: 1000 };
+
+  function client(get: jest.Mock): <%= classify(name) %>Client {
+    return new <%= classify(name) %>Client(
+      { get } as unknown as HttpClientService,
+      config,
+    );
+  }
+
+  it('llama al upstream con el timeout que declara su configuracion', async () => {
+    const get = jest.fn().mockResolvedValue([{ id: '1' }]);
+
+    await expect(client(get).findAll()).resolves.toEqual([{ id: '1' }]);
+    expect(get).toHaveBeenCalledWith(
+      'http://<%= dasherize(name) %>.test/<%= dasherize(name) %>',
+      { timeoutMs: 1000 },
+    );
+  });
+
+  // El cliente no traduce el fallo: el HttpClientService ya convirtio lo que
+  // vino del upstream en un 502 o un 504 antes de llegar aca.
+  it('deja subir el error que ya viene traducido', async () => {
+    const get = jest.fn().mockRejectedValue(new Error('Upstream service error'));
+
+    await expect(client(get).findAll()).rejects.toThrow(
+      'Upstream service error',
+    );
+  });
+});

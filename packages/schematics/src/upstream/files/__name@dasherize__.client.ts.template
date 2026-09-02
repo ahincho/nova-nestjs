@@ -1,0 +1,32 @@
+import { Inject, Injectable } from '@nestjs/common';
+import type { ConfigType } from '@nestjs/config';
+import { HttpClientService } from '@ahincho/nova-nestjs';
+import { <%= camelize(name) %> } from './<%= dasherize(name) %>.config';
+
+/**
+ * La forma que devuelve <%= dasherize(name) %>. Es un contrato del upstream,
+ * no del dominio de este servicio: si cambia alla, cambia aca y el traductor
+ * absorbe la diferencia.
+ */
+export type <%= classify(name) %>Response = {
+  readonly id: string;
+};
+
+@Injectable()
+export class <%= classify(name) %>Client {
+  constructor(
+    private readonly http: HttpClientService,
+    @Inject(<%= camelize(name) %>.KEY)
+    private readonly config: ConfigType<typeof <%= camelize(name) %>>,
+  ) {}
+
+  /**
+   * El x-request-id de la peticion entrante viaja solo: no se pasa por aca.
+   */
+  findAll(): Promise<<%= classify(name) %>Response[]> {
+    return this.http.get<<%= classify(name) %>Response[]>(
+      `${this.config.url}/<%= dasherize(name) %>`,
+      { timeoutMs: this.config.timeoutMs },
+    );
+  }
+}

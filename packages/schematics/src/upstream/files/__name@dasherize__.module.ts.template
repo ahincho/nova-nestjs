@@ -1,0 +1,11 @@
+import { Module } from '@nestjs/common';
+import { ConfigModule } from '@nestjs/config';
+import { <%= classify(name) %>Client } from './<%= dasherize(name) %>.client';
+import { <%= camelize(name) %> } from './<%= dasherize(name) %>.config';
+
+@Module({
+  imports: [ConfigModule.forFeature(<%= camelize(name) %>)],
+  providers: [<%= classify(name) %>Client],
+  exports: [<%= classify(name) %>Client],
+})
+export class <%= classify(name) %>Module {}

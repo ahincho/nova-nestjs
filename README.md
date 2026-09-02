@@ -21,19 +21,19 @@ su changelog y su página de npm; el consumidor no distingue.
 
 ## Paquetes
 
-| Paquete                                                               | Nivel               | Estado    |
-| --------------------------------------------------------------------- | ------------------- | --------- |
-| [`@ahincho/nova-api-standard`](packages/api-standard)                 | 1 · librería pura   | listo     |
-| [`@ahincho/nova-nestjs-api-standard`](packages/nestjs-api-standard)   | 2 · conector NestJS | listo     |
-| [`@ahincho/nova-nestjs-config`](packages/nestjs-config)               | 2 · conector NestJS | listo     |
-| [`@ahincho/nova-nestjs-http`](packages/nestjs-http)                   | 2 · conector NestJS | listo     |
-| [`@ahincho/nova-nestjs-observability`](packages/nestjs-observability) | 2 · conector NestJS | listo     |
-| [`@ahincho/nova-nestjs-health`](packages/nestjs-health)               | 2 · conector NestJS | listo     |
-| [`@ahincho/nova-nestjs`](packages/nestjs)                             | 3 · agregador       | listo     |
-| [`@ahincho/nova-tsconfig`](packages/tsconfig)                         | 4 · presets         | listo     |
-| [`@ahincho/nova-eslint-config`](packages/eslint-config)               | 4 · presets         | listo     |
-| [`@ahincho/nova-jest-preset`](packages/jest-preset)                   | 4 · presets         | listo     |
-| `@ahincho/nova-schematics`                                            | 5 · tooling         | pendiente |
+| Paquete                                                               | Nivel               | Estado |
+| --------------------------------------------------------------------- | ------------------- | ------ |
+| [`@ahincho/nova-api-standard`](packages/api-standard)                 | 1 · librería pura   | listo  |
+| [`@ahincho/nova-nestjs-api-standard`](packages/nestjs-api-standard)   | 2 · conector NestJS | listo  |
+| [`@ahincho/nova-nestjs-config`](packages/nestjs-config)               | 2 · conector NestJS | listo  |
+| [`@ahincho/nova-nestjs-http`](packages/nestjs-http)                   | 2 · conector NestJS | listo  |
+| [`@ahincho/nova-nestjs-observability`](packages/nestjs-observability) | 2 · conector NestJS | listo  |
+| [`@ahincho/nova-nestjs-health`](packages/nestjs-health)               | 2 · conector NestJS | listo  |
+| [`@ahincho/nova-nestjs`](packages/nestjs)                             | 3 · agregador       | listo  |
+| [`@ahincho/nova-tsconfig`](packages/tsconfig)                         | 4 · presets         | listo  |
+| [`@ahincho/nova-eslint-config`](packages/eslint-config)               | 4 · presets         | listo  |
+| [`@ahincho/nova-jest-preset`](packages/jest-preset)                   | 4 · presets         | listo  |
+| [`@ahincho/nova-schematics`](packages/schematics)                     | 5 · tooling         | listo  |
 
 El nivel 1 no importa de ningún framework: `api-standard` es TypeScript puro y sirve
 igual en un Lambda o en un script.

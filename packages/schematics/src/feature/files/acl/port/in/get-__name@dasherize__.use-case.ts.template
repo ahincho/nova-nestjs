@@ -1,0 +1,12 @@
+import type { <%= classify(name) %> } from '../../domain/<%= dasherize(name) %>';
+
+/**
+ * Lo que este feature sabe hacer, dicho sin mencionar como.
+ */
+export interface Get<%= classify(name) %>UseCase {
+  execute(id: string): Promise<<%= classify(name) %>>;
+}
+
+export const GET_<%= underscore(name).toUpperCase() %>_USE_CASE = Symbol(
+  'GET_<%= underscore(name).toUpperCase() %>_USE_CASE',
+);

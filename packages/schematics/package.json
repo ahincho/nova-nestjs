@@ -1,0 +1,47 @@
+{
+  "name": "@ahincho/nova-schematics",
+  "version": "0.1.0",
+  "description": "Generators for Nova Platform NestJS services: an upstream client and a feature slice, in the shape the platform expects",
+  "license": "EPL-2.0",
+  "repository": {
+    "type": "git",
+    "url": "git+https://github.com/ahincho/nova-nestjs.git",
+    "directory": "packages/schematics"
+  },
+  "publishConfig": {
+    "access": "public",
+    "registry": "https://npm.pkg.github.com"
+  },
+  "type": "commonjs",
+  "main": "./dist/index.js",
+  "types": "./dist/index.d.ts",
+  "schematics": "./dist/collection.json",
+  "files": [
+    "dist",
+    "README.md"
+  ],
+  "engines": {
+    "node": ">=22"
+  },
+  "scripts": {
+    "build": "tsc -p tsconfig.build.json && node scripts/copy-assets.mjs",
+    "clean": "rimraf dist coverage *.tsbuildinfo",
+    "test": "jest",
+    "test:cov": "jest --coverage",
+    "typecheck": "tsc -p tsconfig.json --noEmit"
+  },
+  "dependencies": {
+    "@angular-devkit/core": "^20.0.0",
+    "@angular-devkit/schematics": "^20.0.0"
+  },
+  "devDependencies": {
+    "@ahincho/nova-jest-preset": "workspace:*",
+    "@ahincho/nova-tsconfig": "workspace:*",
+    "@types/jest": "^30.0.0",
+    "@types/node": "^22.15.0",
+    "jest": "^30.4.2",
+    "rimraf": "^6.0.1",
+    "ts-jest": "^29.4.12",
+    "typescript": "~6.0.3"
+  }
+}

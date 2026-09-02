@@ -1,0 +1,15 @@
+import { Module } from '@nestjs/common';
+import { <%= classify(name) %>Controller } from './adapter/in/web/<%= dasherize(name) %>.controller';
+import { <%= classify(name) %>Service } from './service/<%= dasherize(name) %>.service';
+import { FIND_<%= underscore(name).toUpperCase() %>_PORT } from './port/out/find-<%= dasherize(name) %>.port';
+
+@Module({
+  controllers: [<%= classify(name) %>Controller],
+  providers: [
+    <%= classify(name) %>Service,
+    // El adaptador de salida se registra contra el puerto, no contra su clase:
+    // es lo que deja cambiarlo por un doble en un test sin tocar el servicio.
+    // { provide: FIND_<%= underscore(name).toUpperCase() %>_PORT, useClass: <%= classify(name) %>ClientAdapter },
+  ],
+})
+export class <%= classify(name) %>Module {}

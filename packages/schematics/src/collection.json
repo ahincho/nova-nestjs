@@ -1,0 +1,17 @@
+{
+  "$schema": "http://json-schema.org/schema",
+  "schematics": {
+    "upstream": {
+      "aliases": ["u"],
+      "factory": "./upstream",
+      "description": "Declara un upstream: configuracion, cliente HTTP y modulo",
+      "schema": "./upstream/schema.json"
+    },
+    "feature": {
+      "aliases": ["f"],
+      "factory": "./feature",
+      "description": "Crea un feature completo, en el layout de un BFF o de un ACL",
+      "schema": "./feature/schema.json"
+    }
+  }
+}

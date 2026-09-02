@@ -1,0 +1,15 @@
+import type { <%= classify(name) %> } from '../../domain/<%= dasherize(name) %>';
+
+/**
+ * Lo que este feature necesita de afuera, dicho en terminos del dominio.
+ *
+ * El puerto habla de <%= classify(name) %>, no de la respuesta del upstream:
+ * el adaptador es quien traduce, y por eso un cambio alla no llega hasta aca.
+ */
+export interface Find<%= classify(name) %>Port {
+  findById(id: string): Promise<<%= classify(name) %> | null>;
+}
+
+export const FIND_<%= underscore(name).toUpperCase() %>_PORT = Symbol(
+  'FIND_<%= underscore(name).toUpperCase() %>_PORT',
+);

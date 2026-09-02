@@ -1,0 +1,10 @@
+import { defineUpstream } from '@ahincho/nova-nestjs';
+
+/**
+ * Configuracion de <%= dasherize(name) %>.
+ *
+ * Lee <%= envPrefix %>_URL y <%= envPrefix %>_TIMEOUT_MS. Si la URL nunca se
+ * inyecto, el servicio muere al arrancar nombrando la variable, en vez de
+ * responder 500 la primera vez que alguien llame la ruta que la necesita.
+ */
+export const <%= camelize(name) %> = defineUpstream('<%= dasherize(name) %>');

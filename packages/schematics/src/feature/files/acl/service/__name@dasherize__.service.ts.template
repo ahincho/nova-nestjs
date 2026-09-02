@@ -1,0 +1,27 @@
+import { Inject, Injectable, NotFoundException } from '@nestjs/common';
+import type { <%= classify(name) %> } from '../domain/<%= dasherize(name) %>';
+import type { Get<%= classify(name) %>UseCase } from '../port/in/get-<%= dasherize(name) %>.use-case';
+import {
+  FIND_<%= underscore(name).toUpperCase() %>_PORT,
+  type Find<%= classify(name) %>Port,
+} from '../port/out/find-<%= dasherize(name) %>.port';
+
+@Injectable()
+export class <%= classify(name) %>Service implements Get<%= classify(name) %>UseCase {
+  constructor(
+    @Inject(FIND_<%= underscore(name).toUpperCase() %>_PORT)
+    private readonly find<%= classify(name) %>: Find<%= classify(name) %>Port,
+  ) {}
+
+  async execute(id: string): Promise<<%= classify(name) %>> {
+    const found = await this.find<%= classify(name) %>.findById(id);
+
+    // El puerto devuelve null cuando no existe, y es el servicio quien decide
+    // que eso es un 404. El adaptador no conoce codigos HTTP.
+    if (found === null) {
+      throw new NotFoundException(`<%= classify(name) %> ${id} no encontrado`);
+    }
+
+    return found;
+  }
+}

@@ -1,0 +1,28 @@
+import { NotFoundException } from '@nestjs/common';
+import type { Find<%= classify(name) %>Port } from '../port/out/find-<%= dasherize(name) %>.port';
+import { <%= classify(name) %>Service } from './<%= dasherize(name) %>.service';
+
+describe('<%= classify(name) %>Service', () => {
+  function service(findById: jest.Mock): <%= classify(name) %>Service {
+    return new <%= classify(name) %>Service({
+      findById,
+    } as unknown as Find<%= classify(name) %>Port);
+  }
+
+  it('devuelve lo que encuentra el puerto', async () => {
+    const findById = jest.fn().mockResolvedValue({ id: '1' });
+
+    await expect(service(findById).execute('1')).resolves.toEqual({ id: '1' });
+    expect(findById).toHaveBeenCalledWith('1');
+  });
+
+  // Quien decide que "no existe" es un 404 es el servicio: el adaptador no
+  // conoce codigos HTTP, solo sabe si encontro algo.
+  it('convierte un null del puerto en un 404', async () => {
+    const findById = jest.fn().mockResolvedValue(null);
+
+    await expect(service(findById).execute('1')).rejects.toBeInstanceOf(
+      NotFoundException,
+    );
+  });
+});

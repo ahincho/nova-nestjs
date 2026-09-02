@@ -1,0 +1,16 @@
+import type { <%= classify(name) %> } from '../../../../domain/<%= dasherize(name) %>';
+
+/**
+ * Lo que ve quien llama. Separado del modelo de dominio a proposito: agregarle
+ * un campo al dominio no deberia cambiar el contrato publico sin que alguien lo
+ * decida.
+ */
+export type <%= classify(name) %>Response = {
+  id: string;
+};
+
+export function to<%= classify(name) %>Response(
+  <%= camelize(name) %>: <%= classify(name) %>,
+): <%= classify(name) %>Response {
+  return { id: <%= camelize(name) %>.id };
+}

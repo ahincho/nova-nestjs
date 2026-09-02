@@ -1,0 +1,9 @@
+import type { <%= classify(name) %>Query } from '../../dto/<%= dasherize(name) %>-query.dto';
+import type { <%= classify(name) %>Response } from '../../dto/<%= dasherize(name) %>.response';
+
+/**
+ * Lo que este feature sabe hacer, dicho sin mencionar como.
+ */
+export interface Get<%= classify(name) %>UseCase {
+  list(query: <%= classify(name) %>Query): Promise<<%= classify(name) %>Response[]>;
+}

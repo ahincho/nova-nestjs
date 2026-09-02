@@ -1,0 +1,17 @@
+import { Type } from 'class-transformer';
+import { IsInt, IsOptional, IsString } from 'class-validator';
+
+/**
+ * El mensaje de cada restriccion llega al cliente tal cual, dentro del sobre y
+ * con el nombre del campo, asi que escribirlo para una persona no es un lujo:
+ * es lo que el formulario muestra.
+ */
+export class <%= classify(name) %>Query {
+  @Type(() => Number)
+  @IsInt({ message: 'periodId debe ser un numero entero' })
+  periodId!: number;
+
+  @IsOptional()
+  @IsString()
+  search?: string;
+}
