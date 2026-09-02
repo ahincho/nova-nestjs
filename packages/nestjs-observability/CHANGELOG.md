@@ -1,5 +1,16 @@
 # @ahincho/nova-nestjs-observability
 
+## 0.1.1
+
+### Patch Changes
+
+- El middleware ahora escribe el id de correlación en `req.id`.
+
+  Es la convención que leen `pino-http` y el filtro de excepciones de la
+  plataforma. Sin ella el contexto tenía el id pero la línea de log de un 5xx
+  salía con `requestId: undefined`, que es justo la línea desde la que alguien va
+  a querer seguir la traza.
+
 ## 0.1.0
 
 ### Minor Changes

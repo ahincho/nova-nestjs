@@ -1,6 +1,6 @@
 {
   "name": "@ahincho/nova-nestjs-observability",
-  "version": "0.1.0",
+  "version": "0.1.1",
   "description": "Request context and log redaction for Nova Platform NestJS services: correlation ids that travel on their own and headers that never reach a log",
   "license": "EPL-2.0",
   "repository": {

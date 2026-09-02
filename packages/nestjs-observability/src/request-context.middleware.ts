@@ -8,6 +8,7 @@ import {
 
 type RequestLike = {
   readonly headers: IncomingHeaders;
+  id?: string;
 };
 
 type ResponseLike = {
@@ -35,6 +36,12 @@ export class RequestContextMiddleware implements NestMiddleware {
       this.options.correlationHeaders,
       this.options.generateId,
     );
+
+    // `req.id` es la convencion que leen pino-http y el filtro de excepciones
+    // de la plataforma. Sin esto el contexto tiene el id pero la linea de log
+    // de un 5xx sale con `requestId: undefined`, que es justo la linea desde la
+    // que alguien va a querer seguir la traza.
+    request.id = context.requestId;
 
     if (this.options.echoRequestId) {
       const [idHeader = 'x-request-id'] = this.options.correlationHeaders;

@@ -35,6 +35,29 @@ describe('RequestContextMiddleware', () => {
     expect(next).toHaveBeenCalledTimes(1);
   });
 
+  // `req.id` is what pino-http and the platform's exception filter read. Without
+  // it the context holds the id but a 5xx log line says `requestId: undefined`,
+  // which is exactly the line someone will want to follow the trace from.
+  it('stamps the id on the request under the convention others read', () => {
+    const request: { headers: Record<string, string>; id?: string } = {
+      headers: { 'x-request-id': 'req-1' },
+    };
+
+    middleware().use(request, { setHeader: jest.fn() }, jest.fn());
+
+    expect(request.id).toBe('req-1');
+  });
+
+  it('stamps a generated id too', () => {
+    const request: { headers: Record<string, string>; id?: string } = {
+      headers: {},
+    };
+
+    middleware().use(request, { setHeader: jest.fn() }, jest.fn());
+
+    expect(request.id).toBe('generated-id');
+  });
+
   // The caller needs the id to report a failure, and a browser can only read it
   // because the CORS policy exposes that header.
   it('echoes the correlation id back on the response', () => {
