@@ -1,0 +1,25 @@
+{
+  "name": "@nova-platform/tsconfig",
+  "version": "0.0.0",
+  "description": "Shared TypeScript configurations for Nova Platform NestJS projects",
+  "license": "EPL-2.0",
+  "repository": {
+    "type": "git",
+    "url": "git+https://github.com/ahincho/nova-nestjs.git",
+    "directory": "packages/tsconfig"
+  },
+  "publishConfig": {
+    "access": "public"
+  },
+  "files": [
+    "base.json",
+    "library.json",
+    "nestjs.json",
+    "README.md"
+  ],
+  "scripts": {
+    "build": "echo \"@nova-platform/tsconfig ships JSON only\"",
+    "test": "echo \"@nova-platform/tsconfig has no tests\"",
+    "typecheck": "echo \"@nova-platform/tsconfig has nothing to typecheck\""
+  }
+}

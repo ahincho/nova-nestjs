@@ -1,0 +1,9 @@
+# core.autocrlf esta en true en Windows, asi que sin esto el working copy queda
+# en CRLF y prettier --check reporta decenas de diferencias que no existen en el
+# runner de Linux. Fijar el fin de linea en el repo es lo que evita ese falso
+# negativo, que cuesta mas en leerlo que en arreglarlo.
+* text=auto eol=lf
+
+*.png binary
+*.jpg binary
+*.ico binary

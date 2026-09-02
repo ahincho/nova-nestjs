@@ -1,0 +1,46 @@
+name: CI
+
+on:
+  pull_request:
+    branches: [main]
+    types: [opened, synchronize, reopened]
+  push:
+    branches: [main]
+
+# Una segunda subida a la misma rama cancela la corrida anterior: nadie mira el
+# resultado de un commit que ya fue reemplazado.
+concurrency:
+  group: ci-${{ github.ref }}
+  cancel-in-progress: true
+
+permissions:
+  contents: read
+
+jobs:
+  verify:
+    name: verify
+    runs-on: ubuntu-latest
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v4
+
+      # Este workflow es autocontenido a proposito. La composite action
+      # nova-setup-node de nova-devops acepta un input `package-manager` pero su
+      # paso de instalacion siempre corre npm, asi que no sirve para un
+      # workspace de pnpm. Migrar a ella cuando soporte pnpm de verdad.
+      - name: Setup pnpm
+        uses: pnpm/action-setup@v4
+
+      - name: Setup Node
+        uses: actions/setup-node@v4
+        with:
+          node-version: 22
+          cache: pnpm
+
+      - name: Install
+        run: pnpm install --frozen-lockfile
+
+      # build, typecheck, cobertura y formato, en ese orden: un paquete consume
+      # el dist de su hermano, asi que el typecheck no puede ir primero.
+      - name: Verify
+        run: pnpm verify

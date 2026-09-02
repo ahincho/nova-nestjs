@@ -1,0 +1,14 @@
+packages:
+  - 'packages/*'
+
+# pnpm 10+ bloquea los scripts de instalacion de las dependencias y aborta el
+# install si nadie decidio que hacer con ellos. Decidirlo aca es lo que evita
+# que un `pnpm install` limpio falle en CI antes de compilar nada.
+#
+# Los dos van en false porque ninguno hace falta: @parcel/watcher solo acelera
+# el modo --watch de Jest, y unrs-resolver es el binario nativo opcional del
+# resolutor de imports de ESLint, que cae a su implementacion en JavaScript
+# cuando no esta compilado.
+allowBuilds:
+  '@parcel/watcher': false
+  unrs-resolver: false

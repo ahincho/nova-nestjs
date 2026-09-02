@@ -1,0 +1,47 @@
+{
+  "name": "@nova-platform/api-standard",
+  "version": "0.0.0",
+  "description": "Framework-agnostic HTTP response envelope for Nova Platform services",
+  "license": "EPL-2.0",
+  "repository": {
+    "type": "git",
+    "url": "git+https://github.com/ahincho/nova-nestjs.git",
+    "directory": "packages/api-standard"
+  },
+  "publishConfig": {
+    "access": "public"
+  },
+  "type": "commonjs",
+  "main": "./dist/index.js",
+  "types": "./dist/index.d.ts",
+  "exports": {
+    ".": {
+      "types": "./dist/index.d.ts",
+      "default": "./dist/index.js"
+    }
+  },
+  "files": [
+    "dist",
+    "README.md"
+  ],
+  "engines": {
+    "node": ">=22"
+  },
+  "scripts": {
+    "build": "tsc -p tsconfig.build.json",
+    "clean": "rimraf dist coverage *.tsbuildinfo",
+    "test": "jest",
+    "test:cov": "jest --coverage",
+    "typecheck": "tsc -p tsconfig.json --noEmit"
+  },
+  "devDependencies": {
+    "@nova-platform/jest-preset": "workspace:*",
+    "@nova-platform/tsconfig": "workspace:*",
+    "@types/jest": "^30.0.0",
+    "@types/node": "^22.15.0",
+    "jest": "^30.4.2",
+    "rimraf": "^6.0.1",
+    "ts-jest": "^29.4.12",
+    "typescript": "~6.0.3"
+  }
+}
