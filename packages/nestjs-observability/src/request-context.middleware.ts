@@ -1,0 +1,46 @@
+import { Inject, Injectable, type NestMiddleware } from '@nestjs/common';
+import { buildRequestContext, type IncomingHeaders } from './request-context';
+import { RequestContextService } from './request-context.service';
+import {
+  OBSERVABILITY_OPTIONS,
+  type ResolvedObservabilityOptions,
+} from './tokens';
+
+type RequestLike = {
+  readonly headers: IncomingHeaders;
+};
+
+type ResponseLike = {
+  setHeader?(name: string, value: string): unknown;
+};
+
+/**
+ * Opens the request context for every incoming call.
+ *
+ * Registered for every route by `NovaObservabilityModule`, so no controller has
+ * to remember to read the correlation headers - which is how a service ends up
+ * with three ways of doing it and one route that does none.
+ */
+@Injectable()
+export class RequestContextMiddleware implements NestMiddleware {
+  constructor(
+    private readonly context: RequestContextService,
+    @Inject(OBSERVABILITY_OPTIONS)
+    private readonly options: ResolvedObservabilityOptions,
+  ) {}
+
+  use(request: RequestLike, response: ResponseLike, next: () => void): void {
+    const context = buildRequestContext(
+      request.headers,
+      this.options.correlationHeaders,
+      this.options.generateId,
+    );
+
+    if (this.options.echoRequestId) {
+      const [idHeader = 'x-request-id'] = this.options.correlationHeaders;
+      response.setHeader?.(idHeader, context.requestId);
+    }
+
+    this.context.run(context, next);
+  }
+}

@@ -1,6 +1,6 @@
 {
   "name": "@nova-platform/jest-preset",
-  "version": "0.0.0",
+  "version": "0.1.0",
   "description": "Shared Jest preset for Nova Platform NestJS projects",
   "license": "EPL-2.0",
   "repository": {

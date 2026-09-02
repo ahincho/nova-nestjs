@@ -1,6 +1,6 @@
 {
   "name": "@nova-platform/nestjs-api-standard",
-  "version": "0.0.0",
+  "version": "0.1.0",
   "description": "NestJS integration for the Nova Platform response envelope: global interceptor, exception filter and validation errors",
   "license": "EPL-2.0",
   "repository": {

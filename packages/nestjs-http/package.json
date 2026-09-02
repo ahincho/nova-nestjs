@@ -1,6 +1,6 @@
 {
   "name": "@nova-platform/nestjs-http",
-  "version": "0.0.0",
+  "version": "0.1.0",
   "description": "Outbound HTTP client for Nova Platform NestJS services: timeouts, opaque upstream errors and correlation header propagation",
   "license": "EPL-2.0",
   "repository": {

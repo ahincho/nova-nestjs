@@ -1,12 +1,12 @@
 {
-  "name": "@nova-platform/nestjs-config",
+  "name": "@nova-platform/nestjs",
   "version": "0.1.0",
-  "description": "Typed environment readers, upstream configuration and CORS policy for Nova Platform NestJS services",
+  "description": "The Nova Platform meta-framework for NestJS: one module and one bootstrap call that wire the envelope, configuration, HTTP client, request context and health probes together",
   "license": "EPL-2.0",
   "repository": {
     "type": "git",
     "url": "git+https://github.com/ahincho/nova-nestjs.git",
-    "directory": "packages/nestjs-config"
+    "directory": "packages/nestjs"
   },
   "publishConfig": {
     "access": "public"
@@ -34,9 +34,22 @@
     "test:cov": "jest --coverage",
     "typecheck": "tsc -p tsconfig.json --noEmit"
   },
+  "dependencies": {
+    "@nova-platform/api-standard": "workspace:*",
+    "@nova-platform/nestjs-api-standard": "workspace:*",
+    "@nova-platform/nestjs-config": "workspace:*",
+    "@nova-platform/nestjs-health": "workspace:*",
+    "@nova-platform/nestjs-http": "workspace:*",
+    "@nova-platform/nestjs-observability": "workspace:*"
+  },
   "peerDependencies": {
     "@nestjs/common": "^11.0.0",
-    "@nestjs/config": "^4.0.0"
+    "@nestjs/config": "^4.0.0",
+    "@nestjs/core": "^11.0.0",
+    "class-transformer": "^0.5.0",
+    "class-validator": "^0.14.0",
+    "reflect-metadata": "^0.2.0",
+    "rxjs": "^7.8.0"
   },
   "devDependencies": {
     "@nestjs/common": "^11.2.1",
@@ -46,6 +59,8 @@
     "@nova-platform/tsconfig": "workspace:*",
     "@types/jest": "^30.0.0",
     "@types/node": "^22.15.0",
+    "class-transformer": "^0.5.1",
+    "class-validator": "^0.14.2",
     "jest": "^30.4.2",
     "reflect-metadata": "^0.2.2",
     "rimraf": "^6.0.1",

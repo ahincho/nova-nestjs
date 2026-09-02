@@ -1,6 +1,6 @@
 {
   "name": "@nova-platform/tsconfig",
-  "version": "0.0.0",
+  "version": "0.1.0",
   "description": "Shared TypeScript configurations for Nova Platform NestJS projects",
   "license": "EPL-2.0",
   "repository": {
