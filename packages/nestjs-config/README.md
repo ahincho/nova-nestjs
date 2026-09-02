@@ -1,10 +1,10 @@
-# @nova-platform/nestjs-config
+# @ahincho/nova-nestjs-config
 
 Lectores tipados de variables de entorno, declaración de upstreams y política de
 CORS para servicios NestJS de Nova Platform.
 
 ```bash
-pnpm add @nova-platform/nestjs-config @nestjs/config
+pnpm add @ahincho/nova-nestjs-config @nestjs/config
 ```
 
 ## Declarar un upstream
@@ -13,7 +13,7 @@ Es la pieza que más paga. Una línea reemplaza el archivo de configuración que
 cada servicio copiaba por upstream:
 
 ```ts
-import { defineUpstream } from '@nova-platform/nestjs-config';
+import { defineUpstream } from '@ahincho/nova-nestjs-config';
 
 export const academicOrchestrator = defineUpstream('academic-orchestrator');
 // lee ACADEMIC_ORCHESTRATOR_URL y ACADEMIC_ORCHESTRATOR_TIMEOUT_MS
@@ -50,7 +50,7 @@ import {
   numberEnv,
   booleanEnv,
   urlEnv,
-} from '@nova-platform/nestjs-config';
+} from '@ahincho/nova-nestjs-config';
 
 requireEnv('SERVICE_NAME'); // falla si falta o está en blanco
 optionalEnv('LOG_LEVEL', 'info');
@@ -73,7 +73,7 @@ una investigación:
 ## CORS
 
 ```ts
-import { buildCorsOptions } from '@nova-platform/nestjs-config';
+import { buildCorsOptions } from '@ahincho/nova-nestjs-config';
 
 app.enableCors(
   buildCorsOptions({ origins: process.env.CORS_ALLOWED_ORIGINS ?? '' }),

@@ -1,4 +1,4 @@
-# @nova-platform/nestjs-config
+# @ahincho/nova-nestjs-config
 
 ## 0.1.0
 

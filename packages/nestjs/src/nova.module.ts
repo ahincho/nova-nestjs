@@ -2,25 +2,25 @@ import { Module, type DynamicModule, type Provider } from '@nestjs/common';
 import {
   ApiStandardModule,
   type ApiStandardModuleOptions,
-} from '@nova-platform/nestjs-api-standard';
+} from '@ahincho/nova-nestjs-api-standard';
 import {
   NovaConfigModule,
   type NovaConfigModuleOptions,
-} from '@nova-platform/nestjs-config';
+} from '@ahincho/nova-nestjs-config';
 import {
   NovaHealthModule,
   type NovaHealthModuleOptions,
-} from '@nova-platform/nestjs-health';
+} from '@ahincho/nova-nestjs-health';
 import {
   NovaHttpModule,
   OUTBOUND_HEADERS_PROVIDER,
   type NovaHttpModuleOptions,
-} from '@nova-platform/nestjs-http';
+} from '@ahincho/nova-nestjs-http';
 import {
   NovaObservabilityModule,
   RequestContextService,
   type NovaObservabilityModuleOptions,
-} from '@nova-platform/nestjs-observability';
+} from '@ahincho/nova-nestjs-observability';
 
 export type NovaModuleOptions = {
   /** Configuration and the upstreams to load. Omit to configure it yourself. */

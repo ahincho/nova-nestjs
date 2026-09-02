@@ -1,7 +1,7 @@
 # nova-nestjs
 
 Meta-framework de **Nova Platform** para NestJS. Monorepo de paquetes publicados
-en npm bajo el scope `@nova-platform`.
+en GitHub Packages bajo el scope `@ahincho`.
 
 Es el equivalente en NestJS de lo que
 [`nova-java-spring-boot-starter`](https://github.com/ahincho/nova-java-spring-boot-starter)
@@ -21,19 +21,19 @@ su changelog y su página de npm; el consumidor no distingue.
 
 ## Paquetes
 
-| Paquete                                                                | Nivel               | Estado    |
-| ---------------------------------------------------------------------- | ------------------- | --------- |
-| [`@nova-platform/api-standard`](packages/api-standard)                 | 1 · librería pura   | listo     |
-| [`@nova-platform/nestjs-api-standard`](packages/nestjs-api-standard)   | 2 · conector NestJS | listo     |
-| [`@nova-platform/nestjs-config`](packages/nestjs-config)               | 2 · conector NestJS | listo     |
-| [`@nova-platform/nestjs-http`](packages/nestjs-http)                   | 2 · conector NestJS | listo     |
-| [`@nova-platform/nestjs-observability`](packages/nestjs-observability) | 2 · conector NestJS | listo     |
-| [`@nova-platform/nestjs-health`](packages/nestjs-health)               | 2 · conector NestJS | listo     |
-| [`@nova-platform/nestjs`](packages/nestjs)                             | 3 · agregador       | listo     |
-| [`@nova-platform/tsconfig`](packages/tsconfig)                         | 4 · presets         | listo     |
-| [`@nova-platform/eslint-config`](packages/eslint-config)               | 4 · presets         | listo     |
-| [`@nova-platform/jest-preset`](packages/jest-preset)                   | 4 · presets         | listo     |
-| `@nova-platform/schematics`                                            | 5 · tooling         | pendiente |
+| Paquete                                                               | Nivel               | Estado    |
+| --------------------------------------------------------------------- | ------------------- | --------- |
+| [`@ahincho/nova-api-standard`](packages/api-standard)                 | 1 · librería pura   | listo     |
+| [`@ahincho/nova-nestjs-api-standard`](packages/nestjs-api-standard)   | 2 · conector NestJS | listo     |
+| [`@ahincho/nova-nestjs-config`](packages/nestjs-config)               | 2 · conector NestJS | listo     |
+| [`@ahincho/nova-nestjs-http`](packages/nestjs-http)                   | 2 · conector NestJS | listo     |
+| [`@ahincho/nova-nestjs-observability`](packages/nestjs-observability) | 2 · conector NestJS | listo     |
+| [`@ahincho/nova-nestjs-health`](packages/nestjs-health)               | 2 · conector NestJS | listo     |
+| [`@ahincho/nova-nestjs`](packages/nestjs)                             | 3 · agregador       | listo     |
+| [`@ahincho/nova-tsconfig`](packages/tsconfig)                         | 4 · presets         | listo     |
+| [`@ahincho/nova-eslint-config`](packages/eslint-config)               | 4 · presets         | listo     |
+| [`@ahincho/nova-jest-preset`](packages/jest-preset)                   | 4 · presets         | listo     |
+| `@ahincho/nova-schematics`                                            | 5 · tooling         | pendiente |
 
 El nivel 1 no importa de ningún framework: `api-standard` es TypeScript puro y sirve
 igual en un Lambda o en un script.
@@ -44,7 +44,7 @@ Tres mecanismos distintos, y sólo uno es un `import`:
 
 ```ts
 // 1. Piezas sueltas — un import normal
-import { ApiResponses } from '@nova-platform/api-standard';
+import { ApiResponses } from '@ahincho/nova-api-standard';
 
 // 2. Activación — en NestJS nada se dispara solo, hay que llamarlo
 @Module({ imports: [ApiStandardModule.forRoot()] })
@@ -53,7 +53,7 @@ export class AppModule {}
 
 ```json
 // 3. Presets — se heredan desde el archivo de configuración
-{ "extends": "@nova-platform/tsconfig/nestjs.json" }
+{ "extends": "@ahincho/nova-tsconfig/nestjs.json" }
 ```
 
 ## Desarrollo
@@ -81,7 +81,7 @@ que su consumidor. `pnpm -r` respeta el orden topológico, así que basta con co
 
 Conventional commits y [Changesets](https://github.com/changesets/changesets).
 Cada PR que toca un paquete publicable lleva su changeset; `changeset version`
-calcula los bumps y `changeset publish` sube a npm.
+calcula los bumps y `changeset publish` sube al registry.
 
 El stack Java usa `release-please` porque cada repo se versiona solo. Acá el bump
 tiene que propagarse entre paquetes del mismo commit, que es justo lo que Changesets

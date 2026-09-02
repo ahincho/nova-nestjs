@@ -6,7 +6,7 @@ import {
   Res,
   type Type,
 } from '@nestjs/common';
-import { SkipResponseWrapper } from '@nova-platform/nestjs-api-standard';
+import { SkipResponseWrapper } from '@ahincho/nova-nestjs-api-standard';
 import { HEALTH_OPTIONS, type ResolvedHealthOptions } from './tokens';
 
 export type LivenessResponse = { status: 'ok' };

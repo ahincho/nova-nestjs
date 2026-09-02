@@ -1,4 +1,4 @@
-# @nova-platform/eslint-config
+# @ahincho/nova-eslint-config
 
 ## 0.1.0
 

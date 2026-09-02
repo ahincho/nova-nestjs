@@ -1,4 +1,4 @@
-# @nova-platform/nestjs-observability
+# @ahincho/nova-nestjs-observability
 
 ## 0.1.0
 

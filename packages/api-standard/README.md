@@ -1,10 +1,10 @@
-# @nova-platform/api-standard
+# @ahincho/nova-api-standard
 
 Sobre de respuesta HTTP de Nova Platform. TypeScript puro, **cero dependencias**:
 lo consume NestJS, pero también un Lambda o un script.
 
 ```bash
-pnpm add @nova-platform/api-standard
+pnpm add @ahincho/nova-api-standard
 ```
 
 ## El contrato
@@ -30,7 +30,7 @@ un fallo lleva `data: null`.
 ## Uso
 
 ```ts
-import { ApiResponses, errorItem } from '@nova-platform/api-standard';
+import { ApiResponses, errorItem } from '@ahincho/nova-api-standard';
 
 ApiResponses.ok({ id: 7 }); // 200
 ApiResponses.created({ id: 7 }); // 201

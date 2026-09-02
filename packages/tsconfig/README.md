@@ -1,14 +1,14 @@
-# @nova-platform/tsconfig
+# @ahincho/nova-tsconfig
 
 Configuraciones de TypeScript compartidas por los proyectos NestJS de Nova Platform.
 
 ```bash
-pnpm add -D @nova-platform/tsconfig
+pnpm add -D @ahincho/nova-tsconfig
 ```
 
 ```json
 {
-  "extends": "@nova-platform/tsconfig/nestjs.json",
+  "extends": "@ahincho/nova-tsconfig/nestjs.json",
   "compilerOptions": { "outDir": "./dist" }
 }
 ```

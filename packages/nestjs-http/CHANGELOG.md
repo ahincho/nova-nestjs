@@ -1,4 +1,4 @@
-# @nova-platform/nestjs-http
+# @ahincho/nova-nestjs-http
 
 ## 0.1.0
 

@@ -1,10 +1,10 @@
-# @nova-platform/nestjs-api-standard
+# @ahincho/nova-nestjs-api-standard
 
 Integración con NestJS del sobre de respuesta de Nova Platform. Registra un
 interceptor y un filtro globales para que ningún controlador arme el sobre a mano.
 
 ```bash
-pnpm add @nova-platform/nestjs-api-standard
+pnpm add @ahincho/nova-nestjs-api-standard
 ```
 
 ## Activación
@@ -13,7 +13,7 @@ En NestJS **nada se activa solo**: no hay escaneo de classpath como en Spring Bo
 así que la activación es una llamada explícita.
 
 ```ts
-import { ApiStandardModule } from '@nova-platform/nestjs-api-standard';
+import { ApiStandardModule } from '@ahincho/nova-nestjs-api-standard';
 
 @Module({
   imports: [ApiStandardModule.forRoot()],
@@ -33,7 +33,7 @@ findOne(@Param('id') id: string) {
 ## Errores de validación
 
 ```ts
-import { validationExceptionFactory } from '@nova-platform/nestjs-api-standard';
+import { validationExceptionFactory } from '@ahincho/nova-nestjs-api-standard';
 
 app.useGlobalPipes(
   new ValidationPipe({

@@ -1,9 +1,9 @@
-# @nova-platform/nestjs-health
+# @ahincho/nova-nestjs-health
 
 Sondas de vida y de disponibilidad para servicios NestJS de Nova Platform.
 
 ```bash
-pnpm add @nova-platform/nestjs-health
+pnpm add @ahincho/nova-nestjs-health
 ```
 
 ```ts
@@ -50,7 +50,7 @@ sonda empieza a fallar.
 **Mover `path` es mover el target group.** Una sonda que responde 404 hace que la
 tarea se desregistre unos nueve segundos después de registrarse, y el despliegue
 muere diez minutos más tarde con un timeout que se lee como un problema de
-recursos. Si usas `globalPrefix`, `bootstrap()` de `@nova-platform/nestjs` deja
+recursos. Si usas `globalPrefix`, `bootstrap()` de `@ahincho/nova-nestjs` deja
 las sondas fuera del prefijo por esta misma razón.
 
 ## Opciones

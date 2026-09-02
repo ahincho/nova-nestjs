@@ -1,4 +1,4 @@
-# @nova-platform/nestjs-api-standard
+# @ahincho/nova-nestjs-api-standard
 
 ## 0.1.0
 
@@ -14,4 +14,4 @@
 ### Patch Changes
 
 - Updated dependencies [b88d424]
-  - @nova-platform/api-standard@0.1.0
+  - @ahincho/nova-api-standard@0.1.0

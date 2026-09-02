@@ -1,1 +1,1 @@
-module.exports = { preset: '@nova-platform/jest-preset' };
+module.exports = { preset: '@ahincho/nova-jest-preset' };

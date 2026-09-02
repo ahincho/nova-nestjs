@@ -6,7 +6,7 @@ import type { RequestContext } from './request-context';
  * Reads and carries the {@link RequestContext} of the request in flight.
  *
  * Also the implementation behind `OUTBOUND_HEADERS_PROVIDER` of
- * `@nova-platform/nestjs-http`: it satisfies that port structurally, so the
+ * `@ahincho/nova-nestjs-http`: it satisfies that port structurally, so the
  * aggregator can bind the two without either package importing the other.
  */
 @Injectable()

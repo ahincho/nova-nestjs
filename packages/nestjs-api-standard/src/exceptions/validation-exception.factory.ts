@@ -1,4 +1,4 @@
-import { errorItem, type ApiErrorItem } from '@nova-platform/api-standard';
+import { errorItem, type ApiErrorItem } from '@ahincho/nova-api-standard';
 import { ValidationException } from './validation.exception';
 
 export const VALIDATION_ERROR_CODE = 'VALIDATION_ERROR';

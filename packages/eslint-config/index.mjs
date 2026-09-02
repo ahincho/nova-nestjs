@@ -4,7 +4,7 @@ import tseslint from 'typescript-eslint';
  * Configuracion plana de ESLint compartida por los proyectos de Nova Platform.
  *
  *   // eslint.config.mjs
- *   import nova from '@nova-platform/eslint-config';
+ *   import nova from '@ahincho/nova-eslint-config';
  *   export default nova;
  *
  * Para agregar reglas propias sin perder las de la plataforma:

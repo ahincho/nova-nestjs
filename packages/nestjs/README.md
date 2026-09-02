@@ -1,10 +1,10 @@
-# @nova-platform/nestjs
+# @ahincho/nova-nestjs
 
 El meta-framework de Nova Platform para NestJS: un módulo y una llamada de
 arranque que conectan todo lo demás.
 
 ```bash
-pnpm add @nova-platform/nestjs
+pnpm add @ahincho/nova-nestjs
 ```
 
 Trae consigo `api-standard`, `nestjs-api-standard`, `nestjs-config`,
@@ -16,7 +16,7 @@ necesita.
 
 ```ts
 // app.module.ts
-import { NovaModule, defineUpstream } from '@nova-platform/nestjs';
+import { NovaModule, defineUpstream } from '@ahincho/nova-nestjs';
 
 export const academicOrchestrator = defineUpstream('academic-orchestrator');
 
@@ -34,7 +34,7 @@ export class AppModule {}
 
 ```ts
 // main.ts, completo
-import { bootstrap } from '@nova-platform/nestjs';
+import { bootstrap } from '@ahincho/nova-nestjs';
 import { AppModule } from './app.module';
 
 void bootstrap(AppModule, {

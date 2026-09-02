@@ -1,4 +1,4 @@
-# @nova-platform/nestjs
+# @ahincho/nova-nestjs
 
 ## 0.1.0
 
@@ -21,9 +21,9 @@
 - Updated dependencies
 - Updated dependencies [0ada154]
 - Updated dependencies [b88d424]
-  - @nova-platform/nestjs-observability@0.1.0
-  - @nova-platform/nestjs-health@0.1.0
-  - @nova-platform/nestjs-config@0.1.0
-  - @nova-platform/nestjs-http@0.1.0
-  - @nova-platform/nestjs-api-standard@0.1.0
-  - @nova-platform/api-standard@0.1.0
+  - @ahincho/nova-nestjs-observability@0.1.0
+  - @ahincho/nova-nestjs-health@0.1.0
+  - @ahincho/nova-nestjs-config@0.1.0
+  - @ahincho/nova-nestjs-http@0.1.0
+  - @ahincho/nova-nestjs-api-standard@0.1.0
+  - @ahincho/nova-api-standard@0.1.0

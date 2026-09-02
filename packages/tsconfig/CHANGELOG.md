@@ -1,4 +1,4 @@
-# @nova-platform/tsconfig
+# @ahincho/nova-tsconfig
 
 ## 0.1.0
 

@@ -1,4 +1,4 @@
-# @nova-platform/nestjs-health
+# @ahincho/nova-nestjs-health
 
 ## 0.1.0
 
@@ -19,4 +19,4 @@
 ### Patch Changes
 
 - Updated dependencies [b88d424]
-  - @nova-platform/nestjs-api-standard@0.1.0
+  - @ahincho/nova-nestjs-api-standard@0.1.0

@@ -1,5 +1,5 @@
 import { BadRequestException } from '@nestjs/common';
-import type { ApiErrorItem } from '@nova-platform/api-standard';
+import type { ApiErrorItem } from '@ahincho/nova-api-standard';
 
 /**
  * A 400 carrying one entry per failed constraint, each naming its field.

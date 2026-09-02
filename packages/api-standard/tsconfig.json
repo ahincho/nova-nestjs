@@ -1,5 +1,5 @@
 {
-  "extends": "@nova-platform/tsconfig/library.json",
+  "extends": "@ahincho/nova-tsconfig/library.json",
   "compilerOptions": {
     "outDir": "./dist",
     "rootDir": "./src",

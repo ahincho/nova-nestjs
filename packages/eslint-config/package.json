@@ -1,5 +1,5 @@
 {
-  "name": "@nova-platform/eslint-config",
+  "name": "@ahincho/nova-eslint-config",
   "version": "0.1.0",
   "description": "Shared ESLint flat configuration for Nova Platform NestJS projects",
   "license": "EPL-2.0",
@@ -9,7 +9,8 @@
     "directory": "packages/eslint-config"
   },
   "publishConfig": {
-    "access": "public"
+    "access": "public",
+    "registry": "https://npm.pkg.github.com"
   },
   "type": "module",
   "main": "./index.mjs",
@@ -21,9 +22,9 @@
     "README.md"
   ],
   "scripts": {
-    "build": "echo \"@nova-platform/eslint-config ships JavaScript only\"",
-    "test": "echo \"@nova-platform/eslint-config has no tests\"",
-    "typecheck": "echo \"@nova-platform/eslint-config has nothing to typecheck\""
+    "build": "echo \"@ahincho/nova-eslint-config ships JavaScript only\"",
+    "test": "echo \"@ahincho/nova-eslint-config has no tests\"",
+    "typecheck": "echo \"@ahincho/nova-eslint-config has nothing to typecheck\""
   },
   "dependencies": {
     "typescript-eslint": "^8.46.0"

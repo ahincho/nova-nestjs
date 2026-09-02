@@ -1,6 +1,6 @@
 import type { CallHandler, ExecutionContext } from '@nestjs/common';
 import type { Reflector } from '@nestjs/core';
-import { ApiResponses } from '@nova-platform/api-standard';
+import { ApiResponses } from '@ahincho/nova-api-standard';
 import { lastValueFrom, of } from 'rxjs';
 import { ResponseWrapperInterceptor } from './response-wrapper.interceptor';
 

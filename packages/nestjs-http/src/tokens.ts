@@ -16,7 +16,7 @@ export const OUTBOUND_HEADERS_PROVIDER = Symbol(
  * This is the seam that lets a correlation id travel from the incoming request
  * to the upstream without any call site passing it. It is an injected port
  * rather than a direct dependency so this package stays independent of how the
- * context is kept - `@nova-platform/nestjs-observability` provides one backed
+ * context is kept - `@ahincho/nova-nestjs-observability` provides one backed
  * by `AsyncLocalStorage`, and an application can provide its own.
  */
 export interface OutboundHeadersProvider {

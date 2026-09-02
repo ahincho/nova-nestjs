@@ -1,4 +1,4 @@
-# @nova-platform/jest-preset
+# @ahincho/nova-jest-preset
 
 ## 0.1.0
 

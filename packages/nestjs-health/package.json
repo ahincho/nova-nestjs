@@ -1,5 +1,5 @@
 {
-  "name": "@nova-platform/nestjs-health",
+  "name": "@ahincho/nova-nestjs-health",
   "version": "0.1.0",
   "description": "Liveness and readiness probes for Nova Platform NestJS services, answering the shape a load balancer checks",
   "license": "EPL-2.0",
@@ -9,7 +9,8 @@
     "directory": "packages/nestjs-health"
   },
   "publishConfig": {
-    "access": "public"
+    "access": "public",
+    "registry": "https://npm.pkg.github.com"
   },
   "type": "commonjs",
   "main": "./dist/index.js",
@@ -35,7 +36,7 @@
     "typecheck": "tsc -p tsconfig.json --noEmit"
   },
   "dependencies": {
-    "@nova-platform/nestjs-api-standard": "workspace:*"
+    "@ahincho/nova-nestjs-api-standard": "workspace:*"
   },
   "peerDependencies": {
     "@nestjs/common": "^11.0.0"
@@ -43,8 +44,8 @@
   "devDependencies": {
     "@nestjs/common": "^11.2.1",
     "@nestjs/core": "^11.2.1",
-    "@nova-platform/jest-preset": "workspace:*",
-    "@nova-platform/tsconfig": "workspace:*",
+    "@ahincho/nova-jest-preset": "workspace:*",
+    "@ahincho/nova-tsconfig": "workspace:*",
     "@types/jest": "^30.0.0",
     "@types/node": "^22.15.0",
     "jest": "^30.4.2",

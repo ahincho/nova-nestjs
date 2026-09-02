@@ -20,10 +20,10 @@ importers:
 
   packages/api-standard:
     devDependencies:
-      '@nova-platform/jest-preset':
+      '@ahincho/nova-jest-preset':
         specifier: workspace:*
         version: link:../jest-preset
-      '@nova-platform/tsconfig':
+      '@ahincho/nova-tsconfig':
         specifier: workspace:*
         version: link:../tsconfig
       '@types/jest':
@@ -68,25 +68,31 @@ importers:
 
   packages/nestjs:
     dependencies:
-      '@nova-platform/api-standard':
+      '@ahincho/nova-api-standard':
         specifier: workspace:*
         version: link:../api-standard
-      '@nova-platform/nestjs-api-standard':
+      '@ahincho/nova-nestjs-api-standard':
         specifier: workspace:*
         version: link:../nestjs-api-standard
-      '@nova-platform/nestjs-config':
+      '@ahincho/nova-nestjs-config':
         specifier: workspace:*
         version: link:../nestjs-config
-      '@nova-platform/nestjs-health':
+      '@ahincho/nova-nestjs-health':
         specifier: workspace:*
         version: link:../nestjs-health
-      '@nova-platform/nestjs-http':
+      '@ahincho/nova-nestjs-http':
         specifier: workspace:*
         version: link:../nestjs-http
-      '@nova-platform/nestjs-observability':
+      '@ahincho/nova-nestjs-observability':
         specifier: workspace:*
         version: link:../nestjs-observability
     devDependencies:
+      '@ahincho/nova-jest-preset':
+        specifier: workspace:*
+        version: link:../jest-preset
+      '@ahincho/nova-tsconfig':
+        specifier: workspace:*
+        version: link:../tsconfig
       '@nestjs/common':
         specifier: ^11.2.1
         version: 11.2.3(class-transformer@0.5.1)(class-validator@0.14.4)(reflect-metadata@0.2.2)(rxjs@7.8.2)(supports-color@8.1.1)
@@ -96,12 +102,6 @@ importers:
       '@nestjs/core':
         specifier: ^11.2.1
         version: 11.2.3(@nestjs/common@11.2.3(class-transformer@0.5.1)(class-validator@0.14.4)(reflect-metadata@0.2.2)(rxjs@7.8.2)(supports-color@8.1.1))(reflect-metadata@0.2.2)(rxjs@7.8.2)
-      '@nova-platform/jest-preset':
-        specifier: workspace:*
-        version: link:../jest-preset
-      '@nova-platform/tsconfig':
-        specifier: workspace:*
-        version: link:../tsconfig
       '@types/jest':
         specifier: ^30.0.0
         version: 30.0.0
@@ -135,22 +135,22 @@ importers:
 
   packages/nestjs-api-standard:
     dependencies:
-      '@nova-platform/api-standard':
+      '@ahincho/nova-api-standard':
         specifier: workspace:*
         version: link:../api-standard
     devDependencies:
+      '@ahincho/nova-jest-preset':
+        specifier: workspace:*
+        version: link:../jest-preset
+      '@ahincho/nova-tsconfig':
+        specifier: workspace:*
+        version: link:../tsconfig
       '@nestjs/common':
         specifier: ^11.2.1
         version: 11.2.3(class-transformer@0.5.1)(class-validator@0.14.4)(reflect-metadata@0.2.2)(rxjs@7.8.2)(supports-color@8.1.1)
       '@nestjs/core':
         specifier: ^11.2.1
         version: 11.2.3(@nestjs/common@11.2.3(class-transformer@0.5.1)(class-validator@0.14.4)(reflect-metadata@0.2.2)(rxjs@7.8.2)(supports-color@8.1.1))(reflect-metadata@0.2.2)(rxjs@7.8.2)
-      '@nova-platform/jest-preset':
-        specifier: workspace:*
-        version: link:../jest-preset
-      '@nova-platform/tsconfig':
-        specifier: workspace:*
-        version: link:../tsconfig
       '@types/jest':
         specifier: ^30.0.0
         version: 30.0.0
@@ -178,6 +178,12 @@ importers:
 
   packages/nestjs-config:
     devDependencies:
+      '@ahincho/nova-jest-preset':
+        specifier: workspace:*
+        version: link:../jest-preset
+      '@ahincho/nova-tsconfig':
+        specifier: workspace:*
+        version: link:../tsconfig
       '@nestjs/common':
         specifier: ^11.2.1
         version: 11.2.3(class-transformer@0.5.1)(class-validator@0.14.4)(reflect-metadata@0.2.2)(rxjs@7.8.2)(supports-color@8.1.1)
@@ -187,12 +193,6 @@ importers:
       '@nestjs/core':
         specifier: ^11.2.1
         version: 11.2.3(@nestjs/common@11.2.3(class-transformer@0.5.1)(class-validator@0.14.4)(reflect-metadata@0.2.2)(rxjs@7.8.2)(supports-color@8.1.1))(reflect-metadata@0.2.2)(rxjs@7.8.2)
-      '@nova-platform/jest-preset':
-        specifier: workspace:*
-        version: link:../jest-preset
-      '@nova-platform/tsconfig':
-        specifier: workspace:*
-        version: link:../tsconfig
       '@types/jest':
         specifier: ^30.0.0
         version: 30.0.0
@@ -220,22 +220,22 @@ importers:
 
   packages/nestjs-health:
     dependencies:
-      '@nova-platform/nestjs-api-standard':
+      '@ahincho/nova-nestjs-api-standard':
         specifier: workspace:*
         version: link:../nestjs-api-standard
     devDependencies:
+      '@ahincho/nova-jest-preset':
+        specifier: workspace:*
+        version: link:../jest-preset
+      '@ahincho/nova-tsconfig':
+        specifier: workspace:*
+        version: link:../tsconfig
       '@nestjs/common':
         specifier: ^11.2.1
         version: 11.2.3(class-transformer@0.5.1)(class-validator@0.14.4)(reflect-metadata@0.2.2)(rxjs@7.8.2)(supports-color@8.1.1)
       '@nestjs/core':
         specifier: ^11.2.1
         version: 11.2.3(@nestjs/common@11.2.3(class-transformer@0.5.1)(class-validator@0.14.4)(reflect-metadata@0.2.2)(rxjs@7.8.2)(supports-color@8.1.1))(reflect-metadata@0.2.2)(rxjs@7.8.2)
-      '@nova-platform/jest-preset':
-        specifier: workspace:*
-        version: link:../jest-preset
-      '@nova-platform/tsconfig':
-        specifier: workspace:*
-        version: link:../tsconfig
       '@types/jest':
         specifier: ^30.0.0
         version: 30.0.0
@@ -263,18 +263,18 @@ importers:
 
   packages/nestjs-http:
     devDependencies:
+      '@ahincho/nova-jest-preset':
+        specifier: workspace:*
+        version: link:../jest-preset
+      '@ahincho/nova-tsconfig':
+        specifier: workspace:*
+        version: link:../tsconfig
       '@nestjs/common':
         specifier: ^11.2.1
         version: 11.2.3(class-transformer@0.5.1)(class-validator@0.14.4)(reflect-metadata@0.2.2)(rxjs@7.8.2)(supports-color@8.1.1)
       '@nestjs/core':
         specifier: ^11.2.1
         version: 11.2.3(@nestjs/common@11.2.3(class-transformer@0.5.1)(class-validator@0.14.4)(reflect-metadata@0.2.2)(rxjs@7.8.2)(supports-color@8.1.1))(reflect-metadata@0.2.2)(rxjs@7.8.2)
-      '@nova-platform/jest-preset':
-        specifier: workspace:*
-        version: link:../jest-preset
-      '@nova-platform/tsconfig':
-        specifier: workspace:*
-        version: link:../tsconfig
       '@types/jest':
         specifier: ^30.0.0
         version: 30.0.0
@@ -302,18 +302,18 @@ importers:
 
   packages/nestjs-observability:
     devDependencies:
+      '@ahincho/nova-jest-preset':
+        specifier: workspace:*
+        version: link:../jest-preset
+      '@ahincho/nova-tsconfig':
+        specifier: workspace:*
+        version: link:../tsconfig
       '@nestjs/common':
         specifier: ^11.2.1
         version: 11.2.3(class-transformer@0.5.1)(class-validator@0.14.4)(reflect-metadata@0.2.2)(rxjs@7.8.2)(supports-color@8.1.1)
       '@nestjs/core':
         specifier: ^11.2.1
         version: 11.2.3(@nestjs/common@11.2.3(class-transformer@0.5.1)(class-validator@0.14.4)(reflect-metadata@0.2.2)(rxjs@7.8.2)(supports-color@8.1.1))(reflect-metadata@0.2.2)(rxjs@7.8.2)
-      '@nova-platform/jest-preset':
-        specifier: workspace:*
-        version: link:../jest-preset
-      '@nova-platform/tsconfig':
-        specifier: workspace:*
-        version: link:../tsconfig
       '@types/jest':
         specifier: ^30.0.0
         version: 30.0.0

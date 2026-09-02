@@ -1,21 +1,21 @@
-# @nova-platform/eslint-config
+# @ahincho/nova-eslint-config
 
 Configuración plana de ESLint compartida por los proyectos NestJS de Nova Platform.
 
 ```bash
-pnpm add -D @nova-platform/eslint-config eslint
+pnpm add -D @ahincho/nova-eslint-config eslint
 ```
 
 ```js
 // eslint.config.mjs
-import nova from '@nova-platform/eslint-config';
+import nova from '@ahincho/nova-eslint-config';
 export default nova;
 ```
 
 Para agregar reglas propias sin perder las de la plataforma:
 
 ```js
-import nova from '@nova-platform/eslint-config';
+import nova from '@ahincho/nova-eslint-config';
 export default [...nova, { rules: { 'no-console': 'error' } }];
 ```
 

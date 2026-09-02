@@ -1,4 +1,4 @@
-# @nova-platform/api-standard
+# @ahincho/nova-api-standard
 
 ## 0.1.0
 

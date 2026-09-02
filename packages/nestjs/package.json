@@ -1,5 +1,5 @@
 {
-  "name": "@nova-platform/nestjs",
+  "name": "@ahincho/nova-nestjs",
   "version": "0.1.0",
   "description": "The Nova Platform meta-framework for NestJS: one module and one bootstrap call that wire the envelope, configuration, HTTP client, request context and health probes together",
   "license": "EPL-2.0",
@@ -9,7 +9,8 @@
     "directory": "packages/nestjs"
   },
   "publishConfig": {
-    "access": "public"
+    "access": "public",
+    "registry": "https://npm.pkg.github.com"
   },
   "type": "commonjs",
   "main": "./dist/index.js",
@@ -35,12 +36,12 @@
     "typecheck": "tsc -p tsconfig.json --noEmit"
   },
   "dependencies": {
-    "@nova-platform/api-standard": "workspace:*",
-    "@nova-platform/nestjs-api-standard": "workspace:*",
-    "@nova-platform/nestjs-config": "workspace:*",
-    "@nova-platform/nestjs-health": "workspace:*",
-    "@nova-platform/nestjs-http": "workspace:*",
-    "@nova-platform/nestjs-observability": "workspace:*"
+    "@ahincho/nova-api-standard": "workspace:*",
+    "@ahincho/nova-nestjs-api-standard": "workspace:*",
+    "@ahincho/nova-nestjs-config": "workspace:*",
+    "@ahincho/nova-nestjs-health": "workspace:*",
+    "@ahincho/nova-nestjs-http": "workspace:*",
+    "@ahincho/nova-nestjs-observability": "workspace:*"
   },
   "peerDependencies": {
     "@nestjs/common": "^11.0.0",
@@ -55,8 +56,8 @@
     "@nestjs/common": "^11.2.1",
     "@nestjs/config": "^4.0.4",
     "@nestjs/core": "^11.2.1",
-    "@nova-platform/jest-preset": "workspace:*",
-    "@nova-platform/tsconfig": "workspace:*",
+    "@ahincho/nova-jest-preset": "workspace:*",
+    "@ahincho/nova-tsconfig": "workspace:*",
     "@types/jest": "^30.0.0",
     "@types/node": "^22.15.0",
     "class-transformer": "^0.5.1",

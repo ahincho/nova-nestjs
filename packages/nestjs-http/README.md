@@ -1,9 +1,9 @@
-# @nova-platform/nestjs-http
+# @ahincho/nova-nestjs-http
 
 Cliente HTTP de salida para servicios NestJS de Nova Platform.
 
 ```bash
-pnpm add @nova-platform/nestjs-http
+pnpm add @ahincho/nova-nestjs-http
 ```
 
 Construido sobre el `fetch` global de Node, así que **el paquete no trae ninguna
@@ -43,7 +43,7 @@ por cabecera no cubre.
 ```
 
 Es un puerto inyectado y no una dependencia directa, para que este paquete no
-sepa cómo se guarda el contexto. `@nova-platform/nestjs-observability` provee uno
+sepa cómo se guarda el contexto. `@ahincho/nova-nestjs-observability` provee uno
 sobre `AsyncLocalStorage`. **Si el proveedor falla, la llamada sigue**: perder el
 id degrada una traza; hacer fallar la llamada sería una caída.
 

@@ -7,7 +7,7 @@ import {
   NotFoundException,
   type ArgumentsHost,
 } from '@nestjs/common';
-import { errorItem } from '@nova-platform/api-standard';
+import { errorItem } from '@ahincho/nova-api-standard';
 import { ValidationException } from '../exceptions/validation.exception';
 import { DEFAULT_API_STANDARD_OPTIONS } from '../tokens';
 import { AllExceptionsFilter } from './all-exceptions.filter';

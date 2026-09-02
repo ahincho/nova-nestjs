@@ -1,9 +1,9 @@
-# @nova-platform/nestjs-observability
+# @ahincho/nova-nestjs-observability
 
 Contexto de request y redacción de logs para servicios NestJS de Nova Platform.
 
 ```bash
-pnpm add @nova-platform/nestjs-observability
+pnpm add @ahincho/nova-nestjs-observability
 ```
 
 ## El contexto de request
@@ -28,8 +28,8 @@ una petición —un job programado, un consumidor— devuelve vacío: inventar u
 correlación haría que una traza afirme una relación que no existe.
 
 `headers()` satisface estructuralmente el puerto `OutboundHeadersProvider` de
-`@nova-platform/nestjs-http`. **Ninguno de los dos paquetes importa al otro**:
-los une `@nova-platform/nestjs`, y por eso los dos sirven por separado.
+`@ahincho/nova-nestjs-http`. **Ninguno de los dos paquetes importa al otro**:
+los une `@ahincho/nova-nestjs`, y por eso los dos sirven por separado.
 
 ### Qué se propaga
 

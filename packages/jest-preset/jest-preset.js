@@ -2,7 +2,7 @@
  * Preset de Jest compartido por los paquetes y las aplicaciones de Nova Platform.
  *
  *   // jest.config.js
- *   module.exports = { preset: '@nova-platform/jest-preset' };
+ *   module.exports = { preset: '@ahincho/nova-jest-preset' };
  *
  * No declara rootDir ni roots: en un preset, una ruta relativa se resuelve
  * contra el archivo del preset y no contra el proyecto, asi que fijarlos apunta

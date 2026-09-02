@@ -1,5 +1,5 @@
-import { OUTBOUND_HEADERS_PROVIDER } from '@nova-platform/nestjs-http';
-import { RequestContextService } from '@nova-platform/nestjs-observability';
+import { OUTBOUND_HEADERS_PROVIDER } from '@ahincho/nova-nestjs-http';
+import { RequestContextService } from '@ahincho/nova-nestjs-observability';
 import { NovaModule } from './nova.module';
 
 type ExistingProvider = { provide: unknown; useExisting?: unknown };

@@ -1,5 +1,5 @@
 {
-  "name": "@nova-platform/jest-preset",
+  "name": "@ahincho/nova-jest-preset",
   "version": "0.1.0",
   "description": "Shared Jest preset for Nova Platform NestJS projects",
   "license": "EPL-2.0",
@@ -9,7 +9,8 @@
     "directory": "packages/jest-preset"
   },
   "publishConfig": {
-    "access": "public"
+    "access": "public",
+    "registry": "https://npm.pkg.github.com"
   },
   "main": "./jest-preset.js",
   "files": [
@@ -17,9 +18,9 @@
     "README.md"
   ],
   "scripts": {
-    "build": "echo \"@nova-platform/jest-preset ships JavaScript only\"",
-    "test": "echo \"@nova-platform/jest-preset has no tests\"",
-    "typecheck": "echo \"@nova-platform/jest-preset has nothing to typecheck\""
+    "build": "echo \"@ahincho/nova-jest-preset ships JavaScript only\"",
+    "test": "echo \"@ahincho/nova-jest-preset has no tests\"",
+    "typecheck": "echo \"@ahincho/nova-jest-preset has nothing to typecheck\""
   },
   "peerDependencies": {
     "jest": "^30.0.0",

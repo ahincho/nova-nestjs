@@ -13,7 +13,7 @@ import {
   errorItem,
   statusToErrorCode,
   type ApiErrorItem,
-} from '@nova-platform/api-standard';
+} from '@ahincho/nova-api-standard';
 import { ValidationException } from '../exceptions/validation.exception';
 import {
   API_STANDARD_OPTIONS,

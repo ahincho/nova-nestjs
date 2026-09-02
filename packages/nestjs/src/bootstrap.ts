@@ -5,13 +5,13 @@ import {
   type LoggerService,
 } from '@nestjs/common';
 import { NestFactory } from '@nestjs/core';
-import { validationExceptionFactory } from '@nova-platform/nestjs-api-standard';
-import { DEFAULT_HEALTH_PATH } from '@nova-platform/nestjs-health';
+import { validationExceptionFactory } from '@ahincho/nova-nestjs-api-standard';
+import { DEFAULT_HEALTH_PATH } from '@ahincho/nova-nestjs-health';
 import {
   buildCorsOptions,
   numberEnv,
   type CorsPolicyOptions,
-} from '@nova-platform/nestjs-config';
+} from '@ahincho/nova-nestjs-config';
 
 export type BootstrapOptions = {
   /** Defaults to the `PORT` variable, and to 3000 when it is unset. */

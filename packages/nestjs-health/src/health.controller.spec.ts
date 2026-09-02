@@ -1,5 +1,5 @@
 import { Logger } from '@nestjs/common';
-import { SKIP_RESPONSE_WRAPPER } from '@nova-platform/nestjs-api-standard';
+import { SKIP_RESPONSE_WRAPPER } from '@ahincho/nova-nestjs-api-standard';
 import {
   createHealthController,
   type ReadinessResponse,

@@ -5,7 +5,7 @@ import {
   type NestInterceptor,
 } from '@nestjs/common';
 import { Reflector } from '@nestjs/core';
-import { ApiResponses } from '@nova-platform/api-standard';
+import { ApiResponses } from '@ahincho/nova-api-standard';
 import type { Observable } from 'rxjs';
 import { map } from 'rxjs/operators';
 import { SKIP_RESPONSE_WRAPPER } from '../decorators/skip-response-wrapper.decorator';

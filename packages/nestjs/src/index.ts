@@ -10,12 +10,12 @@ export {
   statusToErrorCode,
   type ApiErrorItem,
   type ApiResponse,
-} from '@nova-platform/api-standard';
+} from '@ahincho/nova-api-standard';
 export {
   SkipResponseWrapper,
   ValidationException,
   validationExceptionFactory,
-} from '@nova-platform/nestjs-api-standard';
+} from '@ahincho/nova-nestjs-api-standard';
 export {
   buildCorsOptions,
   defineUpstream,
@@ -26,16 +26,16 @@ export {
   urlEnv,
   EnvironmentError,
   type UpstreamConfig,
-} from '@nova-platform/nestjs-config';
-export { type ReadinessCheck } from '@nova-platform/nestjs-health';
+} from '@ahincho/nova-nestjs-config';
+export { type ReadinessCheck } from '@ahincho/nova-nestjs-health';
 export {
   HttpClientService,
   UpstreamHttpError,
   type HttpRequestOptions,
-} from '@nova-platform/nestjs-http';
+} from '@ahincho/nova-nestjs-http';
 export {
   RequestContextService,
   SENSITIVE_HEADERS,
   createRequestLoggerOptions,
   type RequestContext,
-} from '@nova-platform/nestjs-observability';
+} from '@ahincho/nova-nestjs-observability';
