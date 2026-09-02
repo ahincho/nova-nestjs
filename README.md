@@ -87,6 +87,33 @@ El stack Java usa `release-please` porque cada repo se versiona solo. Acá el bu
 tiene que propagarse entre paquetes del mismo commit, que es justo lo que Changesets
 resuelve y `release-please` no.
 
+## Consumirlos desde otro proyecto
+
+[`nova-nestjs-example`](https://github.com/ahincho/nova-nestjs-example) es el
+servicio de referencia y corre siempre contra la última versión publicada. En
+corto:
+
+```bash
+# .npmrc del proyecto: solo el registry, nunca la credencial
+echo '@ahincho:registry=https://npm.pkg.github.com' >> .npmrc
+
+# la credencial va en la configuracion de usuario, una sola vez
+pnpm config set "//npm.pkg.github.com/:_authToken" "$(gh auth token)"
+
+pnpm add @ahincho/nova-nestjs
+```
+
+Tres cosas que cuestan un rato descubrir solas:
+
+- **GitHub Packages pide token incluso para un paquete público.** No hay forma
+  de instalar sin credencial; eso sólo lo da npmjs.
+- **La credencial no puede vivir en el `.npmrc` versionado.** pnpm se niega a
+  expandir una variable de entorno ahí, porque alguien podría cambiar la URL del
+  registry en un pull request y llevarse el token.
+- **pnpm rechaza una versión recién publicada.** Es su política de antigüedad
+  mínima, pensada para paquetes de terceros; para los propios se excluye el
+  scope en `pnpm-workspace.yaml` con `minimumReleaseAgeExclude`.
+
 ## Estado
 
 `0.x`: la API todavía se está asentando y habrá cambios que rompen entre minors.
