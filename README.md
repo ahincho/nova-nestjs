@@ -25,8 +25,8 @@ su changelog y su página de npm; el consumidor no distingue.
 | -------------------------------------------------------------------- | ------------------- | --------- |
 | [`@nova-platform/api-standard`](packages/api-standard)               | 1 · librería pura   | listo     |
 | [`@nova-platform/nestjs-api-standard`](packages/nestjs-api-standard) | 2 · conector NestJS | listo     |
-| `@nova-platform/nestjs-config`                                       | 2                   | pendiente |
-| `@nova-platform/nestjs-http`                                         | 2                   | pendiente |
+| [`@nova-platform/nestjs-config`](packages/nestjs-config)             | 2 · conector NestJS | listo     |
+| [`@nova-platform/nestjs-http`](packages/nestjs-http)                 | 2 · conector NestJS | listo     |
 | `@nova-platform/nestjs-observability`                                | 2                   | pendiente |
 | `@nova-platform/nestjs-health`                                       | 2                   | pendiente |
 | `@nova-platform/nestjs`                                              | 3 · agregador       | pendiente |
