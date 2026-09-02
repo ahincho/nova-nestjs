@@ -22,17 +22,17 @@ jobs:
     runs-on: ubuntu-latest
     steps:
       - name: Checkout
-        uses: actions/checkout@v4
+        uses: actions/checkout@v7
 
       # Este workflow es autocontenido a proposito. La composite action
       # nova-setup-node de nova-devops acepta un input `package-manager` pero su
       # paso de instalacion siempre corre npm, asi que no sirve para un
       # workspace de pnpm. Migrar a ella cuando soporte pnpm de verdad.
       - name: Setup pnpm
-        uses: pnpm/action-setup@v4
+        uses: pnpm/action-setup@v6
 
       - name: Setup Node
-        uses: actions/setup-node@v4
+        uses: actions/setup-node@v7
         with:
           node-version: 22
           cache: pnpm
