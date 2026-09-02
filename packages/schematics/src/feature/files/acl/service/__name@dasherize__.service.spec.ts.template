@@ -1,12 +1,11 @@
 import { NotFoundException } from '@nestjs/common';
-import type { Find<%= classify(name) %>Port } from '../port/out/find-<%= dasherize(name) %>.port';
 import { <%= classify(name) %>Service } from './<%= dasherize(name) %>.service';
 
 describe('<%= classify(name) %>Service', () => {
   function service(findById: jest.Mock): <%= classify(name) %>Service {
-    return new <%= classify(name) %>Service({
-      findById,
-    } as unknown as Find<%= classify(name) %>Port);
+    // El doble satisface el puerto por su forma, sin castear: el servicio pide
+    // una interfaz y no una clase, que es la razon de que el puerto exista.
+    return new <%= classify(name) %>Service({ findById });
   }
 
   it('devuelve lo que encuentra el puerto', async () => {
