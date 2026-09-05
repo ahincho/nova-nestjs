@@ -14,6 +14,7 @@ import {
   type HealthIndicatorFunction,
 } from '@nestjs/terminus';
 import { SkipResponseWrapper } from '../api';
+import { Public } from '../auth/public.decorator';
 import {
   HEALTH_OPTIONS,
   type ReadinessCheck,
@@ -99,6 +100,9 @@ function warnAboutFailures(logger: Logger, result: HealthCheckResult): void {
  * decorar, y la ruta tiene que salir de las opciones del módulo.
  */
 export function createHealthController(path: string): Type<unknown> {
+  // `@Public()` sólo hace algo si la aplicación activó `auth`, y ahí es
+  // indispensable: una sonda que responde 401 desregistra una tarea sana.
+  @Public()
   @SkipResponseWrapper()
   @Controller(path)
   class HealthController {
@@ -150,6 +154,7 @@ export function createHealthController(path: string): Type<unknown> {
  * así que cae con los chequeos y durante el apagado.
  */
 export function createLegacyHealthController(path: string): Type<unknown> {
+  @Public()
   @SkipResponseWrapper()
   @Controller(path)
   class LegacyHealthController {

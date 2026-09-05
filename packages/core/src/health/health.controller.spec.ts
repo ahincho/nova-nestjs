@@ -3,6 +3,7 @@ import { PATH_METADATA } from '@nestjs/common/constants';
 import { TerminusModule, type HealthCheckResult } from '@nestjs/terminus';
 import { Test, type TestingModule } from '@nestjs/testing';
 import { SKIP_RESPONSE_WRAPPER } from '../api';
+import { IS_PUBLIC } from '../auth';
 import {
   createHealthController,
   createLegacyHealthController,
@@ -62,6 +63,17 @@ describe('the health controller', () => {
 
   afterEach(() => {
     jest.restoreAllMocks();
+  });
+
+  // Sin esto, activar `auth` dejaria las sondas en 401 y el balanceador
+  // desregistraria una tarea que esta perfectamente sana.
+  it('stays public when the application turns authentication on', () => {
+    expect(Reflect.getMetadata(IS_PUBLIC, createHealthController('h'))).toBe(
+      true,
+    );
+    expect(
+      Reflect.getMetadata(IS_PUBLIC, createLegacyHealthController(LEGACY_PATH)),
+    ).toBe(true);
   });
 
   // The load balancer checks the body shape, and the envelope would turn
