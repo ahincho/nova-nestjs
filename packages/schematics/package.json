@@ -35,12 +35,12 @@
     "@angular-devkit/schematics": "^20.0.0"
   },
   "devDependencies": {
-    "@types/jest": "^30.0.0",
-    "@types/node": "^22.15.0",
-    "jest": "^30.4.2",
-    "rimraf": "^6.0.1",
-    "ts-jest": "^29.4.12",
-    "typescript": "~6.0.3",
+    "@types/jest": "catalog:",
+    "@types/node": "catalog:",
+    "jest": "catalog:",
+    "rimraf": "catalog:",
+    "ts-jest": "catalog:",
+    "typescript": "catalog:",
     "@ahincho/nova-nestjs-toolchain": "workspace:*"
   }
 }
