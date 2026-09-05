@@ -20,6 +20,17 @@
     "forceConsistentCasingInFileNames": true,
     "skipLibCheck": true,
     "incremental": true,
+    // Dentro del outDir a propósito. Por defecto el archivo de estado queda al
+    // lado del tsconfig, o sea fuera de dist, y entonces los dos pueden
+    // contradecirse: cualquier cosa que borre dist -el deleteOutDir de
+    // nest-cli, un rimraf, alguien a mano- deja el estado diciendo que ya está
+    // todo compilado. El build siguiente no emite nada y termina con éxito, y
+    // el fallo aparece recién en el contenedor, como un MODULE_NOT_FOUND sobre
+    // dist/main.js. Adentro se borran juntos y no pueden discrepar.
+    //
+    // ${configDir} lo resuelve el tsconfig que extiende, no éste, y existe
+    // desde TypeScript 5.5, que es el piso que declara el peer del paquete.
+    "tsBuildInfoFile": "${configDir}/dist/tsconfig.tsbuildinfo",
     "isolatedModules": true
   }
 }
