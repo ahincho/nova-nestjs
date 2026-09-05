@@ -6,8 +6,9 @@ en GitHub Packages bajo el scope `@ahincho`.
 Es el equivalente en NestJS de lo que
 [`nova-java-spring-boot-starter`](https://github.com/ahincho/nova-java-spring-boot-starter)
 y [`nova-java-quarkus-parent`](https://github.com/ahincho/nova-java-quarkus-parent)
-son en Java, y sigue la misma arquitectura de cinco niveles del
-[ADR-001](https://github.com/ahincho/nova-docs).
+son en Java. Parte de la arquitectura de cinco niveles del
+[ADR-001](https://github.com/ahincho/nova-docs), pero la colapsa en tres
+paquetes; el porqué está más abajo.
 
 ## Por qué un monorepo y no un repo por paquete
 
@@ -21,22 +22,28 @@ su changelog y su página de npm; el consumidor no distingue.
 
 ## Paquetes
 
-| Paquete                                                               | Nivel               | Estado |
-| --------------------------------------------------------------------- | ------------------- | ------ |
-| [`@ahincho/nova-api-standard`](packages/api-standard)                 | 1 · librería pura   | listo  |
-| [`@ahincho/nova-nestjs-api-standard`](packages/nestjs-api-standard)   | 2 · conector NestJS | listo  |
-| [`@ahincho/nova-nestjs-config`](packages/nestjs-config)               | 2 · conector NestJS | listo  |
-| [`@ahincho/nova-nestjs-http`](packages/nestjs-http)                   | 2 · conector NestJS | listo  |
-| [`@ahincho/nova-nestjs-observability`](packages/nestjs-observability) | 2 · conector NestJS | listo  |
-| [`@ahincho/nova-nestjs-health`](packages/nestjs-health)               | 2 · conector NestJS | listo  |
-| [`@ahincho/nova-nestjs`](packages/nestjs)                             | 3 · agregador       | listo  |
-| [`@ahincho/nova-tsconfig`](packages/tsconfig)                         | 4 · presets         | listo  |
-| [`@ahincho/nova-eslint-config`](packages/eslint-config)               | 4 · presets         | listo  |
-| [`@ahincho/nova-jest-preset`](packages/jest-preset)                   | 4 · presets         | listo  |
-| [`@ahincho/nova-schematics`](packages/schematics)                     | 5 · tooling         | listo  |
+| Paquete                                           | Qué es                                                                                                             |
+| ------------------------------------------------- | ------------------------------------------------------------------------------------------------------------------ |
+| [`@ahincho/nova-nestjs`](packages/core)           | runtime: sobre de respuesta, configuración, cliente HTTP, contexto de request, salud, `NovaModule` y `bootstrap()` |
+| [`@ahincho/nova-toolchain`](packages/toolchain)   | presets de TypeScript, ESLint y Jest                                                                               |
+| [`@ahincho/nova-schematics`](packages/schematics) | generadores `feature` (bff y acl) y `upstream`                                                                     |
 
-El nivel 1 no importa de ningún framework: `api-standard` es TypeScript puro y sirve
-igual en un Lambda o en un script.
+Los tres se publican con **un solo número de versión**, como hace `@nestjs/*`.
+
+### Por qué tres y no once
+
+Hasta la 0.1 eran once: una librería pura, cinco conectores, un agregador, tres
+presets y los schematics, siguiendo los cinco niveles al pie de la letra. Nadie
+instalaba las piezas sueltas —el servicio de ejemplo ya consumía el agregador— y
+cada cambio en `api-standard` arrastraba tres bumps en cascada. Los niveles
+existen para separar lo que tiene distinto consumidor o distinto ciclo de vida,
+y acá sólo hay dos de esas fronteras: el runtime que una aplicación importa, y
+las herramientas que sólo corren en desarrollo. Los schematics quedan aparte
+porque Nest CLI resuelve una colección por nombre de paquete.
+
+Dentro de `core` cada módulo conserva su carpeta y su `index.ts`, así que la
+frontera sigue visible en el código; lo que desapareció es el costo de
+publicarla.
 
 ## Cómo lo consume una aplicación
 
@@ -44,7 +51,7 @@ Tres mecanismos distintos, y sólo uno es un `import`:
 
 ```ts
 // 1. Piezas sueltas — un import normal
-import { ApiResponses } from '@ahincho/nova-api-standard';
+import { ApiResponses } from '@ahincho/nova-nestjs';
 
 // 2. Activación — en NestJS nada se dispara solo, hay que llamarlo
 @Module({ imports: [ApiStandardModule.forRoot()] })
@@ -53,7 +60,7 @@ export class AppModule {}
 
 ```json
 // 3. Presets — se heredan desde el archivo de configuración
-{ "extends": "@ahincho/nova-tsconfig/nestjs.json" }
+{ "extends": "@ahincho/nova-toolchain/tsconfig/nestjs.json" }
 ```
 
 ## Desarrollo

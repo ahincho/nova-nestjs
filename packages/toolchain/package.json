@@ -1,0 +1,46 @@
+{
+  "name": "@ahincho/nova-toolchain",
+  "version": "0.1.1",
+  "description": "Shared TypeScript, ESLint and Jest presets for Nova Platform NestJS projects",
+  "license": "EPL-2.0",
+  "repository": {
+    "type": "git",
+    "url": "git+https://github.com/ahincho/nova-nestjs.git",
+    "directory": "packages/toolchain"
+  },
+  "publishConfig": {
+    "access": "public",
+    "registry": "https://npm.pkg.github.com"
+  },
+  "files": [
+    "tsconfig",
+    "eslint",
+    "jest",
+    "README.md"
+  ],
+  "scripts": {
+    "build": "echo \"@ahincho/nova-toolchain ships presets only\"",
+    "test": "echo \"@ahincho/nova-toolchain has no tests\"",
+    "typecheck": "echo \"@ahincho/nova-toolchain has nothing to typecheck\""
+  },
+  "dependencies": {
+    "typescript-eslint": "^8.46.0"
+  },
+  "peerDependencies": {
+    "eslint": "^9.0.0 || ^10.0.0",
+    "jest": "^30.0.0",
+    "ts-jest": "^29.0.0",
+    "typescript": ">=5.5.0"
+  },
+  "peerDependenciesMeta": {
+    "eslint": {
+      "optional": true
+    },
+    "jest": {
+      "optional": true
+    },
+    "ts-jest": {
+      "optional": true
+    }
+  }
+}

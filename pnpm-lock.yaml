@@ -18,81 +18,11 @@ importers:
         specifier: ~6.0.3
         version: 6.0.3
 
-  packages/api-standard:
+  packages/core:
     devDependencies:
-      '@ahincho/nova-jest-preset':
+      '@ahincho/nova-toolchain':
         specifier: workspace:*
-        version: link:../jest-preset
-      '@ahincho/nova-tsconfig':
-        specifier: workspace:*
-        version: link:../tsconfig
-      '@types/jest':
-        specifier: ^30.0.0
-        version: 30.0.0
-      '@types/node':
-        specifier: ^22.15.0
-        version: 22.20.1
-      jest:
-        specifier: ^30.4.2
-        version: 30.5.1(@types/node@22.20.1)(supports-color@8.1.1)
-      rimraf:
-        specifier: ^6.0.1
-        version: 6.1.3
-      ts-jest:
-        specifier: ^29.4.12
-        version: 29.4.12(@babel/core@7.29.7(supports-color@8.1.1))(@jest/transform@30.5.1(supports-color@8.1.1))(@jest/types@30.5.1)(babel-jest@30.5.1(@babel/core@7.29.7(supports-color@8.1.1))(supports-color@8.1.1))(jest-util@30.5.1)(jest@30.5.1(@types/node@22.20.1)(supports-color@8.1.1))(typescript@6.0.3)
-      typescript:
-        specifier: ~6.0.3
-        version: 6.0.3
-
-  packages/eslint-config:
-    dependencies:
-      eslint:
-        specifier: ^9.0.0 || ^10.0.0
-        version: 10.9.1(supports-color@8.1.1)
-      typescript-eslint:
-        specifier: ^8.46.0
-        version: 8.69.0(eslint@10.9.1(supports-color@8.1.1))(supports-color@8.1.1)(typescript@6.0.3)
-
-  packages/jest-preset:
-    dependencies:
-      jest:
-        specifier: ^30.0.0
-        version: 30.5.1(@types/node@22.20.1)(supports-color@8.1.1)
-      ts-jest:
-        specifier: ^29.0.0
-        version: 29.4.12(@babel/core@7.29.7(supports-color@8.1.1))(@jest/transform@30.5.1(supports-color@8.1.1))(@jest/types@30.5.1)(babel-jest@30.5.1(@babel/core@7.29.7(supports-color@8.1.1))(supports-color@8.1.1))(jest-util@30.5.1)(jest@30.5.1(@types/node@22.20.1)(supports-color@8.1.1))(typescript@6.0.3)
-      typescript:
-        specifier: '>=5.5.0'
-        version: 6.0.3
-
-  packages/nestjs:
-    dependencies:
-      '@ahincho/nova-api-standard':
-        specifier: workspace:*
-        version: link:../api-standard
-      '@ahincho/nova-nestjs-api-standard':
-        specifier: workspace:*
-        version: link:../nestjs-api-standard
-      '@ahincho/nova-nestjs-config':
-        specifier: workspace:*
-        version: link:../nestjs-config
-      '@ahincho/nova-nestjs-health':
-        specifier: workspace:*
-        version: link:../nestjs-health
-      '@ahincho/nova-nestjs-http':
-        specifier: workspace:*
-        version: link:../nestjs-http
-      '@ahincho/nova-nestjs-observability':
-        specifier: workspace:*
-        version: link:../nestjs-observability
-    devDependencies:
-      '@ahincho/nova-jest-preset':
-        specifier: workspace:*
-        version: link:../jest-preset
-      '@ahincho/nova-tsconfig':
-        specifier: workspace:*
-        version: link:../tsconfig
+        version: link:../toolchain
       '@nestjs/common':
         specifier: ^11.2.1
         version: 11.2.3(class-transformer@0.5.1)(class-validator@0.14.4)(reflect-metadata@0.2.2)(rxjs@7.8.2)(supports-color@8.1.1)
@@ -133,212 +63,6 @@ importers:
         specifier: ~6.0.3
         version: 6.0.3
 
-  packages/nestjs-api-standard:
-    dependencies:
-      '@ahincho/nova-api-standard':
-        specifier: workspace:*
-        version: link:../api-standard
-    devDependencies:
-      '@ahincho/nova-jest-preset':
-        specifier: workspace:*
-        version: link:../jest-preset
-      '@ahincho/nova-tsconfig':
-        specifier: workspace:*
-        version: link:../tsconfig
-      '@nestjs/common':
-        specifier: ^11.2.1
-        version: 11.2.3(class-transformer@0.5.1)(class-validator@0.14.4)(reflect-metadata@0.2.2)(rxjs@7.8.2)(supports-color@8.1.1)
-      '@nestjs/core':
-        specifier: ^11.2.1
-        version: 11.2.3(@nestjs/common@11.2.3(class-transformer@0.5.1)(class-validator@0.14.4)(reflect-metadata@0.2.2)(rxjs@7.8.2)(supports-color@8.1.1))(reflect-metadata@0.2.2)(rxjs@7.8.2)
-      '@types/jest':
-        specifier: ^30.0.0
-        version: 30.0.0
-      '@types/node':
-        specifier: ^22.15.0
-        version: 22.20.1
-      jest:
-        specifier: ^30.4.2
-        version: 30.5.1(@types/node@22.20.1)(supports-color@8.1.1)
-      reflect-metadata:
-        specifier: ^0.2.2
-        version: 0.2.2
-      rimraf:
-        specifier: ^6.0.1
-        version: 6.1.3
-      rxjs:
-        specifier: ^7.8.2
-        version: 7.8.2
-      ts-jest:
-        specifier: ^29.4.12
-        version: 29.4.12(@babel/core@7.29.7(supports-color@8.1.1))(@jest/transform@30.5.1(supports-color@8.1.1))(@jest/types@30.5.1)(babel-jest@30.5.1(@babel/core@7.29.7(supports-color@8.1.1))(supports-color@8.1.1))(jest-util@30.5.1)(jest@30.5.1(@types/node@22.20.1)(supports-color@8.1.1))(typescript@6.0.3)
-      typescript:
-        specifier: ~6.0.3
-        version: 6.0.3
-
-  packages/nestjs-config:
-    devDependencies:
-      '@ahincho/nova-jest-preset':
-        specifier: workspace:*
-        version: link:../jest-preset
-      '@ahincho/nova-tsconfig':
-        specifier: workspace:*
-        version: link:../tsconfig
-      '@nestjs/common':
-        specifier: ^11.2.1
-        version: 11.2.3(class-transformer@0.5.1)(class-validator@0.14.4)(reflect-metadata@0.2.2)(rxjs@7.8.2)(supports-color@8.1.1)
-      '@nestjs/config':
-        specifier: ^4.0.4
-        version: 4.0.4(@nestjs/common@11.2.3(class-transformer@0.5.1)(class-validator@0.14.4)(reflect-metadata@0.2.2)(rxjs@7.8.2)(supports-color@8.1.1))(rxjs@7.8.2)
-      '@nestjs/core':
-        specifier: ^11.2.1
-        version: 11.2.3(@nestjs/common@11.2.3(class-transformer@0.5.1)(class-validator@0.14.4)(reflect-metadata@0.2.2)(rxjs@7.8.2)(supports-color@8.1.1))(reflect-metadata@0.2.2)(rxjs@7.8.2)
-      '@types/jest':
-        specifier: ^30.0.0
-        version: 30.0.0
-      '@types/node':
-        specifier: ^22.15.0
-        version: 22.20.1
-      jest:
-        specifier: ^30.4.2
-        version: 30.5.1(@types/node@22.20.1)(supports-color@8.1.1)
-      reflect-metadata:
-        specifier: ^0.2.2
-        version: 0.2.2
-      rimraf:
-        specifier: ^6.0.1
-        version: 6.1.3
-      rxjs:
-        specifier: ^7.8.2
-        version: 7.8.2
-      ts-jest:
-        specifier: ^29.4.12
-        version: 29.4.12(@babel/core@7.29.7(supports-color@8.1.1))(@jest/transform@30.5.1(supports-color@8.1.1))(@jest/types@30.5.1)(babel-jest@30.5.1(@babel/core@7.29.7(supports-color@8.1.1))(supports-color@8.1.1))(jest-util@30.5.1)(jest@30.5.1(@types/node@22.20.1)(supports-color@8.1.1))(typescript@6.0.3)
-      typescript:
-        specifier: ~6.0.3
-        version: 6.0.3
-
-  packages/nestjs-health:
-    dependencies:
-      '@ahincho/nova-nestjs-api-standard':
-        specifier: workspace:*
-        version: link:../nestjs-api-standard
-    devDependencies:
-      '@ahincho/nova-jest-preset':
-        specifier: workspace:*
-        version: link:../jest-preset
-      '@ahincho/nova-tsconfig':
-        specifier: workspace:*
-        version: link:../tsconfig
-      '@nestjs/common':
-        specifier: ^11.2.1
-        version: 11.2.3(class-transformer@0.5.1)(class-validator@0.14.4)(reflect-metadata@0.2.2)(rxjs@7.8.2)(supports-color@8.1.1)
-      '@nestjs/core':
-        specifier: ^11.2.1
-        version: 11.2.3(@nestjs/common@11.2.3(class-transformer@0.5.1)(class-validator@0.14.4)(reflect-metadata@0.2.2)(rxjs@7.8.2)(supports-color@8.1.1))(reflect-metadata@0.2.2)(rxjs@7.8.2)
-      '@types/jest':
-        specifier: ^30.0.0
-        version: 30.0.0
-      '@types/node':
-        specifier: ^22.15.0
-        version: 22.20.1
-      jest:
-        specifier: ^30.4.2
-        version: 30.5.1(@types/node@22.20.1)(supports-color@8.1.1)
-      reflect-metadata:
-        specifier: ^0.2.2
-        version: 0.2.2
-      rimraf:
-        specifier: ^6.0.1
-        version: 6.1.3
-      rxjs:
-        specifier: ^7.8.2
-        version: 7.8.2
-      ts-jest:
-        specifier: ^29.4.12
-        version: 29.4.12(@babel/core@7.29.7(supports-color@8.1.1))(@jest/transform@30.5.1(supports-color@8.1.1))(@jest/types@30.5.1)(babel-jest@30.5.1(@babel/core@7.29.7(supports-color@8.1.1))(supports-color@8.1.1))(jest-util@30.5.1)(jest@30.5.1(@types/node@22.20.1)(supports-color@8.1.1))(typescript@6.0.3)
-      typescript:
-        specifier: ~6.0.3
-        version: 6.0.3
-
-  packages/nestjs-http:
-    devDependencies:
-      '@ahincho/nova-jest-preset':
-        specifier: workspace:*
-        version: link:../jest-preset
-      '@ahincho/nova-tsconfig':
-        specifier: workspace:*
-        version: link:../tsconfig
-      '@nestjs/common':
-        specifier: ^11.2.1
-        version: 11.2.3(class-transformer@0.5.1)(class-validator@0.14.4)(reflect-metadata@0.2.2)(rxjs@7.8.2)(supports-color@8.1.1)
-      '@nestjs/core':
-        specifier: ^11.2.1
-        version: 11.2.3(@nestjs/common@11.2.3(class-transformer@0.5.1)(class-validator@0.14.4)(reflect-metadata@0.2.2)(rxjs@7.8.2)(supports-color@8.1.1))(reflect-metadata@0.2.2)(rxjs@7.8.2)
-      '@types/jest':
-        specifier: ^30.0.0
-        version: 30.0.0
-      '@types/node':
-        specifier: ^22.15.0
-        version: 22.20.1
-      jest:
-        specifier: ^30.4.2
-        version: 30.5.1(@types/node@22.20.1)(supports-color@8.1.1)
-      reflect-metadata:
-        specifier: ^0.2.2
-        version: 0.2.2
-      rimraf:
-        specifier: ^6.0.1
-        version: 6.1.3
-      rxjs:
-        specifier: ^7.8.2
-        version: 7.8.2
-      ts-jest:
-        specifier: ^29.4.12
-        version: 29.4.12(@babel/core@7.29.7(supports-color@8.1.1))(@jest/transform@30.5.1(supports-color@8.1.1))(@jest/types@30.5.1)(babel-jest@30.5.1(@babel/core@7.29.7(supports-color@8.1.1))(supports-color@8.1.1))(jest-util@30.5.1)(jest@30.5.1(@types/node@22.20.1)(supports-color@8.1.1))(typescript@6.0.3)
-      typescript:
-        specifier: ~6.0.3
-        version: 6.0.3
-
-  packages/nestjs-observability:
-    devDependencies:
-      '@ahincho/nova-jest-preset':
-        specifier: workspace:*
-        version: link:../jest-preset
-      '@ahincho/nova-tsconfig':
-        specifier: workspace:*
-        version: link:../tsconfig
-      '@nestjs/common':
-        specifier: ^11.2.1
-        version: 11.2.3(class-transformer@0.5.1)(class-validator@0.14.4)(reflect-metadata@0.2.2)(rxjs@7.8.2)(supports-color@8.1.1)
-      '@nestjs/core':
-        specifier: ^11.2.1
-        version: 11.2.3(@nestjs/common@11.2.3(class-transformer@0.5.1)(class-validator@0.14.4)(reflect-metadata@0.2.2)(rxjs@7.8.2)(supports-color@8.1.1))(reflect-metadata@0.2.2)(rxjs@7.8.2)
-      '@types/jest':
-        specifier: ^30.0.0
-        version: 30.0.0
-      '@types/node':
-        specifier: ^22.15.0
-        version: 22.20.1
-      jest:
-        specifier: ^30.4.2
-        version: 30.5.1(@types/node@22.20.1)(supports-color@8.1.1)
-      reflect-metadata:
-        specifier: ^0.2.2
-        version: 0.2.2
-      rimraf:
-        specifier: ^6.0.1
-        version: 6.1.3
-      rxjs:
-        specifier: ^7.8.2
-        version: 7.8.2
-      ts-jest:
-        specifier: ^29.4.12
-        version: 29.4.12(@babel/core@7.29.7(supports-color@8.1.1))(@jest/transform@30.5.1(supports-color@8.1.1))(@jest/types@30.5.1)(babel-jest@30.5.1(@babel/core@7.29.7(supports-color@8.1.1))(supports-color@8.1.1))(jest-util@30.5.1)(jest@30.5.1(@types/node@22.20.1)(supports-color@8.1.1))(typescript@6.0.3)
-      typescript:
-        specifier: ~6.0.3
-        version: 6.0.3
-
   packages/schematics:
     dependencies:
       '@angular-devkit/core':
@@ -348,12 +72,9 @@ importers:
         specifier: ^20.0.0
         version: 20.3.35
     devDependencies:
-      '@ahincho/nova-jest-preset':
+      '@ahincho/nova-toolchain':
         specifier: workspace:*
-        version: link:../jest-preset
-      '@ahincho/nova-tsconfig':
-        specifier: workspace:*
-        version: link:../tsconfig
+        version: link:../toolchain
       '@types/jest':
         specifier: ^30.0.0
         version: 30.0.0
@@ -373,7 +94,23 @@ importers:
         specifier: ~6.0.3
         version: 6.0.3
 
-  packages/tsconfig: {}
+  packages/toolchain:
+    dependencies:
+      eslint:
+        specifier: ^9.0.0 || ^10.0.0
+        version: 10.9.1(supports-color@8.1.1)
+      jest:
+        specifier: ^30.0.0
+        version: 30.5.1(@types/node@22.20.1)(supports-color@8.1.1)
+      ts-jest:
+        specifier: ^29.0.0
+        version: 29.4.12(@babel/core@7.29.7(supports-color@8.1.1))(@jest/transform@30.5.1(supports-color@8.1.1))(@jest/types@30.5.1)(babel-jest@30.5.1(@babel/core@7.29.7(supports-color@8.1.1))(supports-color@8.1.1))(jest-util@30.5.1)(jest@30.5.1(@types/node@22.20.1)(supports-color@8.1.1))(typescript@6.0.3)
+      typescript:
+        specifier: '>=5.5.0'
+        version: 6.0.3
+      typescript-eslint:
+        specifier: ^8.46.0
+        version: 8.69.0(eslint@10.9.1(supports-color@8.1.1))(supports-color@8.1.1)(typescript@6.0.3)
 
 packages:
 
