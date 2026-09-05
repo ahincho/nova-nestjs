@@ -22,11 +22,11 @@ su changelog y su página de npm; el consumidor no distingue.
 
 ## Paquetes
 
-| Paquete                                           | Qué es                                                                                                             |
-| ------------------------------------------------- | ------------------------------------------------------------------------------------------------------------------ |
-| [`@ahincho/nova-nestjs`](packages/core)           | runtime: sobre de respuesta, configuración, cliente HTTP, contexto de request, salud, `NovaModule` y `bootstrap()` |
-| [`@ahincho/nova-toolchain`](packages/toolchain)   | presets de TypeScript, ESLint y Jest                                                                               |
-| [`@ahincho/nova-schematics`](packages/schematics) | generadores `feature` (bff y acl) y `upstream`                                                                     |
+| Paquete                                                  | Qué es                                                                                                             |
+| -------------------------------------------------------- | ------------------------------------------------------------------------------------------------------------------ |
+| [`@ahincho/nova-nestjs`](packages/core)                  | runtime: sobre de respuesta, configuración, cliente HTTP, contexto de request, salud, `NovaModule` y `bootstrap()` |
+| [`@ahincho/nova-nestjs-toolchain`](packages/toolchain)   | presets de TypeScript, ESLint y Jest                                                                               |
+| [`@ahincho/nova-nestjs-schematics`](packages/schematics) | generadores `feature` (bff y acl) y `upstream`                                                                     |
 
 Los tres se publican con **un solo número de versión**, como hace `@nestjs/*`.
 
@@ -60,7 +60,7 @@ export class AppModule {}
 
 ```json
 // 3. Presets — se heredan desde el archivo de configuración
-{ "extends": "@ahincho/nova-toolchain/tsconfig/nestjs.json" }
+{ "extends": "@ahincho/nova-nestjs-toolchain/tsconfig/nestjs.json" }
 ```
 
 ## Desarrollo

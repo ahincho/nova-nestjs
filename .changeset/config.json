@@ -5,8 +5,8 @@
   "fixed": [
     [
       "@ahincho/nova-nestjs",
-      "@ahincho/nova-toolchain",
-      "@ahincho/nova-schematics"
+      "@ahincho/nova-nestjs-toolchain",
+      "@ahincho/nova-nestjs-schematics"
     ]
   ],
   "linked": [],

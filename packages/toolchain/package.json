@@ -1,5 +1,5 @@
 {
-  "name": "@ahincho/nova-toolchain",
+  "name": "@ahincho/nova-nestjs-toolchain",
   "version": "0.2.0",
   "description": "Shared TypeScript, ESLint and Jest presets for Nova Platform NestJS projects",
   "license": "EPL-2.0",
@@ -19,9 +19,9 @@
     "README.md"
   ],
   "scripts": {
-    "build": "echo \"@ahincho/nova-toolchain ships presets only\"",
-    "test": "echo \"@ahincho/nova-toolchain has no tests\"",
-    "typecheck": "echo \"@ahincho/nova-toolchain has nothing to typecheck\""
+    "build": "echo \"@ahincho/nova-nestjs-toolchain ships presets only\"",
+    "test": "echo \"@ahincho/nova-nestjs-toolchain has no tests\"",
+    "typecheck": "echo \"@ahincho/nova-nestjs-toolchain has nothing to typecheck\""
   },
   "dependencies": {
     "typescript-eslint": "^8.46.0"

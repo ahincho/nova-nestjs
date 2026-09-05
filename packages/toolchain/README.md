@@ -1,10 +1,10 @@
-# @ahincho/nova-toolchain
+# @ahincho/nova-nestjs-toolchain
 
 Presets de TypeScript, ESLint y Jest compartidos por los proyectos NestJS de
 Nova Platform. Un solo paquete de desarrollo; cada preset vive en su carpeta.
 
 ```bash
-pnpm add -D @ahincho/nova-toolchain
+pnpm add -D @ahincho/nova-nestjs-toolchain
 ```
 
 ESLint, Jest y ts-jest son peers opcionales: se instalan sólo en el proyecto que
@@ -14,7 +14,7 @@ usa ese preset.
 
 ```json
 {
-  "extends": "@ahincho/nova-toolchain/tsconfig/nestjs.json",
+  "extends": "@ahincho/nova-nestjs-toolchain/tsconfig/nestjs.json",
   "compilerOptions": { "outDir": "./dist" }
 }
 ```
@@ -31,14 +31,14 @@ por constructor de Nest asigna las propiedades fuera del alcance del compilador.
 
 ```js
 // eslint.config.mjs
-import nova from '@ahincho/nova-toolchain/eslint/index.mjs';
+import nova from '@ahincho/nova-nestjs-toolchain/eslint/index.mjs';
 export default nova;
 ```
 
 Para agregar reglas propias sin perder las de la plataforma:
 
 ```js
-import nova from '@ahincho/nova-toolchain/eslint/index.mjs';
+import nova from '@ahincho/nova-nestjs-toolchain/eslint/index.mjs';
 export default [...nova, { rules: { 'no-console': 'error' } }];
 ```
 
@@ -51,7 +51,7 @@ que nadie lo note.
 
 ```js
 // jest.config.js
-module.exports = { preset: '@ahincho/nova-toolchain/jest' };
+module.exports = { preset: '@ahincho/nova-nestjs-toolchain/jest' };
 ```
 
 Fija `ts-jest`, el entorno `node`, el patrón `*.spec.ts` y un umbral de cobertura

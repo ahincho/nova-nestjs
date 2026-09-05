@@ -1,17 +1,17 @@
-# @ahincho/nova-schematics
+# @ahincho/nova-nestjs-schematics
 
 Generadores para servicios NestJS de Nova Platform. Existen para que la forma
 canónica **se genere en vez de copiarse**, que es como aparecen tres versiones
 distintas del cliente del mismo upstream.
 
 ```bash
-pnpm add -D @ahincho/nova-schematics
+pnpm add -D @ahincho/nova-nestjs-schematics
 ```
 
 ## Declarar un upstream
 
 ```bash
-nest g -c @ahincho/nova-schematics upstream academic-orchestrator
+nest g -c @ahincho/nova-nestjs-schematics upstream academic-orchestrator
 ```
 
 Escribe cuatro archivos en `src/upstream/academic-orchestrator/`:
@@ -29,8 +29,8 @@ y coincide con lo que lee `defineUpstream()` en tiempo de ejecución.
 ## Crear un feature
 
 ```bash
-nest g -c @ahincho/nova-schematics feature buildings              # acl
-nest g -c @ahincho/nova-schematics feature courses --style bff
+nest g -c @ahincho/nova-nestjs-schematics feature buildings              # acl
+nest g -c @ahincho/nova-nestjs-schematics feature courses --style bff
 ```
 
 Los dos estilos son **la misma arquitectura hexagonal**. Lo que cambia es dónde

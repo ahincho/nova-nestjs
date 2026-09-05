@@ -1,4 +1,4 @@
 module.exports = {
-  preset: '@ahincho/nova-toolchain/jest',
+  preset: '@ahincho/nova-nestjs-toolchain/jest',
   setupFiles: ['reflect-metadata'],
 };

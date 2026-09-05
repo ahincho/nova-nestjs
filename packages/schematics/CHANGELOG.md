@@ -1,4 +1,4 @@
-# @ahincho/nova-schematics
+# @ahincho/nova-nestjs-schematics
 
 ## 0.2.0
 

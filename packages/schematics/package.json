@@ -1,5 +1,5 @@
 {
-  "name": "@ahincho/nova-schematics",
+  "name": "@ahincho/nova-nestjs-schematics",
   "version": "0.2.0",
   "description": "Generators for Nova Platform NestJS services: an upstream client and a feature slice, in the shape the platform expects",
   "license": "EPL-2.0",
@@ -41,6 +41,6 @@
     "rimraf": "^6.0.1",
     "ts-jest": "^29.4.12",
     "typescript": "~6.0.3",
-    "@ahincho/nova-toolchain": "workspace:*"
+    "@ahincho/nova-nestjs-toolchain": "workspace:*"
   }
 }

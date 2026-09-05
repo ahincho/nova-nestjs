@@ -1,5 +1,5 @@
 {
-  "extends": "@ahincho/nova-toolchain/tsconfig/nestjs.json",
+  "extends": "@ahincho/nova-nestjs-toolchain/tsconfig/nestjs.json",
   "compilerOptions": {
     "outDir": "./dist",
     "rootDir": "./src",

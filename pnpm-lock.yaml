@@ -20,7 +20,7 @@ importers:
 
   packages/core:
     devDependencies:
-      '@ahincho/nova-toolchain':
+      '@ahincho/nova-nestjs-toolchain':
         specifier: workspace:*
         version: link:../toolchain
       '@nestjs/common':
@@ -72,7 +72,7 @@ importers:
         specifier: ^20.0.0
         version: 20.3.35
     devDependencies:
-      '@ahincho/nova-toolchain':
+      '@ahincho/nova-nestjs-toolchain':
         specifier: workspace:*
         version: link:../toolchain
       '@types/jest':
