@@ -7,6 +7,7 @@ type AppDouble = {
   useGlobalPipes: jest.Mock;
   setGlobalPrefix: jest.Mock;
   enableCors: jest.Mock;
+  enableShutdownHooks: jest.Mock;
   listen: jest.Mock;
 };
 
@@ -19,6 +20,7 @@ describe('bootstrap', () => {
       useGlobalPipes: jest.fn(),
       setGlobalPrefix: jest.fn(),
       enableCors: jest.fn(),
+      enableShutdownHooks: jest.fn(),
       listen: jest.fn().mockResolvedValue(undefined),
     };
 
@@ -99,6 +101,25 @@ describe('bootstrap', () => {
     expect(app.setGlobalPrefix).toHaveBeenCalledWith('api', {
       exclude: ['status/live', 'status/ready'],
     });
+  });
+
+  it('keeps the legacy health route out of the global prefix', async () => {
+    await bootstrap(AppModule, {
+      globalPrefix: 'api',
+      legacyHealthPath: 'api/v1/health',
+    });
+
+    expect(app.setGlobalPrefix).toHaveBeenCalledWith('api', {
+      exclude: ['health/live', 'health/ready', 'api/v1/health'],
+    });
+  });
+
+  // Without the hooks SIGTERM kills the process before any module hears about
+  // it, and the graceful window of the readiness probe never opens.
+  it('enables the shutdown hooks', async () => {
+    await bootstrap(AppModule);
+
+    expect(app.enableShutdownHooks).toHaveBeenCalled();
   });
 
   it('installs a logger when one is given', async () => {

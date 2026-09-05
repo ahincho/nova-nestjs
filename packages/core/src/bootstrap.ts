@@ -33,6 +33,11 @@ export type BootstrapOptions = {
    * `NovaHealthModule` was given.
    */
   readonly healthPath?: string;
+  /**
+   * Ruta heredada de salud, también fuera de `globalPrefix`. Debe coincidir
+   * con el `legacyPath` que recibió `NovaHealthModule`.
+   */
+  readonly legacyHealthPath?: string;
 
   /**
    * Rejects a request carrying a property no DTO declares. On by default: a
@@ -66,6 +71,9 @@ export async function bootstrap(
     rootModule as Parameters<typeof NestFactory.create>[0],
     { bufferLogs: true },
   );
+  // Sin esto el SIGTERM de ECS mata el proceso sin avisar a los módulos: el
+  // apagado ordenado de las sondas existe solo si los hooks están activos.
+  app.enableShutdownHooks();
 
   if (options.logger) {
     app.useLogger(options.logger);
@@ -87,9 +95,11 @@ export async function bootstrap(
     // quietly moves /health/live to /api/health/live makes the task deregister
     // about nine seconds after it registers, and the deploy dies ten minutes
     // later on a timeout that reads like a resource problem.
-    app.setGlobalPrefix(options.globalPrefix, {
-      exclude: [`${healthPath}/live`, `${healthPath}/ready`],
-    });
+    const exclude = [`${healthPath}/live`, `${healthPath}/ready`];
+    if (options.legacyHealthPath) {
+      exclude.push(options.legacyHealthPath);
+    }
+    app.setGlobalPrefix(options.globalPrefix, { exclude });
   }
 
   if (options.cors) {

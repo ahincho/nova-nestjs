@@ -21,7 +21,7 @@
     "README.md"
   ],
   "engines": {
-    "node": ">=22"
+    "node": ">=24.9"
   },
   "scripts": {
     "build": "tsc -p tsconfig.build.json && node scripts/copy-assets.mjs",

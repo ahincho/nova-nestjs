@@ -17,7 +17,7 @@ Pone detrás de una sola dependencia lo que una aplicación necesita, igual que
 | [`config`](docs/config.md)               | variables de entorno tipadas, upstreams y CORS             |
 | [`http`](docs/http.md)                   | cliente HTTP saliente con contexto y errores de upstream   |
 | [`observability`](docs/observability.md) | contexto de request, `x-request-id` y opciones de pino     |
-| [`health`](docs/health.md)               | sondas `live` y `ready`                                    |
+| [`health`](docs/health.md)               | sondas `live`, `ready` y heredada sobre terminus           |
 
 ## Un servicio completo
 

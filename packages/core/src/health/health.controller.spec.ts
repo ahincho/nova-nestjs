@@ -1,24 +1,59 @@
 import { Logger } from '@nestjs/common';
+import { PATH_METADATA } from '@nestjs/common/constants';
+import { TerminusModule, type HealthCheckResult } from '@nestjs/terminus';
+import { Test, type TestingModule } from '@nestjs/testing';
 import { SKIP_RESPONSE_WRAPPER } from '../api';
 import {
   createHealthController,
-  type ReadinessResponse,
+  createLegacyHealthController,
 } from './health.controller';
-import { resolveHealthOptions, type NovaHealthModuleOptions } from './tokens';
+import {
+  HEALTH_OPTIONS,
+  resolveHealthOptions,
+  type NovaHealthModuleOptions,
+} from './tokens';
 
-type Controller = {
-  live(): { status: string };
-  ready(response: {
-    status(code: number): unknown;
-  }): Promise<ReadinessResponse>;
+type ResponseDouble = { status: jest.Mock };
+type Probes = {
+  live(): HealthCheckResult;
+  ready(response: ResponseDouble): Promise<HealthCheckResult>;
+};
+type Legacy = {
+  check(response: ResponseDouble): Promise<HealthCheckResult>;
 };
 
-function controller(options: NovaHealthModuleOptions = {}): Controller {
-  const HealthController = createHealthController(options.path ?? 'health');
-  const Constructor = HealthController as new (options: unknown) => Controller;
+const LEGACY_PATH = 'api/v1/health';
 
-  return new Constructor(resolveHealthOptions(options));
+async function harness(options: NovaHealthModuleOptions = {}): Promise<{
+  probes: Probes;
+  legacy: Legacy;
+  moduleRef: TestingModule;
+  response: ResponseDouble;
+}> {
+  const resolved = resolveHealthOptions(options);
+  const HealthController = createHealthController(resolved.path);
+  const LegacyController = createLegacyHealthController(LEGACY_PATH);
+  const moduleRef = await Test.createTestingModule({
+    imports: [
+      TerminusModule.forRoot({
+        logger: false,
+        gracefulShutdownTimeoutMs: resolved.gracefulShutdownTimeoutMs,
+      }),
+    ],
+    controllers: [HealthController, LegacyController],
+    providers: [{ provide: HEALTH_OPTIONS, useValue: resolved }],
+  }).compile();
+  return {
+    probes: moduleRef.get<Probes>(HealthController),
+    legacy: moduleRef.get<Legacy>(LegacyController),
+    moduleRef,
+    response: { status: jest.fn() },
+  };
 }
+
+const never = (): Promise<boolean> => new Promise(() => undefined);
+const after = (ms: number): Promise<boolean> =>
+  new Promise((resolve) => setTimeout(() => resolve(true), ms));
 
 describe('the health controller', () => {
   beforeEach(() => {
@@ -33,18 +68,31 @@ describe('the health controller', () => {
   // { status: 'ok' } into { data: { status: 'ok' } } while the status stayed
   // 200 - so nothing would reveal the change until a probe started failing.
   it('is exempt from the response envelope', () => {
-    const HealthController = createHealthController('health');
+    expect(
+      Reflect.getMetadata(SKIP_RESPONSE_WRAPPER, createHealthController('h')),
+    ).toBe(true);
+    expect(
+      Reflect.getMetadata(
+        SKIP_RESPONSE_WRAPPER,
+        createLegacyHealthController(LEGACY_PATH),
+      ),
+    ).toBe(true);
+  });
 
-    expect(Reflect.getMetadata(SKIP_RESPONSE_WRAPPER, HealthController)).toBe(
-      true,
-    );
+  it('mounts the legacy route exactly where it is asked to', () => {
+    expect(
+      Reflect.getMetadata(
+        PATH_METADATA,
+        createLegacyHealthController(LEGACY_PATH),
+      ),
+    ).toBe(LEGACY_PATH);
   });
 
   describe('liveness', () => {
     // A liveness probe that fails because a database is down gets the container
     // restarted, which does not bring the database back.
-    it('answers without touching any dependency', () => {
-      const failing = controller({
+    it('answers without touching any dependency', async () => {
+      const { probes } = await harness({
         readinessChecks: [
           {
             name: 'database',
@@ -54,101 +102,167 @@ describe('the health controller', () => {
           },
         ],
       });
+      expect(probes.live()).toEqual({
+        status: 'ok',
+        info: {},
+        error: {},
+        details: {},
+      });
+    });
 
-      expect(failing.live()).toEqual({ status: 'ok' });
+    it('stays alive while the service drains', async () => {
+      const { probes, moduleRef } = await harness({
+        gracefulShutdownTimeoutMs: 50,
+      });
+      const closing = moduleRef.close();
+      expect(probes.live().status).toBe('ok');
+      await closing;
     });
   });
 
   describe('readiness', () => {
     it('is ready with no checks registered', async () => {
-      const status = jest.fn();
-
-      await expect(controller().ready({ status })).resolves.toEqual({
+      const { probes, response } = await harness();
+      await expect(probes.ready(response)).resolves.toEqual({
         status: 'ok',
-        checks: {},
+        info: {},
+        error: {},
+        details: {},
       });
-      expect(status).not.toHaveBeenCalled();
+      expect(response.status).not.toHaveBeenCalled();
     });
 
-    it('reports every check by name', async () => {
-      const status = jest.fn();
-
-      const result = await controller({
+    it('reports every check by name in the terminus shape', async () => {
+      const { probes, response } = await harness({
         readinessChecks: [
           { name: 'database', check: () => true },
           { name: 'cache', check: () => Promise.resolve(true) },
         ],
-      }).ready({ status });
-
-      expect(result).toEqual({
+      });
+      await expect(probes.ready(response)).resolves.toMatchObject({
         status: 'ok',
-        checks: { database: true, cache: true },
+        info: { database: { status: 'up' }, cache: { status: 'up' } },
+        error: {},
+        details: { database: { status: 'up' }, cache: { status: 'up' } },
       });
     });
 
     it('answers 503 when one check fails', async () => {
-      const status = jest.fn();
-
-      const result = await controller({
+      const { probes, response } = await harness({
         readinessChecks: [
           { name: 'database', check: () => true },
           { name: 'cache', check: () => false },
         ],
-      }).ready({ status });
-
-      expect(status).toHaveBeenCalledWith(503);
-      expect(result).toEqual({
+      });
+      const result = await probes.ready(response);
+      expect(response.status).toHaveBeenCalledWith(503);
+      expect(result).toMatchObject({
         status: 'error',
-        checks: { database: true, cache: false },
+        info: { database: { status: 'up' } },
+        error: { cache: { status: 'down', message: 'reported not ready' } },
       });
     });
 
-    it('treats a check that throws as a failure', async () => {
-      const status = jest.fn();
-
-      const result = await controller({
+    it('treats a check that throws as a failure and says why', async () => {
+      const { probes, response } = await harness({
         readinessChecks: [
           {
-            name: 'database',
-            check: () => Promise.reject(new Error('ECONNREFUSED')),
+            name: 'queue',
+            check: () => {
+              throw new Error('connection refused');
+            },
           },
         ],
-      }).ready({ status });
-
-      expect(result.checks['database']).toBe(false);
-      expect(status).toHaveBeenCalledWith(503);
+      });
+      const result = await probes.ready(response);
+      expect(response.status).toHaveBeenCalledWith(503);
+      expect(result.error).toMatchObject({
+        queue: { status: 'down', message: 'connection refused' },
+      });
+      expect(Logger.prototype.warn).toHaveBeenCalledWith(
+        'Readiness check "queue" failed: connection refused',
+      );
     });
 
-    // A probe that never answers is worse than one that says "not ready": the
-    // balancer waits for its own timeout on every attempt.
     it('fails a check that outlives its deadline', async () => {
-      const status = jest.fn();
-
-      const result = await controller({
-        checkTimeoutMs: 10,
-        readinessChecks: [
-          { name: 'slow', check: () => new Promise<boolean>(() => undefined) },
-        ],
-      }).ready({ status });
-
-      expect(result.checks['slow']).toBe(false);
+      const { probes, response } = await harness({
+        checkTimeoutMs: 20,
+        readinessChecks: [{ name: 'slow', check: never }],
+      });
+      const result = await probes.ready(response);
+      expect(response.status).toHaveBeenCalledWith(503);
+      expect(result.error?.['slow']).toMatchObject({
+        status: 'down',
+        message: 'timeout of 20ms exceeded',
+      });
     });
 
     it('runs the checks concurrently rather than one after another', async () => {
-      const status = jest.fn();
-      const delayed = (ms: number) => () =>
-        new Promise<boolean>((resolve) => setTimeout(() => resolve(true), ms));
-
-      const started = Date.now();
-      await controller({
+      const { probes, response } = await harness({
         readinessChecks: [
-          { name: 'a', check: delayed(40) },
-          { name: 'b', check: delayed(40) },
-          { name: 'c', check: delayed(40) },
+          { name: 'first', check: () => after(60) },
+          { name: 'second', check: () => after(60) },
         ],
-      }).ready({ status });
-
+      });
+      const started = Date.now();
+      await probes.ready(response);
       expect(Date.now() - started).toBeLessThan(110);
+    });
+
+    it('accepts a terminus indicator next to the plain checks', async () => {
+      const { probes, response } = await harness({
+        readinessChecks: [{ name: 'database', check: () => true }],
+        readinessIndicators: [() => ({ memory: { status: 'up' } })],
+      });
+      await expect(probes.ready(response)).resolves.toMatchObject({
+        status: 'ok',
+        details: { database: { status: 'up' }, memory: { status: 'up' } },
+      });
+    });
+
+    // The window in which the balancer learns to stop routing here before the
+    // process goes away. It only exists while the graceful timeout runs.
+    it('answers 503 with shutting_down while the service drains', async () => {
+      const { probes, response, moduleRef } = await harness({
+        gracefulShutdownTimeoutMs: 300,
+      });
+      const closing = moduleRef.close();
+      // close() runs the destroy hooks before the shutdown ones, so the flag
+      // flips a few ticks after the call: poll until terminus sees it.
+      let result = await probes.ready(response);
+      for (
+        let attempt = 0;
+        result.status !== 'shutting_down' && attempt < 50;
+        attempt += 1
+      ) {
+        await after(5);
+        result = await probes.ready(response);
+      }
+      expect(result.status).toBe('shutting_down');
+      expect(response.status).toHaveBeenLastCalledWith(503);
+      await closing;
+    });
+  });
+
+  describe('the legacy route', () => {
+    it('answers like readiness', async () => {
+      const { legacy, response } = await harness({
+        readinessChecks: [{ name: 'cache', check: () => false }],
+      });
+      const result = await legacy.check(response);
+      expect(response.status).toHaveBeenCalledWith(503);
+      expect(result).toMatchObject({
+        status: 'error',
+        error: { cache: { status: 'down' } },
+      });
+    });
+
+    it('is ok when nothing is registered', async () => {
+      const { legacy, response } = await harness();
+      await expect(legacy.check(response)).resolves.toMatchObject({
+        status: 'ok',
+      });
+      expect(response.status).not.toHaveBeenCalled();
     });
   });
 });

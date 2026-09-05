@@ -26,28 +26,32 @@
     "README.md"
   ],
   "engines": {
-    "node": ">=22"
+    "node": ">=24.9"
   },
   "scripts": {
     "build": "tsc -p tsconfig.build.json",
     "clean": "rimraf dist coverage *.tsbuildinfo",
-    "test": "jest",
-    "test:cov": "jest --coverage",
+    "test": "node --experimental-vm-modules --disable-warning=ExperimentalWarning node_modules/jest/bin/jest.js",
+    "test:cov": "node --experimental-vm-modules --disable-warning=ExperimentalWarning node_modules/jest/bin/jest.js --coverage",
     "typecheck": "tsc -p tsconfig.json --noEmit"
   },
   "peerDependencies": {
     "@nestjs/common": "^11.0.0",
     "@nestjs/config": "^4.0.0",
     "@nestjs/core": "^11.0.0",
+    "@nestjs/terminus": "^12.0.0",
     "class-transformer": "^0.5.0",
     "class-validator": "^0.14.0",
     "reflect-metadata": "^0.2.0",
     "rxjs": "^7.8.0"
   },
   "devDependencies": {
+    "@ahincho/nova-nestjs-toolchain": "workspace:*",
     "@nestjs/common": "^11.2.1",
     "@nestjs/config": "^4.0.4",
     "@nestjs/core": "^11.2.1",
+    "@nestjs/terminus": "^12.0.0",
+    "@nestjs/testing": "^11.2.3",
     "@types/jest": "^30.0.0",
     "@types/node": "^22.15.0",
     "class-transformer": "^0.5.1",
@@ -57,7 +61,6 @@
     "rimraf": "^6.0.1",
     "rxjs": "^7.8.2",
     "ts-jest": "^29.4.12",
-    "typescript": "~6.0.3",
-    "@ahincho/nova-nestjs-toolchain": "workspace:*"
+    "typescript": "~6.0.3"
   }
 }
