@@ -1,3 +1,4 @@
+import { NovaAuthModule } from './auth';
 import { OUTBOUND_HEADERS_PROVIDER } from './http';
 import { RequestContextService } from './observability';
 import { NovaModule } from './nova.module';
@@ -30,6 +31,20 @@ describe('NovaModule.forRoot', () => {
     expect(NovaModule.forRoot({ config: { load: [] } }).imports).toHaveLength(
       5,
     );
+  });
+
+  // El guard es global: activarlo por defecto dejaría en 401 a todo servicio
+  // interno, que es justo el que no manda ningún token.
+  it('leaves authentication off unless the application declares it', () => {
+    expect(NovaModule.forRoot().imports).toHaveLength(4);
+
+    const withAuth = NovaModule.forRoot({ auth: {} });
+    expect(withAuth.imports).toHaveLength(5);
+    expect(
+      (withAuth.imports as { module?: unknown }[]).some(
+        (imported) => imported.module === NovaAuthModule,
+      ),
+    ).toBe(true);
   });
 
   // Only the binding this module owns: the sub-modules are global, so what

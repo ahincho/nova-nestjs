@@ -1,5 +1,6 @@
 import { Module, type DynamicModule, type Provider } from '@nestjs/common';
 import { ApiStandardModule, type ApiStandardModuleOptions } from './api';
+import { NovaAuthModule, type NovaAuthModuleOptions } from './auth';
 import { NovaConfigModule, type NovaConfigModuleOptions } from './config';
 import { NovaHealthModule, type NovaHealthModuleOptions } from './health';
 import {
@@ -28,6 +29,12 @@ export type NovaModuleOptions = {
 
   /** Liveness and readiness probes. */
   readonly health?: NovaHealthModuleOptions;
+
+  /**
+   * Autenticación por JWT. Omitir la deja apagada: un servicio interno no la
+   * necesita, y declararla pone el guard sobre todas las rutas.
+   */
+  readonly auth?: NovaAuthModuleOptions;
 };
 
 /**
@@ -67,6 +74,12 @@ export class NovaModule {
 
     if (options.config) {
       imports.unshift(NovaConfigModule.forRoot(options.config));
+    }
+
+    // Sólo si la aplicación la declara: el guard es global, así que activarla
+    // por defecto dejaría en 401 a todo servicio que no manda un token.
+    if (options.auth) {
+      imports.push(NovaAuthModule.forRoot(options.auth));
     }
 
     const providers: Provider[] = [

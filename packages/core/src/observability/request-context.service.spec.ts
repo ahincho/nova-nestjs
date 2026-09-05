@@ -73,4 +73,43 @@ describe('RequestContextService', () => {
       expect(service.headers()['x-request-id']).toBe('req-1');
     });
   });
+
+  describe('enrich', () => {
+    // Lo que se sabe después de abrir el contexto: el middleware corre antes
+    // que cualquier guard, así que el usuario todavía no existe al crearlo.
+    it('adds a header to the request in flight', () => {
+      service.run(context, () => {
+        service.enrich({ 'x-user-id': 'U12345' });
+
+        expect(service.headers()).toEqual({
+          'x-request-id': 'req-1',
+          'x-user-id': 'U12345',
+        });
+      });
+    });
+
+    it('survives an await', async () => {
+      await service.run(context, async () => {
+        service.enrich({ 'x-user-id': 'U12345' });
+        await new Promise((resolve) => setTimeout(resolve, 1));
+
+        expect(service.headers()['x-user-id']).toBe('U12345');
+      });
+    });
+
+    it('keeps the correlation id it was given', () => {
+      service.run(context, () => {
+        service.enrich({ 'x-user-id': 'U12345' });
+
+        expect(service.requestId()).toBe('req-1');
+      });
+    });
+
+    // Un trabajo programado no tiene contexto que enriquecer, y abrir uno acá
+    // dejaría un contexto que nadie cierra.
+    it('does nothing outside a request', () => {
+      expect(() => service.enrich({ 'x-user-id': 'U12345' })).not.toThrow();
+      expect(service.headers()).toEqual({});
+    });
+  });
 });

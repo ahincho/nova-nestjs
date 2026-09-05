@@ -4,6 +4,7 @@ export { NovaModule, type NovaModuleOptions } from './nova.module';
 // entera: lo que antes se instalaba como seis paquetes hoy se importa de este.
 export * from './api-standard';
 export * from './api';
+export * from './auth';
 export * from './config';
 export * from './health';
 export * from './http';

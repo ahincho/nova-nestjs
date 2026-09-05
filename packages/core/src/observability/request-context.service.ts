@@ -9,15 +9,33 @@ import type { RequestContext } from './request-context';
  * `@ahincho/nova-nestjs-http`: it satisfies that port structurally, so the
  * aggregator can bind the two without either package importing the other.
  */
+/**
+ * Lo que se guarda de verdad.
+ *
+ * Igual que un {@link RequestContext} salvo que sus cabeceras se pueden
+ * escribir, que es lo que permite a `enrich` agregar lo que se sabe después de
+ * abrir el contexto. La forma pública sigue siendo de sólo lectura.
+ */
+type StoredContext = {
+  readonly requestId: string;
+  readonly headers: Record<string, string>;
+};
+
 @Injectable()
 export class RequestContextService {
-  private readonly storage = new AsyncLocalStorage<RequestContext>();
+  private readonly storage = new AsyncLocalStorage<StoredContext>();
 
   /**
    * Runs `callback` with `context` visible to everything it awaits.
    */
   run<T>(context: RequestContext, callback: () => T): T {
-    return this.storage.run(context, callback);
+    // Copia y no el objeto recibido: acá se escribe con `enrich`, y mutar lo
+    // que armó el middleware haría que dos peticiones compartan cabeceras si
+    // alguna vez pasa el mismo objeto dos veces.
+    return this.storage.run(
+      { requestId: context.requestId, headers: { ...context.headers } },
+      callback,
+    );
   }
 
   /**
@@ -33,6 +51,27 @@ export class RequestContextService {
    */
   requestId(): string | undefined {
     return this.storage.getStore()?.requestId;
+  }
+
+  /**
+   * Agrega cabeceras al contexto de la petición en vuelo.
+   *
+   * Existe para lo que se sabe después de abrir el contexto: el middleware
+   * corre antes que cualquier guard, así que el identificador del usuario -que
+   * sale del token- todavía no existe cuando el contexto se crea.
+   *
+   * Fuera de una petición no hace nada, en vez de inventar un contexto que
+   * nadie va a cerrar.
+   */
+  enrich(headers: Readonly<Record<string, string>>): void {
+    const current = this.storage.getStore();
+    if (!current) {
+      return;
+    }
+    // Se escribe sobre el objeto guardado en vez de reemplazarlo con
+    // `enterWith`: eso vale sólo para la cadena síncrona que lo llama, y el
+    // guard es asíncrono, así que el controlador ya no lo vería.
+    Object.assign(current.headers, headers);
   }
 
   /**

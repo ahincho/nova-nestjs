@@ -14,6 +14,7 @@ Pone detrás de una sola dependencia lo que una aplicación necesita, igual que
 | ---------------------------------------- | ---------------------------------------------------------- |
 | [`api-standard`](docs/api-standard.md)   | el sobre `{ success, status, data, errors }` y sus códigos |
 | [`api`](docs/api.md)                     | interceptor, filtro y `ValidationPipe` que lo aplican      |
+| [`auth`](docs/auth.md)                   | JWT opcional: guard global, `@Public()` y `@CurrentUser()` |
 | [`config`](docs/config.md)               | variables de entorno tipadas, upstreams y CORS             |
 | [`http`](docs/http.md)                   | cliente HTTP saliente con contexto y errores de upstream   |
 | [`observability`](docs/observability.md) | contexto de request, `x-request-id` y opciones de pino     |
