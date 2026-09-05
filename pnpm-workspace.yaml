@@ -12,3 +12,22 @@ packages:
 allowBuilds:
   '@parcel/watcher': false
   unrs-resolver: false
+
+# Una sola declaracion de cada version compartida, que los tres paquetes
+# referencian con `catalog:`. Es lo que evita que core compile contra un
+# TypeScript y schematics contra otro sin que nadie lo note: hasta ahora las
+# mismas seis dependencias estaban escritas tres veces, y `@types/node` ya se
+# habia quedado en 22 despues de subir el piso a Node 24.
+catalog:
+  '@types/jest': ^30.0.0
+  '@types/node': ^24.0.0
+  jest: ^30.4.2
+  rimraf: ^6.0.1
+  ts-jest: ^29.4.12
+  typescript: ~6.0.3
+
+# Un rango de peer que no se cumple deja de ser una advertencia y pasa a
+# romper el install. Es el mecanismo que impide que un consumidor termine en
+# un NestJS que la plataforma no declara soportar: el aviso se lee cuando ya
+# fallo algo, el install fallido se lee al instante.
+strictPeerDependencies: true
