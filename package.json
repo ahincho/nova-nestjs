@@ -18,7 +18,7 @@
     "typecheck": "pnpm -r run typecheck",
     "test": "pnpm -r run test",
     "test:cov": "pnpm -r run test:cov",
-    "verify": "pnpm build && pnpm typecheck && pnpm test:cov && pnpm format:check",
+    "verify": "pnpm peers check && pnpm build && pnpm typecheck && pnpm test:cov && pnpm format:check",
     "clean": "pnpm -r run clean",
     "format": "prettier --write .",
     "format:check": "prettier --check .",
