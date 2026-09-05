@@ -8,7 +8,24 @@ pnpm add @ahincho/nova-nestjs
 ```
 
 Pone detrás de una sola dependencia lo que una aplicación necesita, igual que
-`spring-boot-starter`. Cada módulo tiene su carpeta en `src/` y su documento:
+`spring-boot-starter`, y eso incluye **NestJS mismo**: `@nestjs/common`,
+`@nestjs/core`, `@nestjs/config`, `@nestjs/platform-express`, `@nestjs/terminus`,
+`class-validator`, `class-transformer`, `reflect-metadata` y `rxjs` vienen con este
+paquete, en las versiones contra las que corre su suite. Un servicio no los declara.
+
+Para poder importarlos hace falta una línea en el `pnpm-workspace.yaml` del
+servicio, porque pnpm aísla `node_modules` y un paquete transitivo no se resuelve:
+
+```yaml
+publicHoistPattern:
+  - '@nestjs/*'
+  - rxjs
+  - reflect-metadata
+  - class-validator
+  - class-transformer
+```
+
+Cada módulo tiene su carpeta en `src/` y su documento:
 
 | Módulo                                   | Qué resuelve                                               |
 | ---------------------------------------- | ---------------------------------------------------------- |

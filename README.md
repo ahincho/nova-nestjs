@@ -13,12 +13,47 @@ paquetes; el porqué está más abajo.
 ## Por qué un monorepo y no un repo por paquete
 
 En Java la coordinación de versiones ocurre en el **consumidor**: un BOM se importa
-y un parent se hereda. npm no tiene ninguno de los dos mecanismos, sólo
-`peerDependencies` con rangos. Entonces la coordinación tiene que ocurrir en el
-**productor**, y ese productor es el monorepo.
+y un parent se hereda. npm no tiene ninguno de los dos mecanismos. Entonces la
+coordinación tiene que ocurrir en el **productor**, y ese productor es el monorepo.
 
 Es lo que hacen NestJS, Angular y Backstage. Cada paquete se publica con su versión,
 su changelog y su página de npm; el consumidor no distingue.
+
+## Una sola dependencia de runtime
+
+Un servicio declara `@ahincho/nova-nestjs` y **nada más**. NestJS, `class-validator`,
+`rxjs`, `reflect-metadata` y terminus llegan con él, en las versiones exactas contra
+las que la plataforma corre su suite.
+
+```jsonc
+// package.json de un servicio, entero
+"dependencies": {
+  "@ahincho/nova-nestjs": "^0.4.0"
+}
+```
+
+Antes eran `peerDependencies`, y eso dejaba la elección del lado del servicio: ocho
+rangos escritos en cada repositorio, que cada equipo podía mover por su cuenta. Con
+la versión adentro del paquete, subir NestJS es publicar la plataforma, y ningún
+servicio queda en una versión que la plataforma no probó.
+
+**Cuesta una línea de configuración en el consumidor**, y no es opcional. pnpm aísla
+`node_modules`, así que un paquete que llega por transitividad no se puede importar:
+sin esto, `import { Module } from '@nestjs/common'` corta con `TS2307`.
+
+```yaml
+# pnpm-workspace.yaml del servicio
+publicHoistPattern:
+  - '@nestjs/*'
+  - rxjs
+  - reflect-metadata
+  - class-validator
+  - class-transformer
+```
+
+Es la contrapartida honesta del modelo: se gana que nadie elija la versión, se pierde
+el aislamiento estricto de pnpm para esos paquetes. Con npm o yarn no haría falta,
+porque no aíslan.
 
 ## Paquetes
 
