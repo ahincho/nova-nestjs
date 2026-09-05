@@ -1,5 +1,5 @@
 module.exports = {
-  preset: '@ahincho/nova-toolchain/jest',
+  preset: '@ahincho/nova-nestjs-toolchain/jest',
   // schematics.spec.ts corre la coleccion compilada, que es lo que se instala,
   // asi que su ejecucion no aparece como cobertura del fuente. Lo medible desde
   // el fuente es la parte pura -el nombrado y la decision de ruta-, y de eso se

@@ -1,4 +1,4 @@
-# @ahincho/nova-toolchain
+# @ahincho/nova-nestjs-toolchain
 
 ## 0.2.0
 
