@@ -4,7 +4,7 @@ Sondas de vida y de disponibilidad para servicios NestJS de Nova Platform, sobre
 [`@nestjs/terminus`](https://docs.nestjs.com/recipes/terminus).
 
 ```bash
-pnpm add @ahincho/nova-nestjs @nestjs/terminus
+pnpm add @ahincho/nova-nestjs
 ```
 
 ```ts

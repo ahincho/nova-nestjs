@@ -4,7 +4,7 @@ Lectores tipados de variables de entorno, declaración de upstreams y política 
 CORS para servicios NestJS de Nova Platform.
 
 ```bash
-pnpm add @ahincho/nova-nestjs @nestjs/config
+pnpm add @ahincho/nova-nestjs
 ```
 
 ## Declarar un upstream

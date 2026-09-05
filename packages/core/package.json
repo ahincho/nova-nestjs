@@ -35,31 +35,24 @@
     "test:cov": "node --experimental-vm-modules --disable-warning=ExperimentalWarning node_modules/jest/bin/jest.js --coverage",
     "typecheck": "tsc -p tsconfig.json --noEmit"
   },
-  "peerDependencies": {
-    "@nestjs/common": "^11.0.0",
-    "@nestjs/config": "^4.0.0",
-    "@nestjs/core": "^11.0.0",
+  "dependencies": {
+    "@nestjs/common": "^11.2.3",
+    "@nestjs/config": "^4.0.4",
+    "@nestjs/core": "^11.2.3",
+    "@nestjs/platform-express": "^11.2.3",
     "@nestjs/terminus": "^12.0.0",
-    "class-transformer": "^0.5.0",
-    "class-validator": "^0.14.0",
-    "reflect-metadata": "^0.2.0",
-    "rxjs": "^7.8.0"
+    "class-transformer": "^0.5.1",
+    "class-validator": "^0.14.4",
+    "reflect-metadata": "^0.2.2",
+    "rxjs": "^7.8.2"
   },
   "devDependencies": {
     "@ahincho/nova-nestjs-toolchain": "workspace:*",
-    "@nestjs/common": "^11.2.1",
-    "@nestjs/config": "^4.0.4",
-    "@nestjs/core": "^11.2.1",
-    "@nestjs/terminus": "^12.0.0",
     "@nestjs/testing": "^11.2.3",
     "@types/jest": "catalog:",
     "@types/node": "catalog:",
-    "class-transformer": "^0.5.1",
-    "class-validator": "^0.14.2",
     "jest": "catalog:",
-    "reflect-metadata": "^0.2.2",
     "rimraf": "catalog:",
-    "rxjs": "^7.8.2",
     "ts-jest": "catalog:",
     "typescript": "catalog:"
   }
