@@ -55,12 +55,11 @@ export class NovaConfigModule {
       // variables that reference it, which only happens with this on.
       expandVariables: true,
       load: options.load ? [...options.load] : [],
+      // `Array.isArray` sobre un `readonly string[]` estrecha a `any[]`, asi
+      // que la rama que parecia la segura era la que metia el `any`. `.flat()`
+      // normaliza lo mismo sin perder el tipo.
       envFilePath: options.envFilePath
-        ? [
-            ...(Array.isArray(options.envFilePath)
-              ? options.envFilePath
-              : [options.envFilePath as string]),
-          ]
+        ? [options.envFilePath].flat()
         : undefined,
       validationSchema: options.validationSchema,
     });

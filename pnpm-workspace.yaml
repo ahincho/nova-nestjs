@@ -20,6 +20,8 @@ allowBuilds:
 catalog:
   '@types/node': ^24.0.0
   '@vitest/coverage-v8': ^5.0.0
+  oxlint: ^1.81.0
+  oxlint-tsgolint: ^7.0.2001
   rimraf: ^6.0.1
   typescript: ~6.0.3
   vitest: ^5.0.0

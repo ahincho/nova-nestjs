@@ -3,7 +3,6 @@ import {
   DEFAULT_UPSTREAM_TIMEOUT_MS,
   defineUpstream,
   toEnvPrefix,
-  type UpstreamConfig,
 } from './upstream';
 
 describe('toEnvPrefix', () => {
@@ -31,7 +30,7 @@ describe('defineUpstream', () => {
     process.env[URL_VAR] = 'http://academic.internal:8080';
     process.env[TIMEOUT_VAR] = '2500';
 
-    const config = defineUpstream('academic-orchestrator')() as UpstreamConfig;
+    const config = defineUpstream('academic-orchestrator')();
 
     expect(config).toEqual({
       url: 'http://academic.internal:8080',
@@ -42,7 +41,7 @@ describe('defineUpstream', () => {
   it('applies the default timeout when the variable is absent', () => {
     process.env[URL_VAR] = 'http://academic.internal:8080';
 
-    const config = defineUpstream('academic-orchestrator')() as UpstreamConfig;
+    const config = defineUpstream('academic-orchestrator')();
 
     expect(config.timeoutMs).toBe(DEFAULT_UPSTREAM_TIMEOUT_MS);
   });
@@ -52,7 +51,7 @@ describe('defineUpstream', () => {
 
     const config = defineUpstream('academic-orchestrator', {
       defaultTimeoutMs: 12_000,
-    })() as UpstreamConfig;
+    })();
 
     expect(config.timeoutMs).toBe(12_000);
   });
@@ -62,7 +61,7 @@ describe('defineUpstream', () => {
 
     const config = defineUpstream('academic-orchestrator', {
       envPrefix: 'CUSTOM',
-    })() as UpstreamConfig;
+    })();
 
     expect(config.url).toBe('http://legacy.internal');
   });

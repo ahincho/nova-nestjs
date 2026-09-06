@@ -35,15 +35,17 @@ describe('RequestContextService', () => {
       headers: { 'x-request-id': 'req-2' },
     };
 
-    const seen = await Promise.all([
-      service.run(context, async () => {
-        await new Promise((resolve) => setTimeout(resolve, 5));
-        return service.requestId();
-      }),
-      service.run(other, async () => service.requestId()),
-    ]);
+    // El primero arranca y queda suspendido en el await; el segundo corre
+    // entero mientras tanto. Devuelve una cadena y no una promesa, y por eso
+    // no van juntos en un Promise.all: lo que se prueba es que el segundo, que
+    // corre en el medio, no ve el contexto del primero.
+    const first = service.run(context, async () => {
+      await new Promise((resolve) => setTimeout(resolve, 5));
+      return service.requestId();
+    });
+    const second = service.run(other, () => service.requestId());
 
-    expect(seen).toEqual(['req-1', 'req-2']);
+    expect([await first, second]).toEqual(['req-1', 'req-2']);
   });
 
   // A scheduled job has no incoming call to correlate with, and inventing one

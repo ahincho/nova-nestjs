@@ -1,7 +1,7 @@
 {
   "name": "@ahincho/nova-nestjs-toolchain",
-  "version": "0.6.0",
-  "description": "Shared TypeScript, ESLint and Vitest presets for Nova Platform NestJS projects",
+  "version": "0.7.0",
+  "description": "Shared TypeScript, oxlint and Vitest presets for Nova Platform NestJS projects",
   "license": "EPL-2.0",
   "repository": {
     "type": "git",
@@ -14,7 +14,7 @@
   },
   "files": [
     "tsconfig",
-    "eslint",
+    "oxlint",
     "vitest",
     "README.md"
   ],
@@ -30,11 +30,11 @@
     "@types/node": "^24.0.0",
     "@types/supertest": "^6.0.3",
     "@vitest/coverage-v8": "^5.0.0",
-    "eslint": "^10.8.1",
+    "oxlint": "^1.81.0",
+    "oxlint-tsgolint": "^7.0.2001",
     "prettier": "^3.9.6",
     "supertest": "^7.1.1",
     "typescript": "~6.0.3",
-    "typescript-eslint": "^8.46.0",
     "vitest": "^5.0.0"
   }
 }
