@@ -1,5 +1,56 @@
 # @ahincho/nova-nestjs
 
+## 0.4.0
+
+### Minor Changes
+
+- 6f78151: Autenticación por JWT como módulo opcional. `NovaModule.forRoot({ auth: {} })`
+  pone un guard global: cada ruta exige `Authorization: Bearer <jwt>` y el
+  controlador recibe un `Principal` con `@CurrentUser()`. Lo que no la necesita se
+  marca con `@Public()`, y las sondas de salud ya lo traen. Omitir `auth` deja el
+  servicio exactamente como estaba.
+
+  El guard **no verifica la firma por defecto**: lee los claims del token tal como
+  vino, que es lo correcto detrás de un gateway que ya lo validó. Un servicio
+  expuesto directo pone la verificación real en la opción `verify`.
+
+  El identificador sale de `preferred_username` y el rol de `realm_access.roles`,
+  las dos configurables junto con la normalización, los roles preferidos y los que
+  se descartan. Cuando el módulo de observabilidad está activo, el identificador
+  se agrega al contexto y viaja como `x-user-id` hacia cada upstream sin que ningún
+  punto de llamada lo pase.
+
+  `RequestContextService` suma `enrich()`, que agrega cabeceras al contexto de la
+  petición en vuelo. Existe para lo que se sabe después de abrirlo: el middleware
+  corre antes que cualquier guard.
+
+- 30edd67: NestJS deja de ser `peerDependencies` y pasa a ser **dependencia del paquete**. Un
+  servicio declara `@ahincho/nova-nestjs` y nada más: `@nestjs/common`, `@nestjs/core`,
+  `@nestjs/config`, `@nestjs/platform-express`, `@nestjs/terminus`, `class-validator`,
+  `class-transformer`, `reflect-metadata` y `rxjs` llegan con él, en las versiones
+  contra las que la plataforma corre su suite.
+
+  Con peers, la elección de versión vivía en cada repositorio: ocho rangos que cada
+  equipo podía mover por su cuenta. Ahora la versión está adentro del paquete, así que
+  subir NestJS es publicar la plataforma.
+
+  **Requiere una línea en el `pnpm-workspace.yaml` del servicio.** pnpm aísla
+  `node_modules`, así que un paquete transitivo no se puede importar; sin esto,
+  `import { Module } from '@nestjs/common'` corta con `TS2307`:
+
+  ```yaml
+  publicHoistPattern:
+    - '@nestjs/*'
+    - rxjs
+    - reflect-metadata
+    - class-validator
+    - class-transformer
+  ```
+
+  Un servicio que siga declarando las suyas no se rompe: pnpm resuelve una sola copia
+  mientras los rangos se crucen. Lo que cambia es que ya no hace falta, y que dejar de
+  declararlas es lo que quita la decisión del lado del servicio.
+
 ## 0.3.0
 
 ### Minor Changes
