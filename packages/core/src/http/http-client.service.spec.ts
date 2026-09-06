@@ -6,6 +6,7 @@ import {
 import { HttpClientService } from './http-client.service';
 import { resolveNovaHttpOptions, type OutboundHeadersProvider } from './tokens';
 import { UpstreamHttpError } from './upstream-http.error';
+import type { Mock } from 'vitest';
 
 type FetchArgs = [string, RequestInit];
 
@@ -23,17 +24,17 @@ function timeoutError(): Error {
 }
 
 describe('HttpClientService', () => {
-  let fetchMock: jest.Mock;
+  let fetchMock: Mock;
 
   beforeEach(() => {
-    fetchMock = jest.fn();
+    fetchMock = vi.fn();
     global.fetch = fetchMock as unknown as typeof fetch;
-    jest.spyOn(Logger.prototype, 'error').mockImplementation();
-    jest.spyOn(Logger.prototype, 'warn').mockImplementation();
+    vi.spyOn(Logger.prototype, 'error').mockImplementation(() => {});
+    vi.spyOn(Logger.prototype, 'warn').mockImplementation(() => {});
   });
 
   afterEach(() => {
-    jest.restoreAllMocks();
+    vi.restoreAllMocks();
   });
 
   function client(
@@ -259,7 +260,7 @@ describe('HttpClientService', () => {
     // An upstream error payload routinely echoes back the identifiers of the
     // person the request was about, and a query string carries them outright.
     it('never writes the response body or the query string', async () => {
-      const errorLog = jest.spyOn(Logger.prototype, 'error');
+      const errorLog = vi.spyOn(Logger.prototype, 'error');
       fetchMock.mockResolvedValue(
         jsonResponse({ studentEmail: 'someone@example.edu' }, 500),
       );

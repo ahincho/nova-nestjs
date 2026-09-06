@@ -1,14 +1,15 @@
 import { ValidationPipe, type INestApplication } from '@nestjs/common';
 import { NestFactory } from '@nestjs/core';
 import { bootstrap } from './bootstrap';
+import type { Mock } from 'vitest';
 
 type AppDouble = {
-  useLogger: jest.Mock;
-  useGlobalPipes: jest.Mock;
-  setGlobalPrefix: jest.Mock;
-  enableCors: jest.Mock;
-  enableShutdownHooks: jest.Mock;
-  listen: jest.Mock;
+  useLogger: Mock;
+  useGlobalPipes: Mock;
+  setGlobalPrefix: Mock;
+  enableCors: Mock;
+  enableShutdownHooks: Mock;
+  listen: Mock;
 };
 
 describe('bootstrap', () => {
@@ -16,22 +17,22 @@ describe('bootstrap', () => {
 
   beforeEach(() => {
     app = {
-      useLogger: jest.fn(),
-      useGlobalPipes: jest.fn(),
-      setGlobalPrefix: jest.fn(),
-      enableCors: jest.fn(),
-      enableShutdownHooks: jest.fn(),
-      listen: jest.fn().mockResolvedValue(undefined),
+      useLogger: vi.fn(),
+      useGlobalPipes: vi.fn(),
+      setGlobalPrefix: vi.fn(),
+      enableCors: vi.fn(),
+      enableShutdownHooks: vi.fn(),
+      listen: vi.fn().mockResolvedValue(undefined),
     };
 
-    jest
-      .spyOn(NestFactory, 'create')
-      .mockResolvedValue(app as unknown as INestApplication);
+    vi.spyOn(NestFactory, 'create').mockResolvedValue(
+      app as unknown as INestApplication,
+    );
     delete process.env['PORT'];
   });
 
   afterEach(() => {
-    jest.restoreAllMocks();
+    vi.restoreAllMocks();
     delete process.env['PORT'];
   });
 
@@ -123,7 +124,7 @@ describe('bootstrap', () => {
   });
 
   it('installs a logger when one is given', async () => {
-    const logger = { log: jest.fn(), error: jest.fn(), warn: jest.fn() };
+    const logger = { log: vi.fn(), error: vi.fn(), warn: vi.fn() };
 
     await bootstrap(AppModule, { logger });
 

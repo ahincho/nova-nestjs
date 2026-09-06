@@ -1,20 +1,21 @@
 import { ConfigModule } from '@nestjs/config';
 import { NovaConfigModule } from './nova-config.module';
 import { defineUpstream } from './upstream';
+import type { MockInstance } from 'vitest';
 
 describe('NovaConfigModule.forRoot', () => {
-  let forRoot: jest.SpyInstance;
+  let forRoot: MockInstance;
 
   beforeEach(() => {
     // The real one reads the filesystem and mutates process.env. What matters
     // here is the options this wrapper decides on its behalf.
-    forRoot = jest
+    forRoot = vi
       .spyOn(ConfigModule, 'forRoot')
       .mockResolvedValue({ module: class ConfigModuleStub {} });
   });
 
   afterEach(() => {
-    jest.restoreAllMocks();
+    vi.restoreAllMocks();
   });
 
   function optionsPassedDown(): Record<string, unknown> {

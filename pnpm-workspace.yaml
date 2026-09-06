@@ -5,12 +5,11 @@ packages:
 # install si nadie decidio que hacer con ellos. Decidirlo aca es lo que evita
 # que un `pnpm install` limpio falle en CI antes de compilar nada.
 #
-# Los dos van en false porque ninguno hace falta: @parcel/watcher solo acelera
-# el modo --watch de Jest, y unrs-resolver es el binario nativo opcional del
-# resolutor de imports de ESLint, que cae a su implementacion en JavaScript
-# cuando no esta compilado.
+# Va en false porque no hace falta: unrs-resolver es el binario nativo opcional
+# del resolutor de imports de ESLint, que cae a su implementacion en JavaScript
+# cuando no esta compilado. @parcel/watcher estaba aca por el modo --watch de
+# Jest y salio del arbol junto con el.
 allowBuilds:
-  '@parcel/watcher': false
   unrs-resolver: false
 
 # Una sola declaracion de cada version compartida, que los tres paquetes
@@ -19,12 +18,11 @@ allowBuilds:
 # mismas seis dependencias estaban escritas tres veces, y `@types/node` ya se
 # habia quedado en 22 despues de subir el piso a Node 24.
 catalog:
-  '@types/jest': ^30.0.0
   '@types/node': ^24.0.0
-  jest: ^30.4.2
+  '@vitest/coverage-v8': ^5.0.0
   rimraf: ^6.0.1
-  ts-jest: ^29.4.12
   typescript: ~6.0.3
+  vitest: ^5.0.0
 
 # Un rango de peer que no se cumple deja de ser una advertencia y pasa a
 # romper el install. Es el mecanismo que impide que un consumidor termine en

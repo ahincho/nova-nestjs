@@ -13,8 +13,9 @@ import {
   resolveHealthOptions,
   type NovaHealthModuleOptions,
 } from './tokens';
+import type { Mock } from 'vitest';
 
-type ResponseDouble = { status: jest.Mock };
+type ResponseDouble = { status: Mock };
 type Probes = {
   live(): HealthCheckResult;
   ready(response: ResponseDouble): Promise<HealthCheckResult>;
@@ -48,7 +49,7 @@ async function harness(options: NovaHealthModuleOptions = {}): Promise<{
     probes: moduleRef.get<Probes>(HealthController),
     legacy: moduleRef.get<Legacy>(LegacyController),
     moduleRef,
-    response: { status: jest.fn() },
+    response: { status: vi.fn() },
   };
 }
 
@@ -58,11 +59,11 @@ const after = (ms: number): Promise<boolean> =>
 
 describe('the health controller', () => {
   beforeEach(() => {
-    jest.spyOn(Logger.prototype, 'warn').mockImplementation();
+    vi.spyOn(Logger.prototype, 'warn').mockImplementation(() => {});
   });
 
   afterEach(() => {
-    jest.restoreAllMocks();
+    vi.restoreAllMocks();
   });
 
   // Sin esto, activar `auth` dejaria las sondas en 401 y el balanceador

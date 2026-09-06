@@ -11,6 +11,7 @@ import { errorItem } from '../../api-standard';
 import { ValidationException } from '../exceptions/validation.exception';
 import { DEFAULT_API_STANDARD_OPTIONS } from '../tokens';
 import { AllExceptionsFilter } from './all-exceptions.filter';
+import type { MockInstance } from 'vitest';
 
 type Captured = {
   status: number | undefined;
@@ -49,18 +50,18 @@ function hostDouble(
 describe('AllExceptionsFilter', () => {
   let filter: AllExceptionsFilter;
   let captured: Captured;
-  let errorLog: jest.SpyInstance;
-  let warnLog: jest.SpyInstance;
+  let errorLog: MockInstance;
+  let warnLog: MockInstance;
 
   beforeEach(() => {
     filter = new AllExceptionsFilter(DEFAULT_API_STANDARD_OPTIONS);
     captured = { status: undefined, body: undefined };
-    errorLog = jest.spyOn(Logger.prototype, 'error').mockImplementation();
-    warnLog = jest.spyOn(Logger.prototype, 'warn').mockImplementation();
+    errorLog = vi.spyOn(Logger.prototype, 'error').mockImplementation(() => {});
+    warnLog = vi.spyOn(Logger.prototype, 'warn').mockImplementation(() => {});
   });
 
   afterEach(() => {
-    jest.restoreAllMocks();
+    vi.restoreAllMocks();
   });
 
   it('answers a 404 with the envelope and the derived code', () => {

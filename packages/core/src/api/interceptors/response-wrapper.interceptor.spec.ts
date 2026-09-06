@@ -27,7 +27,7 @@ function handlerDouble(payload: unknown): CallHandler<unknown> {
 
 function reflectorDouble(skip?: boolean): Reflector {
   return {
-    getAllAndOverride: jest.fn().mockReturnValue(skip),
+    getAllAndOverride: vi.fn().mockReturnValue(skip),
   } as unknown as Reflector;
 }
 

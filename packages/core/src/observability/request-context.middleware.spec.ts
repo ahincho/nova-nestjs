@@ -22,13 +22,13 @@ describe('RequestContextMiddleware', () => {
   }
 
   it('opens the context for the rest of the chain', () => {
-    const next = jest.fn(() => {
+    const next = vi.fn(() => {
       expect(service.requestId()).toBe('req-1');
     });
 
     middleware().use(
       { headers: { 'x-request-id': 'req-1' } },
-      { setHeader: jest.fn() },
+      { setHeader: vi.fn() },
       next,
     );
 
@@ -43,7 +43,7 @@ describe('RequestContextMiddleware', () => {
       headers: { 'x-request-id': 'req-1' },
     };
 
-    middleware().use(request, { setHeader: jest.fn() }, jest.fn());
+    middleware().use(request, { setHeader: vi.fn() }, vi.fn());
 
     expect(request.id).toBe('req-1');
   });
@@ -53,7 +53,7 @@ describe('RequestContextMiddleware', () => {
       headers: {},
     };
 
-    middleware().use(request, { setHeader: jest.fn() }, jest.fn());
+    middleware().use(request, { setHeader: vi.fn() }, vi.fn());
 
     expect(request.id).toBe('generated-id');
   });
@@ -61,20 +61,20 @@ describe('RequestContextMiddleware', () => {
   // The caller needs the id to report a failure, and a browser can only read it
   // because the CORS policy exposes that header.
   it('echoes the correlation id back on the response', () => {
-    const setHeader = jest.fn();
+    const setHeader = vi.fn();
 
-    middleware().use({ headers: {} }, { setHeader }, jest.fn());
+    middleware().use({ headers: {} }, { setHeader }, vi.fn());
 
     expect(setHeader).toHaveBeenCalledWith('x-request-id', 'generated-id');
   });
 
   it('can be told not to echo it', () => {
-    const setHeader = jest.fn();
+    const setHeader = vi.fn();
 
     middleware({ echoRequestId: false }).use(
       { headers: {} },
       { setHeader },
-      jest.fn(),
+      vi.fn(),
     );
 
     expect(setHeader).not.toHaveBeenCalled();
@@ -83,19 +83,19 @@ describe('RequestContextMiddleware', () => {
   // A platform whose response object has no setHeader must not take the
   // request down over an echo that is a convenience.
   it('still serves when the response cannot take headers', () => {
-    const next = jest.fn();
+    const next = vi.fn();
 
     expect(() => middleware().use({ headers: {} }, {}, next)).not.toThrow();
     expect(next).toHaveBeenCalledTimes(1);
   });
 
   it('echoes under the configured header name', () => {
-    const setHeader = jest.fn();
+    const setHeader = vi.fn();
 
     middleware({ correlationHeaders: ['x-correlation-id'] }).use(
       { headers: {} },
       { setHeader },
-      jest.fn(),
+      vi.fn(),
     );
 
     expect(setHeader).toHaveBeenCalledWith('x-correlation-id', 'generated-id');

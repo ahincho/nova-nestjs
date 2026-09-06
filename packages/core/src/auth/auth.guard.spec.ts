@@ -154,7 +154,7 @@ describe('NovaAuthGuard', () => {
 
   describe('a real signature check', () => {
     it('replaces reading the token as it came', async () => {
-      const verify = jest.fn().mockResolvedValue({
+      const verify = vi.fn().mockResolvedValue({
         preferred_username: 'ana',
         realm_access: { roles: ['teacher'] },
       });
@@ -169,7 +169,7 @@ describe('NovaAuthGuard', () => {
     // Firma, expiración o emisor: para el llamador todas son lo mismo, y decir
     // cuál falló le regala información a quien esté probando tokens.
     it('turns any failure into a plain 401', async () => {
-      const verify = jest.fn().mockRejectedValue(new Error('token expired'));
+      const verify = vi.fn().mockRejectedValue(new Error('token expired'));
       const target = request({ authorization: 'Bearer opaque-token' });
 
       await expect(

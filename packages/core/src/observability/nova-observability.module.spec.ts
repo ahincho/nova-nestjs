@@ -36,9 +36,9 @@ describe('NovaObservabilityModule', () => {
     // Including the probes: a probe that fails is exactly the log line someone
     // will want to correlate.
     it('applies the middleware to every route', () => {
-      const forRoutes = jest.fn();
+      const forRoutes = vi.fn();
       const consumer = {
-        apply: jest.fn().mockReturnValue({ forRoutes }),
+        apply: vi.fn().mockReturnValue({ forRoutes }),
       } as unknown as MiddlewareConsumer;
 
       new NovaObservabilityModule().configure(consumer);

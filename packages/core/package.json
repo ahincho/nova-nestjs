@@ -31,8 +31,8 @@
   "scripts": {
     "build": "tsc -p tsconfig.build.json",
     "clean": "rimraf dist coverage *.tsbuildinfo",
-    "test": "node --experimental-vm-modules --disable-warning=ExperimentalWarning node_modules/jest/bin/jest.js",
-    "test:cov": "node --experimental-vm-modules --disable-warning=ExperimentalWarning node_modules/jest/bin/jest.js --coverage",
+    "test": "vitest run",
+    "test:cov": "vitest run --coverage",
     "typecheck": "tsc -p tsconfig.json --noEmit"
   },
   "dependencies": {
@@ -49,11 +49,10 @@
   "devDependencies": {
     "@ahincho/nova-nestjs-toolchain": "workspace:*",
     "@nestjs/testing": "^11.2.3",
-    "@types/jest": "catalog:",
     "@types/node": "catalog:",
-    "jest": "catalog:",
+    "@vitest/coverage-v8": "catalog:",
     "rimraf": "catalog:",
-    "ts-jest": "catalog:",
-    "typescript": "catalog:"
+    "typescript": "catalog:",
+    "vitest": "catalog:"
   }
 }
