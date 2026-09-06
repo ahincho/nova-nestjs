@@ -41,6 +41,19 @@ ApiResponses.error(400, ...validationErrors);
 `errorOf` deriva el `code` del status HTTP, y `options.code` lo sobrescribe cuando
 el dominio tiene un código propio (`ALREADY_ENROLLED`).
 
+Desde NestJS 12 se puede hacer lo mismo **sin construir el sobre**, poniéndole el
+código a la excepción y dejando que el filtro global lo lea:
+
+```ts
+throw new NotFoundException('Curso no encontrado', {
+  errorCode: 'COURSE_NOT_FOUND',
+});
+```
+
+Antes, un código de dominio obligaba a escribir una excepción propia por cada uno.
+**Solo se lee por debajo de 500**: un 5xx contesta el mensaje genérico a propósito,
+y dejar pasar ahí un código de dominio cuenta qué falló por dentro.
+
 ## Por qué el cliente ramifica por `code` y no por `status`
 
 El `code` sobrevive a un cambio de transporte. Y **todo 5xx colapsa a

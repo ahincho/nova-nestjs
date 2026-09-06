@@ -94,6 +94,19 @@ Las cuatro decisiones que se estaban tomando de nuevo en cada `main.ts`:
   `/health/live` en `/api/health/live` hace que la tarea se desregistre a los
   nueve segundos y el despliegue muera diez minutos después.
 
+Y dos que llegaron con NestJS 12:
+
+- **Una ruta duplicada corta el arranque** (`routeConflictPolicy.duplicate`).
+  Dos registros con el mismo método, ruta, host y versión son siempre un error:
+  uno de los dos manejadores es código muerto y cuál gana depende del orden. Una
+  ruta ensombrecida -`/users/me` contra `/users/:id`- solo avisa, porque a veces
+  es deliberada.
+- **`return503OnClosing`**, la otra mitad del apagado ordenado. `enableShutdownHooks`
+  avisa a los módulos; sin esto el proceso sigue aceptando peticiones nuevas
+  mientras se apaga. Con esto una petición nueva recibe 503 -que es lo que el
+  balanceador necesita para sacar la tarea de rotación- y las que ya estaban en
+  vuelo terminan.
+
 | Opción                    | Por defecto                                         |
 | ------------------------- | --------------------------------------------------- |
 | `port`                    | la variable `PORT`, o 3000                          |
@@ -103,6 +116,7 @@ Las cuatro decisiones que se estaban tomando de nuevo en cada `main.ts`:
 | `globalPrefix`            | ninguno                                             |
 | `healthPath`              | `'health'`                                          |
 | `forbidUnknownProperties` | `true`                                              |
+| `routeConflicts`          | `{ duplicate: 'error', shadow: 'warn' }`            |
 
 `forbidUnknownProperties` está encendido porque un campo ignorado en silencio es
 como un cliente termina creyendo que mandó un filtro que el servicio nunca aplicó.

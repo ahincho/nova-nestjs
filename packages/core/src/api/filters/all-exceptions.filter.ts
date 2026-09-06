@@ -96,7 +96,20 @@ export class AllExceptionsFilter implements ExceptionFilter {
       return [...exception.validationErrors];
     }
 
-    return [errorItem(statusToErrorCode(status), this.messageOf(exception))];
+    // `errorCode` existe desde NestJS 12 y es lo que deja que un servicio diga
+    // COURSE_NOT_FOUND en vez del NOT_FOUND que sale del status. Sin él, cada
+    // servicio que quería un código propio tenía que escribir su excepción:
+    //
+    //   throw new NotFoundException('Curso no encontrado', {
+    //     errorCode: 'COURSE_NOT_FOUND',
+    //   });
+    //
+    // Solo se lee por debajo de 500: un 5xx contesta el mensaje genérico a
+    // propósito, y dejar pasar un código de dominio ahí filtra qué falló por
+    // dentro.
+    const code = exception.errorCode ?? statusToErrorCode(status);
+
+    return [errorItem(code, this.messageOf(exception))];
   }
 
   private messageOf(exception: HttpException): string {

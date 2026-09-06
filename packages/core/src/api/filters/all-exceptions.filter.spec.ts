@@ -81,6 +81,45 @@ describe('AllExceptionsFilter', () => {
     });
   });
 
+  // El codigo del envelope sale del status salvo que la excepcion traiga uno,
+  // que es lo que NestJS 12 agrego para no tener que escribir una excepcion
+  // propia por cada codigo de dominio.
+  it('prefers the errorCode of the exception over the one from the status', () => {
+    filter.catch(
+      new NotFoundException('Course not found', {
+        errorCode: 'COURSE_NOT_FOUND',
+      }),
+      hostDouble(captured),
+    );
+
+    expect(captured.status).toBe(404);
+    expect(captured.body).toMatchObject({
+      errors: [
+        {
+          code: 'COURSE_NOT_FOUND',
+          message: 'Course not found',
+          field: null,
+        },
+      ],
+    });
+  });
+
+  // Un 5xx contesta el mensaje generico a proposito, y dejar pasar un codigo
+  // de dominio ahi cuenta que fallo por dentro.
+  it('ignores the errorCode of a 5xx', () => {
+    filter.catch(
+      new HttpException('Upstream exploded', HttpStatus.BAD_GATEWAY, {
+        errorCode: 'ACADEMIC_UPSTREAM_DOWN',
+      }),
+      hostDouble(captured),
+    );
+
+    expect(captured.status).toBe(502);
+    expect(captured.body).toMatchObject({
+      errors: [{ code: 'INTERNAL_SERVER_ERROR' }],
+    });
+  });
+
   it('keeps the field-level entries of a ValidationException', () => {
     const errors = [
       errorItem('VALIDATION_ERROR', 'must be an integer', 'periodId'),

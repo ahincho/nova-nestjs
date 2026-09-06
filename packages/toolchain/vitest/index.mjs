@@ -31,6 +31,18 @@ import { defineConfig } from 'vitest/config';
  * El umbral de cobertura vive aca a proposito: si cada repo elige el suyo, el
  * numero deja de significar algo al compararlos.
  */
+/**
+ * El default de Vitest son 5 s, pensados para un test unitario que no levanta
+ * un framework. El primer test de cada archivo paga la carga del grafo de
+ * modulos, y desde NestJS 12 ese grafo es ESM y pesa mas: medido en 740 ms con
+ * la maquina libre, y visto pasar de 5 s con el build, el typecheck y el lint
+ * corriendo antes en la misma pasada. Un runner de CI tiene menos nucleos.
+ *
+ * Lo que se evita subiendo esto no es un test lento: es un fallo intermitente
+ * que se lee como un defecto del codigo.
+ */
+const DEFAULT_TIMEOUT_MS = 20_000;
+
 const DEFAULT_THRESHOLDS = {
   branches: 80,
   functions: 80,
@@ -45,6 +57,7 @@ const DEFAULT_THRESHOLDS = {
  * @param {string[]} [options.coverageExclude] la lista completa de exclusiones, no un agregado
  * @param {object|false} [options.thresholds] umbral global, o `false` para no exigir ninguno
  * @param {string[]} [options.setupFiles] modulos que se cargan antes de los tests
+ * @param {number} [options.timeoutMs] limite por test y por hook
  */
 export function novaVitestConfig(options = {}) {
   const {
@@ -53,6 +66,7 @@ export function novaVitestConfig(options = {}) {
     coverageExclude = ['**/*.spec.ts'],
     thresholds = DEFAULT_THRESHOLDS,
     setupFiles = ['reflect-metadata'],
+    timeoutMs = DEFAULT_TIMEOUT_MS,
   } = options;
 
   return defineConfig({
@@ -65,6 +79,9 @@ export function novaVitestConfig(options = {}) {
       // proyecto de NestJS; un paquete sin decoradores pasa una lista
       // vacia, porque `reflect-metadata` no seria ni una dependencia suya.
       setupFiles,
+      testTimeout: timeoutMs,
+      // Un `beforeAll` que arma un modulo de prueba paga el mismo costo.
+      hookTimeout: timeoutMs,
       coverage: {
         provider: 'v8',
         include: coverageInclude,

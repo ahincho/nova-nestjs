@@ -163,6 +163,13 @@ Opciones, todas con valor por defecto:
 | `thresholds`      | 80 % en las cuatro métricas | `false` para no exigir ninguno                                  |
 | `setupFiles`      | `['reflect-metadata']`      | un paquete sin decoradores pasa `[]`                            |
 
+El límite de 20 s no es holgura: el default de Vitest son 5 s, pensados para un
+test que no levanta un framework. El primer test de cada archivo paga la carga
+del grafo de módulos, y desde NestJS 12 ese grafo es ESM y pesa más -740 ms con
+la máquina libre, visto pasar de 5 s con el build y el lint corriendo antes en la
+misma pasada-. Lo que se evita no es un test lento sino **un fallo intermitente
+que se lee como un defecto del código**.
+
 **El preset no declara nada sobre la transformación de TypeScript.** Oxc, que es
 quien transpila, lee el `tsconfig.json` del proyecto, y ahí es donde
 `tsconfig/nestjs.json` pone `experimentalDecorators` y `emitDecoratorMetadata`.

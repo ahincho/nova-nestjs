@@ -134,8 +134,46 @@ describe('bootstrap', () => {
   it('buffers the logs until the logger is installed', async () => {
     await bootstrap(AppModule);
 
-    expect(NestFactory.create).toHaveBeenCalledWith(AppModule, {
-      bufferLogs: true,
-    });
+    expect(NestFactory.create).toHaveBeenCalledWith(
+      AppModule,
+      expect.objectContaining({ bufferLogs: true }),
+    );
+  });
+
+  // A duplicate route is always a bug: one of the two handlers is dead code
+  // and which one wins depends on registration order. A shadowed route is
+  // sometimes deliberate, so it only warns.
+  it('fails on a duplicate route and warns on a shadowed one', async () => {
+    await bootstrap(AppModule);
+
+    expect(NestFactory.create).toHaveBeenCalledWith(
+      AppModule,
+      expect.objectContaining({
+        routeConflictPolicy: { duplicate: 'error', shadow: 'warn' },
+      }),
+    );
+  });
+
+  it('lets the caller relax the route conflict policy', async () => {
+    await bootstrap(AppModule, { routeConflicts: { duplicate: 'warn' } });
+
+    expect(NestFactory.create).toHaveBeenCalledWith(
+      AppModule,
+      expect.objectContaining({
+        routeConflictPolicy: { duplicate: 'warn' },
+      }),
+    );
+  });
+
+  // The half of the graceful shutdown the hooks do not cover: while the app is
+  // closing, a new request has to be turned away with a 503 so the load
+  // balancer takes the task out of rotation, and the in-flight ones finish.
+  it('answers 503 to new requests while closing', async () => {
+    await bootstrap(AppModule);
+
+    expect(NestFactory.create).toHaveBeenCalledWith(
+      AppModule,
+      expect.objectContaining({ return503OnClosing: true }),
+    );
   });
 });

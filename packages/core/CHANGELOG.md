@@ -1,5 +1,46 @@
 # @ahincho/nova-nestjs
 
+## 0.8.0
+
+### Minor Changes
+
+- Sube la plataforma a NestJS 12.
+
+  **NestJS 12 se publica sólo como ESM**, sin build de CommonJS. La plataforma **sigue siendo
+  CommonJS** y lo consume con `require(esm)`, que es el camino que el propio `nest upgrade`
+  asume: no migra a ESM. Comprobado compilando y corriendo un módulo con inyección por
+  constructor. Requiere Node 22.12 o superior, y el piso ya es 24.
+
+  **Cambio incompatible, de `@nestjs/config` 12: `validationSchema` pasa de Joi a
+  [Standard Schema](https://standardschema.dev/)** (Zod, Arktype, valibot). Un servicio que
+  traiga un esquema de Joi tiene que cambiarlo. Quien no quiera sumar una librería puede
+  omitirlo y validar dentro de sus namespaces, o pasarle `validate` a `ConfigModule`, que es una
+  función y no necesita nada instalado. `NovaConfigModuleOptions.validationSchema` deja de ser
+  `unknown` y toma el tipo que declara `@nestjs/config`, derivado de su propia interfaz para no
+  agregar una dependencia por un tipo.
+
+  Tres cosas nuevas que `bootstrap()` ahora fija:
+
+  - **`routeConflictPolicy: { duplicate: 'error', shadow: 'warn' }`.** Una ruta duplicada -mismo
+    método, ruta, host y versión- corta el arranque: uno de los dos manejadores es código muerto
+    y cuál gana depende del orden de registro. Una ruta ensombrecida, `/users/me` contra
+    `/users/:id`, sólo avisa porque a veces es deliberada. Se puede relajar con la opción
+    `routeConflicts`. NestJS trae las dos en `'off'`.
+  - **`return503OnClosing: true`**, la otra mitad del apagado ordenado. `enableShutdownHooks`
+    avisa a los módulos, pero sin esto el proceso sigue aceptando peticiones nuevas mientras se
+    apaga. Ahora una petición nueva recibe 503 -que es lo que el balanceador necesita para sacar
+    la tarea de rotación- y las que ya estaban en vuelo terminan.
+  - **El filtro global lee `errorCode` de la excepción.** Es lo que deja escribir
+    `throw new NotFoundException('Curso no encontrado', { errorCode: 'COURSE_NOT_FOUND' })` en
+    vez de una excepción propia por cada código de dominio. Sólo por debajo de 500: un 5xx
+    contesta el mensaje genérico a propósito.
+
+  Y una consecuencia del cambio de grafo de módulos: **el preset de Vitest sube el límite por
+  test de 5 s a 20 s**. El primer test de cada archivo paga la carga del grafo, que desde
+  NestJS 12 es ESM y pesa más -740 ms con la máquina libre, visto pasar de 5 s con el build y
+  el lint corriendo antes en la misma pasada-. Se ajusta con la opción `timeoutMs`. Lo que se
+  evita no es un test lento sino un fallo intermitente que se lee como un defecto del código.
+
 ## 0.7.0
 
 ### Minor Changes

@@ -1,5 +1,16 @@
 import { Module, type DynamicModule } from '@nestjs/common';
-import { ConfigModule, type ConfigFactory } from '@nestjs/config';
+import {
+  ConfigModule,
+  type ConfigFactory,
+  type ConfigModuleOptions,
+} from '@nestjs/config';
+
+/**
+ * El esquema que espera `@nestjs/config`. Se deriva de su propia interfaz en
+ * vez de importar `@standard-schema/spec` para no agregar una dependencia por
+ * un tipo, y para que siga a la de ellos si la cambian.
+ */
+type ValidationSchema = NonNullable<ConfigModuleOptions['validationSchema']>;
 
 export type NovaConfigModuleOptions = {
   /**
@@ -15,12 +26,14 @@ export type NovaConfigModuleOptions = {
   readonly envFilePath?: string | readonly string[];
 
   /**
-   * Validates the whole environment before anything is constructed. Accepts a
-   * Joi schema, which is what `@nestjs/config` expects; the platform does not
-   * depend on Joi, so an application that prefers another validator can leave
-   * this out and validate inside its own namespaces.
+   * Validates the whole environment before anything is constructed. Desde
+   * `@nestjs/config` 12 espera un esquema Standard Schema -Zod, Arktype,
+   * valibot-, no uno de Joi; la plataforma no depende de ninguno, asi que un
+   * servicio elige el suyo. Se puede omitir y validar dentro de cada namespace,
+   * o pasar `validate` a `ConfigModule` directamente, que es una funcion y no
+   * necesita libreria.
    */
-  readonly validationSchema?: unknown;
+  readonly validationSchema?: ValidationSchema;
 
   /** Set to false to keep the configuration out of the global scope. */
   readonly isGlobal?: boolean;

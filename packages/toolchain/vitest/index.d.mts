@@ -25,6 +25,11 @@ export interface NovaVitestOptions {
    * `['reflect-metadata']`; un paquete sin decoradores pasa `[]`.
    */
   setupFiles?: string[];
+  /**
+   * Limite por test y por hook. Por defecto 20 s, no los 5 s de Vitest: el
+   * primer test de cada archivo paga la carga del grafo de modulos de NestJS.
+   */
+  timeoutMs?: number;
 }
 
 export declare function novaVitestConfig(

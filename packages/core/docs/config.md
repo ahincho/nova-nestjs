@@ -100,6 +100,12 @@ todos los servicios ponían igual: global, y con `expandVariables` para poder
 expandir un secreto inyectado como un único JSON. Es `async` porque el de Nest lo
 es; Nest acepta una promesa en `imports`, así que la llamada no cambia.
 
-`validationSchema` se pasa tal cual a `@nestjs/config`, que espera un esquema de
-Joi. **La plataforma no depende de Joi**: una aplicación que prefiera otro
-validador lo omite y valida dentro de sus propios namespaces.
+`validationSchema` se pasa tal cual a `@nestjs/config`. **Desde la versión 12
+espera un esquema [Standard Schema](https://standardschema.dev/) -Zod, Arktype,
+valibot-, no uno de Joi**, y ese es el cambio incompatible de subir a NestJS 12:
+un servicio que traía un esquema de Joi tiene que cambiarlo.
+
+La plataforma no depende de ninguno de los dos. Un servicio que no quiera sumar
+una librería tiene dos salidas: omitirlo y validar dentro de sus propios
+namespaces, o pasarle `validate` a `ConfigModule` directamente, que es una
+función `(config) => config` y no necesita nada instalado.
