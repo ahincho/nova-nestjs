@@ -24,23 +24,18 @@
     "typecheck": "echo \"@ahincho/nova-nestjs-toolchain has nothing to typecheck\""
   },
   "dependencies": {
+    "@nestjs/cli": "^11.0.10",
+    "@nestjs/schematics": "^11.0.9",
+    "@nestjs/testing": "^11.2.1",
+    "@types/jest": "^30.0.0",
+    "@types/node": "^24.0.0",
+    "@types/supertest": "^6.0.3",
+    "eslint": "^10.8.1",
+    "jest": "^30.4.2",
+    "prettier": "^3.9.6",
+    "supertest": "^7.1.1",
+    "ts-jest": "^29.4.12",
+    "typescript": "~6.0.3",
     "typescript-eslint": "^8.46.0"
-  },
-  "peerDependencies": {
-    "eslint": "^9.0.0 || ^10.0.0",
-    "jest": "^30.0.0",
-    "ts-jest": "^29.0.0",
-    "typescript": ">=5.5.0"
-  },
-  "peerDependenciesMeta": {
-    "eslint": {
-      "optional": true
-    },
-    "jest": {
-      "optional": true
-    },
-    "ts-jest": {
-      "optional": true
-    }
   }
 }
