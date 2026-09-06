@@ -1,5 +1,24 @@
 # @ahincho/nova-nestjs
 
+## 0.8.1
+
+### Patch Changes
+
+- Cierra un choque de peers que 0.8.0 dejó abierto y que sólo se ve desde un servicio.
+
+  `@nestjs/cli` 12 trae `chokidar` 5 y Angular DevKit 22; los schematics declaraban DevKit 20,
+  cuyo peer es `chokidar` ^4. En el monorepo no aparece, porque cada paquete resuelve su propio
+  árbol; en un servicio los dos caen en el mismo y el install corta con
+  `unmet peer chokidar`. Los schematics pasan a DevKit `^22.1.5`, que es el que pide
+  `chokidar` ^5.
+
+  Es exactamente para lo que está `strictPeerDependencies`, y lo que lo encontró fue instalar el
+  paquete publicado en el servicio de ejemplo. Un `pnpm peers check` sobre el monorepo no basta.
+
+  De paso, el piso de Node sube de `>=24` a `>=24.15`, que es lo que declara Angular DevKit 22
+  (`^22.22.3 || ^24.15.0 || >=26.0.0`). Mismo criterio que fijó el ADR-016: el número tiene que
+  poder justificarse contra el `engines` de alguna dependencia.
+
 ## 0.8.0
 
 ### Minor Changes
