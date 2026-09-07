@@ -1,5 +1,6 @@
 import { Module } from '@nestjs/common';
-import { NovaModule } from '@ahincho/nova-nestjs';
+import { NovaModule } from '@ahincho/nova-nestjs';<% if (feature) { %>
+import { <%= classify(feature) %>Module } from './<%= featurePath %>/<%= dasherize(feature) %>.module';<% } %>
 
 @Module({
   imports: [
@@ -22,7 +23,8 @@ import { NovaModule } from '@ahincho/nova-nestjs';
         // que no es suyo.
         readinessChecks: [],
       },
-    }),
+    }),<% if (feature) { %>
+    <%= classify(feature) %>Module,<% } %>
   ],
 })
 export class AppModule {}

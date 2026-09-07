@@ -11,6 +11,12 @@ inputs:
   name:
     description: Nombre del servicio a generar.
     required: true
+  feature:
+    description: >-
+      Primer contexto o feature a generar dentro. Vacio deja el esqueleto
+      vacio, que es el otro camino que hay que probar.
+    required: false
+    default: ''
 
 runs:
   using: composite
@@ -32,6 +38,7 @@ runs:
       env:
         NAME: ${{ inputs.name }}
         STYLE: ${{ inputs.style }}
+        FEATURE: ${{ inputs.feature }}
         TARGET: ${{ runner.temp }}/generated
       run: |
         set -euo pipefail
@@ -48,7 +55,8 @@ runs:
         # no la dispara y una del runner de Linux sí. Sin la bandera este paso
         # pasa en verde sin haber generado nada.
         pnpm dlx "@angular-devkit/schematics-cli@${devkit}" \
-          "${collection}:service" "$NAME" --style "$STYLE" --no-dry-run
+          "${collection}:service" "$NAME" --style "$STYLE" --no-dry-run \
+          ${FEATURE:+--feature "$FEATURE"}
 
         # Y por si alguna versión futura vuelve a decidirlo sola.
         test -f "$NAME/package.json"

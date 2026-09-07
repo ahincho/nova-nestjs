@@ -4,6 +4,39 @@
 
 ### Minor Changes
 
+- `service --feature <nombre>` genera el primer contexto acotado -o el primer feature- dentro del
+  servicio y lo deja importado en el `app.module.ts`. Sin la opción el esqueleto queda vacío, que es
+  lo que conviene cuando todavía no se sabe qué va a atender.
+
+  Se encadena **con el mismo schematic que los siguientes**, no con una copia de sus plantillas: eso
+  es lo que evita que el primer contexto y el octavo terminen teniendo dos formas distintas de lo
+  mismo.
+
+  Encadenarlos destapó cuatro bugs que llevaban tiempo ahí, todos invisibles porque nadie generaba un
+  feature y lo corría:
+
+  - **Un ACL con un contexto no arrancaba.** El servicio inyecta `FIND_X_PORT` y el módulo dejaba el
+    proveedor comentado, así que Nest cortaba al levantar con «can't resolve dependencies». Ahora el
+    contexto nace con un adaptador en memoria atado al puerto: el recorrido completo responde un 404
+    desde el primer día, y está para reemplazarse por el cliente REST sin que el servicio se entere.
+  - **Los specs generados eran de Jest.** `feature` y `upstream` seguían emitiendo `jest.fn()` desde
+    la migración a Vitest, o sea que un feature recién generado traía su suite rota.
+  - **La regla de arquitectura del BFF nunca coincidió con el layout.** Capturaba dos segmentos bajo
+    `features/`, así que leía `features/courses/port/` como un feature distinto de
+    `features/courses/dto/` y un feature no podía importar sus propios archivos.
+  - **`feature` y `upstream` no normalizaban el fin de línea.** En Windows emitían CRLF y el proyecto
+    fallaba su propio `format:check`.
+
+  Además, los dos controladores pasan a depender de su puerto de entrada en vez de la clase del
+  servicio. Es la arquitectura que la plataforma predica -el borde no nombra al núcleo- y de paso
+  saca la rama que `emitDecoratorMetadata` emite al inyectar una clase concreta, que ningún test
+  puede cubrir y dejaba al servicio generado bajo el umbral de cobertura.
+
+  Y el generador **formatea lo que emite**. Una plantilla no puede estar bien formateada para todo
+  nombre posible: Prettier reenvuelve según el largo de lo renderizado, así que ajustarlas a mano
+  funciona con el nombre con el que se probó y se rompe con el siguiente. Es la misma decisión que no
+  enumerar contextos en las reglas de arquitectura.
+
 - 40c6d5a: Agrega OpenAPI, la imagen de contenedor compartida y el binario de los generadores.
 
   **OpenAPI.** `bootstrap({ openapi: { title } })` publica el documento en `/docs/json` y su interfaz

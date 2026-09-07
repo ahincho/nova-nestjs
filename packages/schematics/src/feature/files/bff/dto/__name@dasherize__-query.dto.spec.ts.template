@@ -1,0 +1,33 @@
+import { plainToInstance } from 'class-transformer';
+import { validateSync } from 'class-validator';
+import { <%= classify(name) %>Query } from './<%= dasherize(name) %>-query.dto';
+
+describe('<%= classify(name) %>Query', () => {
+  function parse(query: Record<string, unknown>): <%= classify(name) %>Query {
+    return plainToInstance(<%= classify(name) %>Query, query);
+  }
+
+  // Un query llega siempre como texto. Sin el @Type, `periodId` queda en '2026'
+  // y la validacion de entero pasa o falla segun el humor del validador.
+  it('convierte el query de texto al tipo declarado', () => {
+    const parsed = parse({ periodId: '2026' });
+
+    expect(parsed.periodId).toBe(2026);
+    expect(validateSync(parsed)).toEqual([]);
+  });
+
+  it('acepta que el campo opcional no venga', () => {
+    expect(validateSync(parse({ periodId: '1' }))).toEqual([]);
+  });
+
+  // El mensaje viaja al cliente dentro del sobre y con el nombre del campo, o
+  // sea que es texto de producto: si se rompe, alguien lo lee en pantalla.
+  it('rechaza lo que no es un entero, con su mensaje', () => {
+    const errors = validateSync(parse({ periodId: 'ayer' }));
+
+    expect(errors).toHaveLength(1);
+    expect(Object.values(errors[0]?.constraints ?? {})).toContain(
+      'periodId debe ser un número entero',
+    );
+  });
+});

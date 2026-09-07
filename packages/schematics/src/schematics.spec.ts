@@ -114,8 +114,11 @@ describe('el generador de feature', () => {
     });
 
     expect(tree.files.sort()).toEqual([
+      '/src/buildings/adapter/in/web/buildings.controller.spec.ts',
       '/src/buildings/adapter/in/web/buildings.controller.ts',
       '/src/buildings/adapter/in/web/response/buildings.response.ts',
+      '/src/buildings/adapter/out/inmemory/buildings.inmemory.adapter.spec.ts',
+      '/src/buildings/adapter/out/inmemory/buildings.inmemory.adapter.ts',
       '/src/buildings/buildings.module.ts',
       '/src/buildings/domain/buildings.ts',
       '/src/buildings/port/in/get-buildings.use-case.ts',
@@ -134,14 +137,60 @@ describe('el generador de feature', () => {
     });
 
     expect(tree.files.sort()).toEqual([
+      '/src/features/courses/courses.controller.spec.ts',
       '/src/features/courses/courses.controller.ts',
       '/src/features/courses/courses.module.ts',
       '/src/features/courses/courses.service.spec.ts',
       '/src/features/courses/courses.service.ts',
+      '/src/features/courses/dto/courses-query.dto.spec.ts',
       '/src/features/courses/dto/courses-query.dto.ts',
       '/src/features/courses/dto/courses.response.ts',
       '/src/features/courses/port/in/get-courses.use-case.ts',
     ]);
+  });
+
+  // Sin algo atado al puerto de salida, Nest corta al levantar con «can't
+  // resolve dependencies» y el primer contacto con el generador es un error.
+  it('ata el puerto de salida a un adaptador, para que el modulo arranque', async () => {
+    const tree = await runner.runSchematic('feature', {
+      name: 'buildings',
+      style: 'acl',
+    });
+    const module = tree.readContent('/src/buildings/buildings.module.ts');
+
+    expect(module).toContain('provide: FIND_BUILDINGS_PORT');
+    expect(module).toContain('useClass: BuildingsInMemoryAdapter');
+  });
+
+  // El controlador es un adaptador de entrada: si nombra la clase del servicio,
+  // el borde queda atado al nucleo. Y de paso, inyectar una clase concreta hace
+  // que emitDecoratorMetadata emita una rama que ningun test puede cubrir, y el
+  // servicio generado no llega al umbral de cobertura.
+  it('hace que el controlador dependa del puerto de entrada', async () => {
+    const acl = await runner.runSchematic('feature', {
+      name: 'buildings',
+      style: 'acl',
+    });
+    const bff = await runner.runSchematic('feature', {
+      name: 'courses',
+      style: 'bff',
+    });
+
+    const aclController = acl.readContent(
+      '/src/buildings/adapter/in/web/buildings.controller.ts',
+    );
+    const bffController = bff.readContent(
+      '/src/features/courses/courses.controller.ts',
+    );
+
+    expect(aclController).toContain('@Inject(GET_BUILDINGS_USE_CASE)');
+    expect(aclController).not.toContain(
+      'private readonly buildings: BuildingsService',
+    );
+    expect(bffController).toContain('@Inject(GET_COURSES_USE_CASE)');
+    expect(bffController).not.toContain(
+      'private readonly courses: CoursesService',
+    );
   });
 
   it('usa acl cuando no se dice el estilo', async () => {
@@ -280,6 +329,61 @@ describe('el generador de servicio', () => {
     expect(main).toContain("process.env['OPENAPI_ENABLED'] !== 'false'");
     // Nace sin `auth`, así que declarar que todo pide token sería mentira.
     expect(main).toContain('bearerAuth: false');
+  });
+
+  describe('el primer contexto', () => {
+    it('no se genera si no se pide, y el esqueleto queda vacío', () => {
+      expect(tree.files.filter((file) => file.includes('/src/'))).toEqual([
+        '/academic-acl/src/app.module.ts',
+        '/academic-acl/src/main.ts',
+      ]);
+    });
+
+    it('se genera con el mismo schematic que los siguientes', async () => {
+      const withFeature = await runner.runSchematic('service', {
+        name: 'academic-acl',
+        feature: 'buildings',
+      });
+
+      expect(withFeature.files).toContain(
+        '/academic-acl/src/buildings/buildings.module.ts',
+      );
+      expect(withFeature.files).toContain(
+        '/academic-acl/src/buildings/adapter/out/inmemory/buildings.inmemory.adapter.ts',
+      );
+    });
+
+    // Generarlo y no importarlo deja código muerto: el servicio arranca, la
+    // ruta no existe, y nada avisa hasta que alguien la llama.
+    it('queda importado en el app.module', async () => {
+      const withFeature = await runner.runSchematic('service', {
+        name: 'academic-acl',
+        feature: 'buildings',
+      });
+      const appModule = withFeature.readContent(
+        '/academic-acl/src/app.module.ts',
+      );
+
+      expect(appModule).toContain(
+        "import { BuildingsModule } from './buildings/buildings.module'",
+      );
+      expect(appModule).toContain('BuildingsModule,');
+    });
+
+    it('en un bff cuelga de features/', async () => {
+      const withFeature = await runner.runSchematic('service', {
+        name: 'home-bff',
+        style: 'bff',
+        feature: 'courses',
+      });
+
+      expect(withFeature.files).toContain(
+        '/home-bff/src/features/courses/courses.module.ts',
+      );
+      expect(withFeature.readContent('/home-bff/src/app.module.ts')).toContain(
+        "from './features/courses/courses.module'",
+      );
+    });
   });
 
   describe('las reglas de arquitectura', () => {

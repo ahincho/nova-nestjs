@@ -1,14 +1,25 @@
-import { Controller, Get, Param } from '@nestjs/common';
-import { <%= classify(name) %>Service } from '../../../service/<%= dasherize(name) %>.service';
+import { Controller, Get, Inject, Param } from '@nestjs/common';
+import {
+  GET_<%= underscore(name).toUpperCase() %>_USE_CASE,
+  type Get<%= classify(name) %>UseCase,
+} from '../../../port/in/get-<%= dasherize(name) %>.use-case';
 import { to<%= classify(name) %>Response, type <%= classify(name) %>Response } from './response/<%= dasherize(name) %>.response';
 
 @Controller('<%= dasherize(name) %>')
 export class <%= classify(name) %>Controller {
-  constructor(private readonly <%= camelize(name) %>: <%= classify(name) %>Service) {}
+  /**
+   * Depende del puerto de entrada y no de la clase del servicio. El controlador
+   * es un adaptador: si nombra la implementación, el núcleo deja de poder
+   * cambiar sin que cambie el borde.
+   */
+  constructor(
+    @Inject(GET_<%= underscore(name).toUpperCase() %>_USE_CASE)
+    private readonly <%= camelize(name) %>: Get<%= classify(name) %>UseCase,
+  ) {}
 
   /**
    * Devuelve la respuesta pelada: el sobre lo pone el interceptor global de la
-   * plataforma, y ningun controlador lo arma a mano.
+   * plataforma, y ningún controlador lo arma a mano.
    */
   @Get(':id')
   async findOne(@Param('id') id: string): Promise<<%= classify(name) %>Response> {

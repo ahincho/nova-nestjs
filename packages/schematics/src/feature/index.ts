@@ -8,6 +8,8 @@ import {
   type Rule,
 } from '@angular-devkit/schematics';
 import { normalizePath, templateVariables } from '../naming';
+import { formatted } from '../formatted';
+import { toLineFeed } from '../to-line-feed';
 import type { FeatureOptions, FeatureStyle } from './schema';
 
 export const DEFAULT_STYLE: FeatureStyle = 'acl';
@@ -38,6 +40,8 @@ export function feature(options: FeatureOptions): Rule {
   return mergeWith(
     apply(url(`./files/${style}`), [
       applyTemplates({ ...strings, ...templateVariables(name) }),
+      toLineFeed,
+      formatted(),
       move(target),
     ]),
   );

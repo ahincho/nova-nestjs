@@ -1,19 +1,24 @@
 import { Module } from '@nestjs/common';
+import { <%= classify(name) %>InMemoryAdapter } from './adapter/out/inmemory/<%= dasherize(name) %>.inmemory.adapter';
 import { <%= classify(name) %>Controller } from './adapter/in/web/<%= dasherize(name) %>.controller';
+import { GET_<%= underscore(name).toUpperCase() %>_USE_CASE } from './port/in/get-<%= dasherize(name) %>.use-case';
+import { FIND_<%= underscore(name).toUpperCase() %>_PORT } from './port/out/find-<%= dasherize(name) %>.port';
 import { <%= classify(name) %>Service } from './service/<%= dasherize(name) %>.service';
 
+/**
+ * Las dos puntas se atan por token y no por clase, que es lo que hace que el
+ * núcleo no conozca a ninguno de los dos bordes.
+ */
 @Module({
   controllers: [<%= classify(name) %>Controller],
   providers: [
-    <%= classify(name) %>Service,
-    // El adaptador de salida se registra contra FIND_<%= underscore(name).toUpperCase() %>_PORT
-    // y no contra su clase: es lo que deja cambiarlo por un doble en un test
-    // sin tocar el servicio.
-    //
-    // {
-    //   provide: FIND_<%= underscore(name).toUpperCase() %>_PORT,
-    //   useClass: <%= classify(name) %>ClientAdapter,
-    // },
+    { provide: GET_<%= underscore(name).toUpperCase() %>_USE_CASE, useClass: <%= classify(name) %>Service },
+    // Reemplazar por el cliente REST de `adapter/out/restclient/` cuando exista.
+    // El servicio no se entera: depende del puerto, no de esta clase.
+    {
+      provide: FIND_<%= underscore(name).toUpperCase() %>_PORT,
+      useClass: <%= classify(name) %>InMemoryAdapter,
+    },
   ],
 })
 export class <%= classify(name) %>Module {}

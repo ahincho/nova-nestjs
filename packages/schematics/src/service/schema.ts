@@ -20,4 +20,11 @@ export type ServiceOptions = {
 
   /** Donde escribirlo. Por defecto un directorio con el nombre del servicio. */
   path?: string;
+
+  /**
+   * Nombre del primer contexto acotado -en un ACL- o del primer feature -en un
+   * BFF-. Omitirlo deja el esqueleto vacio, que es lo que conviene cuando el
+   * servicio se genera antes de saber que va a atender.
+   */
+  feature?: string;
 };

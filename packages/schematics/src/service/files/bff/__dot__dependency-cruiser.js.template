@@ -35,8 +35,12 @@ module.exports = {
       severity: 'error',
       comment:
         'Cada pantalla es independiente. Si dos comparten algo, ese algo baja a un upstream o sube a la plataforma.',
-      from: { path: '^src/features/([^/]+)/([^/]+)/' },
-      to: { path: '^src/features/', pathNot: '^src/features/$1/$2/' },
+      // Un solo segmento: el feature es `src/features/<nombre>/`. Capturar dos
+      // hacia que la regla leyera `src/features/courses/port/` como un feature
+      // distinto de `src/features/courses/dto/`, y un feature no podía importar
+      // sus propios archivos.
+      from: { path: '^src/features/([^/]+)/' },
+      to: { path: '^src/features/', pathNot: '^src/features/$1/' },
     },
     {
       name: 'feature-uses-only-the-upstream-port',

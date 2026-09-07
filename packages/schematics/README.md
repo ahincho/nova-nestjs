@@ -13,6 +13,9 @@ pnpm add -D @ahincho/nova-nestjs-schematics
 ```bash
 pnpm dlx @ahincho/nova-nestjs-schematics service academic-acl
 pnpm dlx @ahincho/nova-nestjs-schematics service home-bff --style bff
+
+# con su primer contexto acotado -o su primer feature- ya dentro y cableado
+pnpm dlx @ahincho/nova-nestjs-schematics service academic-acl --feature buildings
 ```
 
 Sin instalar nada, desde cualquier directorio. Dentro de un proyecto que ya
@@ -75,6 +78,24 @@ copiar y después mantener sincronizados.
 
 Tampoco genera un `Dockerfile`: la imagen base, el usuario y el puerto dependen
 de dónde despliegues, y uno inventado seria peor que ninguno.
+
+### `--feature` deja el esqueleto lleno
+
+Sin él, el servicio nace con `main.ts` y `app.module.ts` y nada más: es lo que
+conviene cuando todavía no se sabe qué va a atender. Con él, el primer contexto
+acotado -o el primer feature, en un BFF- se genera **con el mismo schematic que
+los siguientes** y queda importado en el `app.module.ts`.
+
+Que sea el mismo schematic no es un detalle de implementación. Copiar sus
+plantillas dentro del generador de servicio es como el primer contexto y el
+octavo terminan teniendo dos formas distintas de lo mismo.
+
+Un contexto generado arranca de verdad: su puerto de salida queda atado a un
+adaptador en memoria que devuelve `null`, así que el recorrido completo
+-controlador, servicio, puerto, adaptador, sobre de error- responde un 404
+desde el primer día. Ese adaptador **está para reemplazarse** por el cliente
+REST de `adapter/out/restclient/`, y el servicio no se entera del cambio porque
+depende del puerto.
 
 ### Los dos sabores
 

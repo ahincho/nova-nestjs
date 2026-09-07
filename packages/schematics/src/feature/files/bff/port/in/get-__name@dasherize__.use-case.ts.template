@@ -2,8 +2,12 @@ import type { <%= classify(name) %>Query } from '../../dto/<%= dasherize(name) %
 import type { <%= classify(name) %>Response } from '../../dto/<%= dasherize(name) %>.response';
 
 /**
- * Lo que este feature sabe hacer, dicho sin mencionar como.
+ * Lo que este feature sabe hacer, dicho sin mencionar cómo.
  */
 export interface Get<%= classify(name) %>UseCase {
   list(query: <%= classify(name) %>Query): Promise<<%= classify(name) %>Response[]>;
 }
+
+export const GET_<%= underscore(name).toUpperCase() %>_USE_CASE = Symbol(
+  'GET_<%= underscore(name).toUpperCase() %>_USE_CASE',
+);

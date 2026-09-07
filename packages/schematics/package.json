@@ -33,7 +33,8 @@
   },
   "dependencies": {
     "@angular-devkit/core": "^22.1.5",
-    "@angular-devkit/schematics": "^22.1.5"
+    "@angular-devkit/schematics": "^22.1.5",
+    "prettier": "^3.9.6"
   },
   "devDependencies": {
     "@ahincho/nova-nestjs-toolchain": "workspace:*",

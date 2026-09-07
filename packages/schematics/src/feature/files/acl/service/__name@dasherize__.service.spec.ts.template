@@ -1,24 +1,25 @@
 import { NotFoundException } from '@nestjs/common';
 import { <%= classify(name) %>Service } from './<%= dasherize(name) %>.service';
+import type { Mock } from 'vitest';
 
 describe('<%= classify(name) %>Service', () => {
-  function service(findById: jest.Mock): <%= classify(name) %>Service {
+  function service(findById: Mock): <%= classify(name) %>Service {
     // El doble satisface el puerto por su forma, sin castear: el servicio pide
-    // una interfaz y no una clase, que es la razon de que el puerto exista.
+    // una interfaz y no una clase, que es la razón de que el puerto exista.
     return new <%= classify(name) %>Service({ findById });
   }
 
   it('devuelve lo que encuentra el puerto', async () => {
-    const findById = jest.fn().mockResolvedValue({ id: '1' });
+    const findById = vi.fn().mockResolvedValue({ id: '1' });
 
     await expect(service(findById).execute('1')).resolves.toEqual({ id: '1' });
     expect(findById).toHaveBeenCalledWith('1');
   });
 
-  // Quien decide que "no existe" es un 404 es el servicio: el adaptador no
-  // conoce codigos HTTP, solo sabe si encontro algo.
+  // Quien decide que «no existe» es un 404 es el servicio: el adaptador no
+  // conoce códigos HTTP, sólo sabe si encontró algo.
   it('convierte un null del puerto en un 404', async () => {
-    const findById = jest.fn().mockResolvedValue(null);
+    const findById = vi.fn().mockResolvedValue(null);
 
     await expect(service(findById).execute('1')).rejects.toBeInstanceOf(
       NotFoundException,

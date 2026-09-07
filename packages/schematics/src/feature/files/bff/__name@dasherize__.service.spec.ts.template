@@ -1,7 +1,7 @@
 import { <%= classify(name) %>Service } from './<%= dasherize(name) %>.service';
 
 describe('<%= classify(name) %>Service', () => {
-  it('responde una lista vacia mientras no hay upstream conectado', async () => {
+  it('responde una lista vacía mientras no hay upstream conectado', async () => {
     const service = new <%= classify(name) %>Service();
 
     await expect(service.list({ periodId: 2026 })).resolves.toEqual([]);

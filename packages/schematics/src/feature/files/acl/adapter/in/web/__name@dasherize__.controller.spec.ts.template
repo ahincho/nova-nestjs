@@ -1,0 +1,29 @@
+import { <%= classify(name) %>Controller } from './<%= dasherize(name) %>.controller';
+import type { Mock } from 'vitest';
+
+describe('<%= classify(name) %>Controller', () => {
+  function controller(execute: Mock): <%= classify(name) %>Controller {
+    // El doble satisface el puerto de entrada por su forma: el controlador pide
+    // la interfaz, no la clase del servicio.
+    return new <%= classify(name) %>Controller({ execute });
+  }
+
+  // Lo que se prueba acá es la traducción, que es todo lo que un adaptador de
+  // entrada tiene derecho a hacer: nada de reglas, nada de sobre.
+  it('traduce el modelo de dominio a la respuesta pública', async () => {
+    const execute = vi.fn().mockResolvedValue({ id: '1' });
+
+    await expect(controller(execute).findOne('1')).resolves.toEqual({
+      id: '1',
+    });
+    expect(execute).toHaveBeenCalledWith('1');
+  });
+
+  // Un fallo del núcleo sube tal cual: convertirlo en una respuesta es trabajo
+  // del filtro global de la plataforma, no de cada controlador.
+  it('deja subir el error del caso de uso', async () => {
+    const execute = vi.fn().mockRejectedValue(new Error('vaya'));
+
+    await expect(controller(execute).findOne('1')).rejects.toThrow('vaya');
+  });
+});

@@ -5,14 +5,16 @@ import {
   apply,
   applyTemplates,
   chain,
-  forEach,
   mergeWith,
   move,
+  schematic,
   url,
-  type FileEntry,
   type Rule,
 } from '@angular-devkit/schematics';
+import { defaultPathFor } from '../feature';
 import { normalizePath } from '../naming';
+import { formatted } from '../formatted';
+import { toLineFeed } from '../to-line-feed';
 import type { ServiceOptions, ServiceStyle } from './schema';
 
 export const DEFAULT_STYLE: ServiceStyle = 'acl';
@@ -57,10 +59,6 @@ export function platformVersion(): string {
  * puerta de calidad rechaza**. Normalizar acá además hace que el resultado sea
  * el mismo en cualquier sistema.
  */
-const toLineFeed = forEach((entry: FileEntry) => ({
-  path: entry.path,
-  content: Buffer.from(entry.content.toString('utf8').replaceAll('\r\n', '\n')),
-}));
 
 /**
  * Genera un servicio entero, listo para `pnpm install && pnpm verify`.
@@ -80,10 +78,22 @@ export function service(options: ServiceOptions): Rule {
   const style = options.style ?? DEFAULT_STYLE;
   const target = normalizePath(options.path ?? name);
 
+  const featureName =
+    options.feature === undefined
+      ? undefined
+      : strings.dasherize(options.feature);
+
   const variables = {
     ...strings,
     name,
     style,
+    // Cadena vacia y no undefined: en una plantilla EJS un undefined en un
+    // `if` funciona, pero un `<%= %>` sobre el imprime la palabra.
+    feature: featureName ?? '',
+    featurePath:
+      featureName === undefined
+        ? ''
+        : defaultPathFor(style, featureName).replace('src/', ''),
     nodeFloor: NODE_FLOOR,
     pnpmVersion: PNPM_VERSION,
     platformVersion: platformVersion(),
@@ -95,10 +105,36 @@ export function service(options: ServiceOptions): Rule {
 
   const from = (source: string): Rule =>
     mergeWith(
-      apply(url(source), [applyTemplates(variables), toLineFeed, move(target)]),
+      apply(url(source), [
+        applyTemplates(variables),
+        toLineFeed,
+        formatted(),
+        move(target),
+      ]),
     );
 
-  return chain([from('./files/base'), from(`./files/${style}`)]);
+  const rules = [from('./files/base'), from(`./files/${style}`)];
+
+  // El primer contexto -o el primer feature- se genera con el mismo schematic
+  // que los siguientes, no con una copia de sus plantillas. Encadenarlos es lo
+  // que evita que el servicio recien creado y el que crece despues terminen
+  // teniendo dos formas distintas de lo mismo.
+  if (featureName !== undefined) {
+    // `schematic()` y no una llamada directa a la función: un schematic
+    // resuelve sus plantillas contra SU propio directorio, y llamarlo como
+    // función lo deja resolviendo contra el de quien llama. Acá eso hacía que
+    // `./files/acl` cayera en las plantillas del servicio y el generador
+    // muriera con «Option "dot" is not defined», que no dice nada de la causa.
+    rules.push(
+      schematic('feature', {
+        name: featureName,
+        style,
+        path: `${target}/${defaultPathFor(style, featureName)}`,
+      }),
+    );
+  }
+
+  return chain(rules);
 }
 
 export default service;

@@ -1,0 +1,28 @@
+import { Injectable } from '@nestjs/common';
+import type { <%= classify(name) %> } from '../../../domain/<%= dasherize(name) %>';
+import type { Find<%= classify(name) %>Port } from '../../../port/out/find-<%= dasherize(name) %>.port';
+
+/**
+ * El adaptador de salida con el que nace el feature, para que arranque.
+ *
+ * **Está para reemplazarse**, y el reemplazo es un cliente REST en
+ * `adapter/out/restclient/` que hable con el sistema externo. Lo que no cambia
+ * al reemplazarlo es nada más: el servicio depende de `Find<%= classify(name) %>Port`,
+ * no de esta clase, así que el cambio se queda dentro de esta carpeta.
+ *
+ * Existe porque un feature que no puede arrancar es peor que uno vacío. Sin
+ * algo atado a `FIND_<%= underscore(name).toUpperCase() %>_PORT`, Nest corta al
+ * levantar con «can't resolve dependencies», y el primer contacto con el
+ * generador es un error.
+ */
+@Injectable()
+export class <%= classify(name) %>InMemoryAdapter implements Find<%= classify(name) %>Port {
+  /**
+   * Devuelve null a propósito: el servicio lo traduce a un 404, así que el
+   * recorrido completo -controlador, servicio, puerto, adaptador, sobre de
+   * error- queda ejercitado desde el primer día.
+   */
+  findById(_id: string): Promise<<%= classify(name) %> | null> {
+    return Promise.resolve(null);
+  }
+}

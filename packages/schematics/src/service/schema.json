@@ -34,6 +34,10 @@
       "type": "string",
       "description": "Dónde escribirlo. Por defecto un directorio con el nombre del servicio",
       "format": "path"
+    },
+    "feature": {
+      "type": "string",
+      "description": "Primer contexto acotado (acl) o primer feature (bff). Omitirlo deja el esqueleto vacío"
     }
   },
   "required": ["name"]

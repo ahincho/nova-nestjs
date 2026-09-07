@@ -8,6 +8,8 @@ import {
   type Rule,
 } from '@angular-devkit/schematics';
 import { normalizePath, templateVariables } from '../naming';
+import { formatted } from '../formatted';
+import { toLineFeed } from '../to-line-feed';
 import type { UpstreamOptions } from './schema';
 
 /**
@@ -24,6 +26,8 @@ export function upstream(options: UpstreamOptions): Rule {
   return mergeWith(
     apply(url('./files'), [
       applyTemplates({ ...strings, ...templateVariables(name) }),
+      toLineFeed,
+      formatted(),
       move(target),
     ]),
   );

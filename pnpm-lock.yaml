@@ -81,6 +81,9 @@ importers:
       '@angular-devkit/schematics':
         specifier: ^22.1.5
         version: 22.1.5(chokidar@5.0.0)
+      prettier:
+        specifier: ^3.9.6
+        version: 3.9.6
     devDependencies:
       '@ahincho/nova-nestjs-toolchain':
         specifier: workspace:*

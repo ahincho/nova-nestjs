@@ -67,11 +67,16 @@ jobs:
       # El ejemplo está escrito a mano, así que no prueba el generador -ni
       # `lint:arch`, que no corre en ningún otro lugar-. Estos dos generan un
       # servicio en limpio y le pasan la puerta de calidad entera.
+      # Uno con contexto y otro sin él, a propósito: son dos caminos distintos y
+      # entre los dos quedan los dos cubiertos, sin duplicar la construcción de
+      # imagen. El ACL lleva el contexto porque es el sabor cuyo feature inyecta
+      # por token y puede no arrancar si el módulo queda mal atado.
       - name: Generated ACL check
         uses: ./.github/actions/generated-service-check
         with:
           style: acl
           name: academic-acl
+          feature: buildings
 
       - name: Generated BFF check
         uses: ./.github/actions/generated-service-check

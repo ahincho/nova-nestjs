@@ -1,12 +1,16 @@
 import { Module } from '@nestjs/common';
 import { <%= classify(name) %>Controller } from './<%= dasherize(name) %>.controller';
+import { GET_<%= underscore(name).toUpperCase() %>_USE_CASE } from './port/in/get-<%= dasherize(name) %>.use-case';
 import { <%= classify(name) %>Service } from './<%= dasherize(name) %>.service';
 
 @Module({
-  // El modulo del upstream se importa desde src/upstream/: en un BFF los
+  // El módulo del upstream se importa desde src/upstream/: en un BFF los
   // adaptadores de salida viven afuera porque los comparten varios features.
   imports: [],
   controllers: [<%= classify(name) %>Controller],
-  providers: [<%= classify(name) %>Service],
+  providers: [
+    // Por token y no por clase, para que el controlador dependa del puerto.
+    { provide: GET_<%= underscore(name).toUpperCase() %>_USE_CASE, useClass: <%= classify(name) %>Service },
+  ],
 })
 export class <%= classify(name) %>Module {}

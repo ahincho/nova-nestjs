@@ -1,0 +1,10 @@
+import { <%= classify(name) %>InMemoryAdapter } from './<%= dasherize(name) %>.inmemory.adapter';
+
+describe('<%= classify(name) %>InMemoryAdapter', () => {
+  // Se prueba aunque sea un marcador de posición, porque el contrato que tiene
+  // que cumplir su reemplazo es exactamente este: devolver null cuando no hay
+  // nada, y nunca lanzar por eso.
+  it('no encuentra nada, y lo dice con null', async () => {
+    await expect(new <%= classify(name) %>InMemoryAdapter().findById('1')).resolves.toBeNull();
+  });
+});
