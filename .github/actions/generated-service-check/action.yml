@@ -121,8 +121,11 @@ runs:
         # una sola imagen sirva para los tres ambientes. Acá se le pasa
         # `development` para ejercitar el caso inyectado; sin la variable la
         # imagen cae en `production`, que es el default restrictivo.
-        id=$(docker run --rm --detach --env NODE_ENV=development --publish 3000:3000 "$IMAGE")
-        trap 'docker rm --force "$id" > /dev/null' EXIT
+        # Sin --rm a propósito: con esa bandera un contenedor que muere al
+        # arrancar se borra solo, y el `docker logs` de más abajo -que es lo
+        # único que explica por qué murió- contesta «No such container».
+        id=$(docker run --detach --env NODE_ENV=development --publish 3000:3000 "$IMAGE")
+        trap 'docker rm --force "$id" > /dev/null 2>&1 || true' EXIT
 
         for attempt in $(seq 1 30); do
           if curl --silent --fail http://localhost:3000/health/live; then
