@@ -368,7 +368,7 @@ describe('el generador de servicio', () => {
     expect(main).toContain('openapi:');
     // Una sola imagen para los tres ambientes: lo que decide si se publica es
     // una variable de entorno, no algo que se haya horneado al construir.
-    expect(main).toContain("appEnvironment() !== 'prod'");
+    expect(main).toContain("appEnvironment() !== 'production'");
     // Nace sin `auth`, así que declarar que todo pide token sería mentira.
     expect(main).toContain('bearerAuth: false');
   });

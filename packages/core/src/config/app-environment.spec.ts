@@ -1,41 +1,56 @@
+import {
+  APP_ENVIRONMENTS,
+  DEFAULT_APP_ENVIRONMENT,
+  appEnvironment,
+} from './app-environment';
 import { EnvironmentError } from './environment';
-import { APP_ENVIRONMENTS, appEnvironment } from './app-environment';
 
 describe('appEnvironment', () => {
+  const original = process.env['NODE_ENV'];
+
   afterEach(() => {
-    delete process.env['APP_ENV'];
+    if (original === undefined) {
+      delete process.env['NODE_ENV'];
+    } else {
+      process.env['NODE_ENV'] = original;
+    }
   });
 
+  // Son los valores que inyectan las task definitions de verdad, no una
+  // convención inventada: `development` y `qa` en los siete BFF de hoy.
   it.each(APP_ENVIRONMENTS)('reads %s', (environment) => {
-    process.env['APP_ENV'] = environment;
+    process.env['NODE_ENV'] = environment;
 
     expect(appEnvironment()).toBe(environment);
   });
 
   it('accepts it however it was typed', () => {
-    process.env['APP_ENV'] = '  PROD ';
+    process.env['NODE_ENV'] = '  QA ';
 
-    expect(appEnvironment()).toBe('prod');
+    expect(appEnvironment()).toBe('qa');
   });
 
-  // Es lo que hace confiable la imagen única: el contenedor que nadie
-  // configuró no arranca creyéndose otro ambiente.
-  it('refuses to guess when the variable is missing', () => {
-    expect(() => appEnvironment()).toThrow(EnvironmentError);
-    expect(() => appEnvironment()).toThrow(/APP_ENV/u);
+  // La imagen trae `production`, así que un contenedor sin inyectar nada se
+  // comporta como el ambiente más restrictivo en vez de abrirse.
+  it('falls back to the most restrictive one', () => {
+    delete process.env['NODE_ENV'];
+
+    expect(appEnvironment()).toBe(DEFAULT_APP_ENVIRONMENT);
+    expect(DEFAULT_APP_ENVIRONMENT).toBe('production');
   });
 
+  it('treats a blank value as absent', () => {
+    process.env['NODE_ENV'] = '   ';
+
+    expect(appEnvironment()).toBe('production');
+  });
+
+  // Un `dev` mal escrito no es «algo que no es producción»: es una task
+  // definition rota, y el contenedor tiene que decirlo al arrancar.
   it('refuses a value that is not one of the three', () => {
-    process.env['APP_ENV'] = 'staging';
+    process.env['NODE_ENV'] = 'dev';
 
-    expect(() => appEnvironment()).toThrow(/dev, qa, prod/u);
-  });
-
-  // Un valor en blanco es lo que produce una task definition a la que le
-  // dejaron la variable vacía, y no es una configuración legítima.
-  it('treats a blank value as missing', () => {
-    process.env['APP_ENV'] = '   ';
-
-    expect(() => appEnvironment()).toThrow(/was not set/u);
+    expect(() => appEnvironment()).toThrow(EnvironmentError);
+    expect(() => appEnvironment()).toThrow(/development, qa, production/u);
   });
 });

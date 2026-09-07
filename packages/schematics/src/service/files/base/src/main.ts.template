@@ -21,10 +21,10 @@ void bootstrap(AppModule, {
     // prefijo global: cambiar de v1 a v2 no debería mover el enlace que la
     // gente tiene guardado.
     //
-    // `appEnvironment()` no tiene valor por defecto: un contenedor sin APP_ENV
-    // no arranca, y el error nombra la variable. Es lo que evita que el que se
-    // olvidó de inyectarla en prod publique la documentación sin enterarse.
-    enabled: appEnvironment() !== 'prod',
+    // `appEnvironment()` lee NODE_ENV, que es lo que inyecta la task
+    // definition. Sin inyectar nada cae en `production`, el más restrictivo:
+    // un contenedor que nadie configuró no publica la documentación.
+    enabled: appEnvironment() !== 'production',
 
     // En false porque este servicio nace sin `auth`. Al declarar
     // `NovaModule.forRoot({ auth: ... })` hay que sacarlo: el guard es global,

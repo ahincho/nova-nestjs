@@ -1,6 +1,7 @@
 export {
   APP_ENVIRONMENTS,
-  APP_ENV_VARIABLE,
+  DEFAULT_APP_ENVIRONMENT,
+  ENVIRONMENT_VARIABLE,
   appEnvironment,
   type AppEnvironment,
 } from './app-environment';

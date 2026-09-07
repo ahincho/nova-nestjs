@@ -117,11 +117,11 @@ runs:
         IMAGE: nova-${{ inputs.style }}:ci
       run: |
         set -euo pipefail
-        # APP_ENV no tiene valor por defecto a propósito: sin ella el contenedor
-        # no arranca y el error nombra la variable. Es lo que hace que una sola
-        # imagen sirva para los tres ambientes sin que uno mal configurado
-        # arranque creyéndose otro.
-        id=$(docker run --rm --detach --env APP_ENV=dev --publish 3000:3000 "$IMAGE")
+        # NODE_ENV es lo que inyecta la task definition, y es lo que hace que
+        # una sola imagen sirva para los tres ambientes. Acá se le pasa
+        # `development` para ejercitar el caso inyectado; sin la variable la
+        # imagen cae en `production`, que es el default restrictivo.
+        id=$(docker run --rm --detach --env NODE_ENV=development --publish 3000:3000 "$IMAGE")
         trap 'docker rm --force "$id" > /dev/null' EXIT
 
         for attempt in $(seq 1 30); do

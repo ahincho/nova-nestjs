@@ -4,25 +4,30 @@
 '@ahincho/nova-nestjs-toolchain': minor
 ---
 
-**Una sola imagen para dev, qa y prod.** El ambiente llega por variable de entorno en tiempo de
+**Una sola imagen para los tres ambientes.** El ambiente llega por variable de entorno en tiempo de
 ejecución; nada se hornea al construir.
 
-`appEnvironment()` lee `APP_ENV` y devuelve `'dev' | 'qa' | 'prod'`. **No tiene valor por defecto, y
-eso es el punto**: un contenedor sin la variable no arranca y el error la nombra. Con un valor por
-defecto, el que se olvidó de inyectarla en prod arranca creyéndose otra cosa, y no se descubre hasta
-que alguien nota que la documentación está publicada donde no debía.
+`appEnvironment()` lee `NODE_ENV` y devuelve `'development' | 'qa' | 'production'`. Los valores son
+los que inyectan las task definitions de verdad -`development` en el bloque `dev:` y `qa` en el
+`qa:`, en los siete BFF-, no una convención inventada.
 
-No es `NODE_ENV`, y confundirlos es el error que esto existe para evitar: `NODE_ENV=production` va
-fija en la imagen y le habla a Node, no al despliegue.
+Sin inyectar nada cae en `production`, que es el más restrictivo: un contenedor que nadie configuró
+no publica su documentación en vez de abrirse. Pero **no acepta cualquier cosa**: un `NODE_ENV=dev`
+mal escrito no es «algo que no es producción», es una task definition rota, y el contenedor lo dice
+al arrancar.
 
-Probado con una sola imagen y tres contenedores:
+Probado con una sola imagen y cinco contenedores:
 
 ```
-sin APP_ENV   EnvironmentError: Environment variable APP_ENV is required but was not set   exit 1
-APP_ENV=dev   health 200   docs 200
-APP_ENV=qa    health 200   docs 200
-APP_ENV=prod  health 200   docs 404
+(sin NODE_ENV)         health 200   docs 404
+NODE_ENV=development   health 200   docs 200
+NODE_ENV=qa            health 200   docs 200
+NODE_ENV=production    health 200   docs 404
+NODE_ENV=dev           EnvironmentError: must be one of development, qa, production, but was "dev"
 ```
+
+Vale saber la contrapartida de usar `NODE_ENV` para esto: en qa vale `qa`, así que todo lo que
+ramifica sobre `NODE_ENV === 'production'` corre en modo desarrollo ahí.
 
 El servicio generado lo usa para decidir si publica su documentación, y `.env.example` documenta la
 variable. Reemplaza a `OPENAPI_ENABLED`.

@@ -75,38 +75,50 @@ una investigación:
 ```ts
 import { appEnvironment } from '@ahincho/nova-nestjs';
 
-appEnvironment(); // 'dev' | 'qa' | 'prod', leído de APP_ENV
+appEnvironment(); // 'development' | 'qa' | 'production', leído de NODE_ENV
 ```
 
 Existe para que **una sola imagen sirva para los tres ambientes**. El artefacto
 que se probó en dev es el que llega a prod, byte por byte; construir uno por
 ambiente significa que lo que se aprobó no es lo que se despliega.
 
-**No tiene valor por defecto, y eso es el punto.** Un contenedor sin `APP_ENV`
-no arranca, y el error nombra la variable:
+Los valores son los que inyectan las task definitions de verdad, no una
+convención inventada acá:
+
+| Bloque de vars | `NodeEnv`     |
+| -------------- | ------------- |
+| `dev:`         | `development` |
+| `qa:`          | `qa`          |
+
+`production` es el que trae la imagen y el que usará prd cuando exista.
+
+### Sin inyectar nada cae en el más restrictivo
+
+La imagen fija `NODE_ENV=production`, así que un contenedor que nadie configuró
+se comporta como producción -sin documentación publicada, por ejemplo- en vez de
+abrirse. El default equivocado en esta decisión se paga caro en una sola
+dirección, y esta es la barata.
+
+### Pero no acepta cualquier cosa
 
 ```
-EnvironmentError: Environment variable APP_ENV is required but was not set
+EnvironmentError: Environment variable NODE_ENV must be one of
+development, qa, production, but was "dev"
 ```
 
-Con un valor por defecto, el que se olvidó de inyectarla en prod arranca
-creyéndose otra cosa, y eso no se descubre hasta que alguien nota que la
-documentación está publicada donde no debía. Un valor en blanco -lo que produce
-una task definition a la que le dejaron el campo vacío- cuenta como ausente.
+Un `dev` mal escrito no es «algo que no es producción»: es una task definition
+rota. Que el contenedor lo diga al arrancar es mejor que comportarse de una
+forma que nadie pidió.
 
-### No es `NODE_ENV`
+### La consecuencia de usar `NODE_ENV` para esto
 
-Confundirlos es el error que esto existe para evitar.
+En qa vale `qa`, así que **todo lo que ramifica sobre `NODE_ENV === 'production'`
+-Express, Nest, varias librerías- corre en modo desarrollo ahí**: más
+verborrágico, sin algunas cachés. Es la convención que ya está viva en los siete
+BFF, y conviene saberla en vez de descubrirla comparando una traza de qa con una
+de prod.
 
-|            | Qué dice                         | Dónde se fija                       |
-| ---------- | -------------------------------- | ----------------------------------- |
-| `NODE_ENV` | si el artefacto es de producción | en la imagen, siempre `production`  |
-| `APP_ENV`  | dónde está corriendo             | en la task definition, por ambiente |
-
-`NODE_ENV=production` vale igual corriendo en dev: le habla a Node y a las
-librerías, no al despliegue.
-
-## CORS
+## CORS## CORS
 
 ```ts
 import { buildCorsOptions } from '@ahincho/nova-nestjs';

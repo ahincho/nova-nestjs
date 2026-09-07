@@ -5,11 +5,11 @@ PORT=3000
 # un contenedor que nadie configuró falla cerrado.
 CORS_ALLOWED_ORIGINS=http://localhost:5173
 
-# El ambiente donde corre: dev, qa o prod. **Obligatoria y sin valor por
-# defecto**: es lo que hace que una sola imagen sirva para los tres sin que un
-# contenedor mal configurado arranque creyéndose otro. Con ella se decide, por
-# ejemplo, si se publica la documentación OpenAPI.
-APP_ENV=dev
+# El ambiente donde corre: development, qa o production. Es lo que hace que una
+# sola imagen sirva para los tres. La inyecta la task definition; la imagen trae
+# `production`, así que un contenedor sin configurar se comporta como el más
+# restrictivo. Con ella se decide, por ejemplo, si se publica la documentación.
+NODE_ENV=development
 
 # Un upstream declarado con `defineUpstream('academic')` lee ACADEMIC_URL y
 # ACADEMIC_TIMEOUT_MS. Sin la URL el servicio no arranca, y el error nombra la
