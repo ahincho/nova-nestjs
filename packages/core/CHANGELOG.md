@@ -14,8 +14,13 @@
     recuperaron los 55 tags a partir del SHA de cada corrida de release.
   - **Una corrida podía publicar nada y quedar verde.** `changeset publish` publica lo que dicen
     los manifiestos: sin el commit de `version-packages` en la rama, termina bien sin subir nada.
-    Pasó seis veces. Ahora el paso compara los tags de HEAD antes y después, y corta si no
-    apareció ninguno.
+    Ahora el paso lee la línea que changesets imprime cuando publicó algo, y corta si no
+    aparece.
+
+    Corrección posterior a la 0.14.1: esta nota decía que había pasado seis veces. No hay
+    evidencia de eso -el conteo salió de cruzar las corridas contra los tres nombres de
+    paquete actuales, y las primeras publicaban el juego de once que ya no existe-. La
+    trampa es real como mecanismo; el historial que se le atribuía, no.
 
 ## 0.14.0
 
