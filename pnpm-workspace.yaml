@@ -12,19 +12,16 @@ packages:
 allowBuilds:
   unrs-resolver: false
 
-# Una sola declaracion de cada version compartida, que los tres paquetes
-# referencian con `catalog:`. Es lo que evita que core compile contra un
-# TypeScript y schematics contra otro sin que nadie lo note: hasta ahora las
-# mismas seis dependencias estaban escritas tres veces, y `@types/node` ya se
-# habia quedado en 22 despues de subir el piso a Node 24.
+# Lo unico que queda compartido por catalogo. Las versiones de las
+# herramientas se fueron a las `dependencies` del toolchain, que es donde
+# tienen que estar: el toolchain las instala y el comando `nova` las ejecuta,
+# asi que un paquete de aca ya no las nombra.
+#
+# `@types/node` sigue declarado en cada paquete porque el `types: ["node"]` del
+# tsconfig lo resuelve desde el paquete, y pnpm no expone un transitivo.
 catalog:
   '@types/node': ^24.0.0
-  '@vitest/coverage-v8': ^5.0.0
-  oxlint: ^1.81.0
-  oxlint-tsgolint: ^7.0.2001
   rimraf: ^6.0.1
-  typescript: ~6.0.3
-  vitest: ^5.0.0
 
 # Un rango de peer que no se cumple deja de ser una advertencia y pasa a
 # romper el install. Es el mecanismo que impide que un consumidor termine en

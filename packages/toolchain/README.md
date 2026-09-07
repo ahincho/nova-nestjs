@@ -1,8 +1,8 @@
 # @ahincho/nova-nestjs-toolchain
 
-Presets de TypeScript, oxlint y Vitest compartidos por los proyectos NestJS de
-Nova Platform, **y las herramientas mismas**. Un solo paquete de desarrollo;
-cada preset vive en su carpeta.
+El comando `nova` y los presets de TypeScript, oxlint y Vitest compartidos por
+los proyectos NestJS de Nova Platform, **y las herramientas mismas**. Un solo
+paquete de desarrollo.
 
 ```bash
 pnpm add -D @ahincho/nova-nestjs-toolchain
@@ -16,11 +16,52 @@ herramienta, en las versiones contra las que la plataforma corre su suite.
 Antes eran peers opcionales, y eso dejaba la elección en cada repositorio: doce
 rangos escritos por servicio que cada equipo podía mover por su cuenta.
 
-## Hace falta una línea en el consumidor
+## El comando `nova`
 
-pnpm aísla `node_modules`, así que un paquete que entra por transitividad no se
-resuelve ni expone su binario. Sin esto no existen `tsc` ni `vitest`, y un
-`import` de supertest corta con `TS2307`:
+```json
+{
+  "scripts": {
+    "build": "nova build",
+    "test": "nova test",
+    "test:cov": "nova test:cov",
+    "lint": "nova lint",
+    "format": "nova format",
+    "format:check": "nova format:check",
+    "typecheck": "nova typecheck"
+  }
+}
+```
+
+| Comando             | Qué corre                                                               |
+| ------------------- | ----------------------------------------------------------------------- |
+| `nova build`        | `nest build` si hay `nest-cli.json`, si no `tsc -p tsconfig.build.json` |
+| `nova test`         | `vitest run`                                                            |
+| `nova test:cov`     | `vitest run --coverage`                                                 |
+| `nova lint`         | `oxlint --type-aware`                                                   |
+| `nova format`       | `prettier --write .`                                                    |
+| `nova format:check` | `prettier --check .`                                                    |
+| `nova typecheck`    | `tsc -p tsconfig.json --noEmit`                                         |
+| `nova verify`       | typecheck, lint, test:cov y format:check, en ese orden                  |
+
+Lo que sobre se le pasa tal cual a la herramienta: `nova test --watch`,
+`nova lint --fix`.
+
+**El servicio deja de nombrar la herramienta**, que era lo que convertía cada
+cambio de la plataforma en un cambio en cada repositorio. En un solo día hubo
+dos, de Jest a Vitest y de ESLint a oxlint, y los dos obligaron a editar el
+`package.json` del consumidor para reemplazar una palabra. El día que oxfmt
+llegue a 1.0, `nova format` cambia acá y en ningún otro lado.
+
+**Y hay un motivo que no es comodidad.** `oxlint` sin `--type-aware` no evalúa
+las 23 reglas que necesitan tipos, y no avisa: el reporte sale verde con la
+mitad del análisis sin hacer. Un script escrito a mano puede perder esa bandera
+sin que nada se rompa. Acá no se puede perder.
+
+### Corre las herramientas del toolchain, no las del proyecto
+
+`nova` resuelve cada binario desde su propio paquete, así que no depende de lo
+que el consumidor tenga a mano. Eso acorta el `publicHoistPattern`, que ya no
+necesita las herramientas que sólo se invocan por script:
 
 ```yaml
 # pnpm-workspace.yaml del servicio
@@ -29,19 +70,21 @@ publicHoistPattern:
   - '@types/*'
   - typescript
   - vitest
-  - oxlint
-  - oxlint-tsgolint
-  - prettier
   - supertest
 ```
 
-Es la misma contrapartida que en el runtime: se gana que nadie elija la versión,
-se pierde el aislamiento estricto para esos paquetes.
+Sigue haciendo falta porque pnpm aísla `node_modules` y un paquete transitivo no
+se puede importar: `vitest` porque los specs importan sus tipos, `supertest`
+porque los tests lo usan, `@types/*` y `typescript` porque el `tsconfig` los
+resuelve desde el proyecto. `oxlint`, `oxlint-tsgolint` y `prettier` **ya no**,
+porque nadie los importa: sólo se ejecutan, y de eso se ocupa `nova`.
 
-**Los scripts del servicio siguen nombrando la herramienta** (`"test": "vitest run"`,
-`"lint": "oxlint --type-aware"`), así que cambiar de runner o de linter todavía obliga a
-tocar cada `package.json`. Esconderlo detrás de un comando propio -`nova test`,
-`nova lint`- es el paso siguiente y todavía no está hecho.
+Una trampa que costó encontrar: **una herramienta puede lanzar a otra y la busca
+en el PATH.** `oxlint --type-aware` lanza `tsgolint`, que pnpm deja en el
+`node_modules/.bin` de oxlint y no en el del proyecto. Lanzarlo sin agregar ese
+directorio al PATH corta con «Failed to find tsgolint executable», que es lo que
+`pnpm exec` resuelve por detrás. Cortar es el buen caso; el malo habría sido que
+oxlint decidiera seguir sin su compañera.
 
 ## TypeScript
 

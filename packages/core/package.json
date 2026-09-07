@@ -1,6 +1,6 @@
 {
   "name": "@ahincho/nova-nestjs",
-  "version": "0.8.1",
+  "version": "0.9.0",
   "description": "The Nova Platform meta-framework for NestJS: response envelope, configuration, HTTP client, request context and health probes, wired by one module and one bootstrap call",
   "license": "EPL-2.0",
   "repository": {
@@ -29,11 +29,11 @@
     "node": ">=24.15"
   },
   "scripts": {
-    "build": "tsc -p tsconfig.build.json",
+    "build": "nova build",
     "clean": "rimraf dist coverage *.tsbuildinfo",
-    "test": "vitest run",
-    "test:cov": "vitest run --coverage",
-    "typecheck": "tsc -p tsconfig.json --noEmit"
+    "test": "nova test",
+    "test:cov": "nova test:cov",
+    "typecheck": "nova typecheck"
   },
   "dependencies": {
     "@nestjs/common": "^12.0.1",
@@ -50,9 +50,7 @@
     "@ahincho/nova-nestjs-toolchain": "workspace:*",
     "@nestjs/testing": "^12.0.1",
     "@types/node": "catalog:",
-    "@vitest/coverage-v8": "catalog:",
     "rimraf": "catalog:",
-    "typescript": "catalog:",
-    "vitest": "catalog:"
+    "vitest": "^5.0.0"
   }
 }

@@ -20,18 +20,15 @@
     "test:cov": "pnpm -r run test:cov",
     "verify": "pnpm peers check && pnpm build && pnpm typecheck && pnpm lint && pnpm test:cov && pnpm format:check",
     "clean": "pnpm -r run clean",
-    "format": "prettier --write .",
-    "format:check": "prettier --check .",
+    "format": "nova format",
+    "format:check": "nova format:check",
     "changeset": "changeset",
     "version-packages": "changeset version",
     "release": "pnpm build && changeset publish",
-    "lint": "oxlint --type-aware"
+    "lint": "nova lint"
   },
   "devDependencies": {
-    "@changesets/cli": "^2.29.7",
-    "oxlint": "catalog:",
-    "oxlint-tsgolint": "catalog:",
-    "prettier": "^3.9.6",
-    "typescript": "catalog:"
+    "@ahincho/nova-nestjs-toolchain": "workspace:*",
+    "@changesets/cli": "^2.29.7"
   }
 }

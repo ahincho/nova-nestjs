@@ -1,5 +1,52 @@
 # @ahincho/nova-nestjs-toolchain
 
+## 0.9.0
+
+### Minor Changes
+
+- Agrega el comando `nova` al toolchain, para que los scripts de un servicio dejen de nombrar la
+  herramienta.
+
+  ```json
+  {
+    "scripts": {
+      "build": "nova build",
+      "test": "nova test",
+      "test:cov": "nova test:cov",
+      "lint": "nova lint",
+      "format": "nova format",
+      "format:check": "nova format:check",
+      "typecheck": "nova typecheck"
+    }
+  }
+  ```
+
+  `nova build` usa `nest build` si hay un `nest-cli.json` y `tsc -p tsconfig.build.json` si no.
+  `nova verify` encadena typecheck, lint, cobertura y formato. Lo que sobre se le pasa tal cual a
+  la herramienta.
+
+  **Por qué.** En un solo día la plataforma cambió de runner y de linter, y las dos veces hubo que
+  editar el `package.json` de cada consumidor para reemplazar una palabra. El día que oxfmt llegue
+  a 1.0, `nova format` cambia en el toolchain y en ningún otro lado.
+
+  **Y una razón que no es comodidad:** `oxlint` sin `--type-aware` no evalúa las 23 reglas que
+  necesitan tipos y **no avisa**. Un script escrito a mano puede perder esa bandera sin que nada se
+  rompa; dentro del comando no se puede perder.
+
+  **El `publicHoistPattern` del servicio se acorta.** `nova` resuelve cada binario desde el paquete
+  del toolchain, así que `oxlint`, `oxlint-tsgolint` y `prettier` salen de la lista: nadie los
+  importa, sólo se ejecutan. Siguen `@nestjs/*`, `@types/*`, `typescript`, `vitest` y `supertest`,
+  que sí se importan o se resuelven desde el `tsconfig`.
+
+  El monorepo pasa a usarlo también, y con eso el catálogo de `pnpm-workspace.yaml` se reduce a
+  `@types/node` y `rimraf`: las versiones de las herramientas viven en las `dependencies` del
+  toolchain, que es donde tienen que estar.
+
+  El paquete del toolchain además **se typechequea a sí mismo**. Su script decía «no tiene nada que
+  typechequear» y eso ya era falso: publica el comando. Sin un `tsconfig` que lo cubriera,
+  `oxlint --type-aware` tampoco conseguía tipos y sus reglas `no-unsafe-*` se disparaban sobre el
+  archivo entero.
+
 ## 0.8.1
 
 ### Patch Changes
