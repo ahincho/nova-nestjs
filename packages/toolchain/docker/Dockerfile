@@ -57,27 +57,25 @@ RUN --mount=type=secret,id=npmrc,target=/root/.npmrc \
     pnpm install --frozen-lockfile
 
 # ---------------------------------------------------------------------------
-# build: compila, y no toca la red
+# build: compila y se queda con las dependencias de producción
 # ---------------------------------------------------------------------------
-# Sin secreto montado a propósito: cuanto menos amplio sea el montaje, menos
-# código de terceros puede leerlo.
+# `pnpm prune --prod` va acá y no en una etapa aparte que copie sólo los
+# manifiestos. Se intentó así -corría en paralelo con la compilación y ahorraba
+# unos segundos- y rompía cualquier dependencia `file:`, que necesita el archivo
+# en el contexto: el arnés de CI instala tarballs empaquetados y se quedaba sin
+# ellos. La ganancia real no estaba ahí de todos modos, sino en que `deps` copie
+# sólo los manifiestos.
+#
+# Y prune necesita el secreto: no es una poda local, vuelve a resolver el árbol
+# sin las dependencias de desarrollo y descarga. Sin él, el build muere con un
+# 401 después de haber instalado bien.
 FROM deps AS build
 ENV CI=true
 COPY . .
 RUN pnpm build
-
-# ---------------------------------------------------------------------------
-# prod-deps: el árbol sin lo de desarrollo, en paralelo con el build
-# ---------------------------------------------------------------------------
-# Una etapa aparte y no un `pnpm prune --prod` al final del build: prune no es
-# una poda local -vuelve a resolver y descarga-, así que costaba lo mismo y
-# además serializaba. Acá BuildKit lo corre a la vez que la compilación, y el
-# store compartido evita bajar dos veces lo mismo.
-FROM base AS prod-deps
-COPY package.json pnpm-lock.yaml pnpm-workspace.yaml .npmrc ./
 RUN --mount=type=secret,id=npmrc,target=/root/.npmrc \
     --mount=type=cache,target=/pnpm/store,sharing=locked \
-    pnpm install --frozen-lockfile --prod
+    pnpm prune --prod
 
 # ---------------------------------------------------------------------------
 # runtime: node, node_modules de producción y dist
@@ -88,7 +86,7 @@ FROM node:${NODE_VERSION}-alpine AS runtime
 ENV NODE_ENV=production
 WORKDIR /app
 
-COPY --from=prod-deps --chown=node:node /app/node_modules ./node_modules
+COPY --from=build --chown=node:node /app/node_modules ./node_modules
 COPY --from=build --chown=node:node /app/dist ./dist
 COPY --from=build --chown=node:node /app/package.json ./
 
