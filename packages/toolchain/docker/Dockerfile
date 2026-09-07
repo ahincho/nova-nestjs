@@ -4,6 +4,16 @@
 #
 #   nova docker
 #   nova docker --tag academic-acl:dev --build-arg NODE_VERSION=26
+#   nova docker --platform linux/arm64
+#
+# **Una sola imagen para todos los ambientes.** No hay nada de dev, qa ni prod
+# adentro: el ambiente llega como variable de entorno en tiempo de ejecución,
+# que es lo que inyecta la task definition. El mismo artefacto que se probó en
+# dev es el que llega a prod, byte por byte; construir uno por ambiente
+# significa que lo que se aprobó no es lo que se despliega.
+#
+# `NODE_ENV=production` sí va fija, y no es el ambiente: le dice a Node y a las
+# librerías que este es un artefacto de producción. Vale igual corriendo en dev.
 #
 # No se copia a cada repositorio a propósito: vive en el toolchain y `nova
 # docker` la usa con `-f`. Un Dockerfile copiado envejece igual que el `main.ts`
@@ -11,10 +21,19 @@
 # falla: sigue construyendo.
 #
 # Para un pipeline que exige el archivo en la raíz del repositorio está
-# `nova docker --eject`, que lo escribe con un encabezado diciendo de dónde
-# salió.
+# `nova docker --eject`.
 
+# La imagen base como ARG para poder fijarla por digest sin perder la variable:
+#
+#   nova docker --build-arg NODE_IMAGE=node@sha256:...
+#
+# Un tag es móvil, así que dos builds del mismo commit pueden dar imágenes
+# distintas. Fijar el digest es lo que hace el build reproducible y lo que deja
+# auditar qué base había el día de un incidente. Va como decisión de quien
+# despliega y no fija acá, porque el digest correcto depende de la línea de Node
+# que ese servicio use.
 ARG NODE_VERSION=24
+ARG NODE_IMAGE=node:${NODE_VERSION}-alpine
 ARG PNPM_VERSION=11.24.0
 
 # ---------------------------------------------------------------------------
@@ -24,7 +43,7 @@ ARG PNPM_VERSION=11.24.0
 # obsoleto y no está garantizado en todas las líneas de Node, así que atarse a
 # él haría que subir la imagen base rompa el build por un motivo que no tiene
 # nada que ver con el servicio.
-FROM node:${NODE_VERSION}-alpine AS base
+FROM ${NODE_IMAGE} AS base
 ARG PNPM_VERSION
 # El store va a una ruta fija para que el montaje de cache de BuildKit lo
 # encuentre. Como variable y no como bandera: `pnpm prune` no acepta
@@ -34,62 +53,55 @@ RUN npm install --global pnpm@${PNPM_VERSION}
 WORKDIR /app
 
 # ---------------------------------------------------------------------------
-# build: instala, compila y descarta lo que sólo servía para compilar
+# deps: el árbol completo, con el lockfile mandando
 # ---------------------------------------------------------------------------
-# El contexto entero entra antes de instalar, y no sólo los manifiestos. La
-# receta clásica -copiar package.json, instalar, después copiar el código- se
-# apoya en la caché de capas, y acá esa caché la da el montaje del store de
-# pnpm: con el store caliente, un cambio de código relinkea en vez de volver a
-# descargar.
+# **Sólo los manifiestos, nunca el fuente.** Es lo que decide si el build es
+# rápido: con un `COPY . .` antes del install, cambiar una línea de `src/`
+# invalida la instalación entera. Medido sobre un servicio generado, tocar
+# `main.ts` costaba 23s de un build frío de 41s; así baja a 14s.
 #
-# A cambio funciona con un servicio cuyas dependencias son archivos del propio
-# repositorio, que es como se prueba esta imagen en CI. Con los manifiestos
-# sueltos, un `file:./.tarballs/...` no resuelve porque el archivo no está en la
-# etapa.
+# `.tarball[s]` es un comodín que no falla cuando no existe, y ahí está el
+# motivo de que la separación no funcionara antes: una dependencia `file:`
+# necesita su archivo en el contexto y no aparece en ningún manifiesto. El arnés
+# de CI instala tarballs empaquetados, así que sin esta línea el build muere sin
+# poder resolverlos.
 #
-# Lo que no entra lo decide el `.dockerignore` del servicio, y `node_modules` es
-# el que importa: sin él se copian binarios nativos de Windows dentro de una
-# imagen Linux.
-#
-# El token del registry entra como secreto de BuildKit y no como ARG ni como
-# archivo copiado: un ARG queda en el historial de la imagen y un COPY queda en
-# una capa. Montado, no toca ninguna de las dos. El `.npmrc` del repositorio sí
-# se copia, porque no lleva credencial: sólo apunta el scope al registry.
-# **El `COPY . .` va antes del install a propósito, y cuesta.** Medido sobre un
-# servicio generado, reconstruir tras tocar una línea de `src/` toma 23s contra
-# los 41s de un build frío: cualquier cambio de fuente invalida la instalación
-# entera. Con una etapa `deps` que copie sólo los manifiestos baja a 14s, y con
-# una etapa `prod-deps` en paralelo a 7s.
-#
-# Las dos formas rompen las dependencias `file:`, que necesitan su archivo en el
-# contexto y no están en ningún manifiesto. El arnés de CI instala tarballs
-# empaquetados, así que el build muere en `deps` sin poder resolverlos.
-#
-# El arreglo no es un parche acá: es que el arnés sirva esos paquetes desde un
-# registry local en vez de por ruta. Mientras tanto se paga la reinstalación,
-# que es lenta pero correcta.
-FROM base AS build
+# El `.npmrc` del repositorio no lleva credencial: sólo apunta el scope al
+# registry. El token entra como secreto de BuildKit y no como ARG ni
+# como archivo copiado: un ARG queda en el historial de la imagen y un COPY
+# queda en una capa. Montado, no toca ninguna de las dos.
+FROM base AS deps
+COPY package.json pnpm-lock.yaml pnpm-workspace.yaml ./
 
-# `pnpm prune` borra node_modules, y sin TTY corta pidiendo confirmación
-# -ERR_PNPM_ABORTED_REMOVE_MODULES_DIR_NO_TTY-. Un build de imagen es no
-# interactivo por definición, así que decirlo es lo correcto; la alternativa,
-# `confirmModulesPurge: false`, cambiaría también el comportamiento de quien
-# corre pnpm a mano en su máquina.
-ENV CI=true
-
-COPY . .
+# Los dos entran con un comodín que no falla cuando el archivo no está.
+#
+# El `.npmrc` porque un servicio que resuelve todo desde npmjs no lo necesita, y
+# porque el arnés de CI lo borra a propósito -reescribe las dependencias a
+# tarballs y quiere que nada pueda venir del registry-.
+#
+# `.tarballs/` porque ahí está el motivo de que esta separación no funcionara
+# antes: una dependencia `file:` necesita su archivo en el contexto y no aparece
+# en ningún manifiesto.
+COPY .npmr[c] ./
+COPY .tarball[s] ./.tarballs/
 RUN --mount=type=secret,id=npmrc,target=/root/.npmrc \
     --mount=type=cache,target=/pnpm/store,sharing=locked \
     pnpm install --frozen-lockfile
 
-# Compilar no toca la red, así que este paso va sin el secreto: cuanto menos
+# ---------------------------------------------------------------------------
+# build: compila y se queda con las dependencias de producción
+# ---------------------------------------------------------------------------
+# Compilar no toca la red, así que ese paso va sin el secreto: cuanto menos
 # amplio sea el montaje, menos código de terceros puede leerlo.
+#
+# `pnpm prune --prod` sí lo necesita. No es una poda local: vuelve a resolver el
+# árbol sin las dependencias de desarrollo y descarga. Sin el secreto acá, el
+# build muere con un 401 después de haber instalado bien, que es de los fallos
+# más desconcertantes que puede dar esta receta.
+FROM deps AS build
+ENV CI=true
+COPY . .
 RUN pnpm build
-
-# `pnpm prune --prod` sí lo necesita. No es una poda local: vuelve a resolver
-# el árbol sin las dependencias de desarrollo y **descarga**. Sin el secreto
-# acá, el build muere con un 401 después de haber instalado bien, que es de
-# los fallos más desconcertantes que puede dar esta receta.
 RUN --mount=type=secret,id=npmrc,target=/root/.npmrc \
     --mount=type=cache,target=/pnpm/store,sharing=locked \
     pnpm prune --prod
@@ -97,9 +109,9 @@ RUN --mount=type=secret,id=npmrc,target=/root/.npmrc \
 # ---------------------------------------------------------------------------
 # runtime: node, node_modules de producción y dist
 # ---------------------------------------------------------------------------
-# Sin pnpm ni el código fuente. Corre como `node`, el usuario sin privilegios
-# que la imagen oficial ya trae.
-FROM node:${NODE_VERSION}-alpine AS runtime
+# Arranca de la imagen base y NO de la etapa `base`, así que pnpm no llega acá.
+# Corre como `node`, el usuario sin privilegios que la imagen oficial ya trae.
+FROM ${NODE_IMAGE} AS runtime
 ENV NODE_ENV=production
 WORKDIR /app
 

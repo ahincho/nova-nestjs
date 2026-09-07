@@ -5,9 +5,11 @@ PORT=3000
 # un contenedor que nadie configuró falla cerrado.
 CORS_ALLOWED_ORIGINS=http://localhost:5173
 
-# La documentación OpenAPI, en /docs. Sólo `false` la apaga: cualquier otro
-# valor, y la ausencia de la variable, la dejan encendida.
-OPENAPI_ENABLED=true
+# El ambiente donde corre: dev, qa o prod. **Obligatoria y sin valor por
+# defecto**: es lo que hace que una sola imagen sirva para los tres sin que un
+# contenedor mal configurado arranque creyéndose otro. Con ella se decide, por
+# ejemplo, si se publica la documentación OpenAPI.
+APP_ENV=dev
 
 # Un upstream declarado con `defineUpstream('academic')` lee ACADEMIC_URL y
 # ACADEMIC_TIMEOUT_MS. Sin la URL el servicio no arranca, y el error nombra la

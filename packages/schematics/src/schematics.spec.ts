@@ -366,7 +366,9 @@ describe('el generador de servicio', () => {
     const main = tree.readContent('/academic-acl/src/main.ts');
 
     expect(main).toContain('openapi:');
-    expect(main).toContain("process.env['OPENAPI_ENABLED'] !== 'false'");
+    // Una sola imagen para los tres ambientes: lo que decide si se publica es
+    // una variable de entorno, no algo que se haya horneado al construir.
+    expect(main).toContain("appEnvironment() !== 'prod'");
     // Nace sin `auth`, así que declarar que todo pide token sería mentira.
     expect(main).toContain('bearerAuth: false');
   });

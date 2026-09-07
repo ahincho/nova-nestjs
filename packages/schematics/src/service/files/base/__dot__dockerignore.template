@@ -13,6 +13,10 @@ dist/
 coverage/
 *.tsbuildinfo
 
+# Los tests no entran en la imagen, y sacarlos del contexto evita además que
+# cambiar un spec invalide la capa de compilación.
+test/
+
 .git/
 .github/
 

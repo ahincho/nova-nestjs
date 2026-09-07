@@ -1,3 +1,9 @@
+export {
+  APP_ENVIRONMENTS,
+  APP_ENV_VARIABLE,
+  appEnvironment,
+  type AppEnvironment,
+} from './app-environment';
 export { buildCorsOptions, type CorsPolicyOptions } from './cors';
 export {
   EnvironmentError,

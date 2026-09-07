@@ -1,10 +1,15 @@
-import { bootstrap } from '@ahincho/nova-nestjs';
+import { appEnvironment, bootstrap } from '@ahincho/nova-nestjs';
 import { AppModule } from './app.module';
 
 // El main.ts completo. El ValidationPipe con la fábrica del sobre, el bind a
 // 0.0.0.0, el puerto leído de PORT, los hooks de apagado, el 503 mientras se
 // cierra y la exclusión de las sondas del prefijo global los pone bootstrap();
 // nada de eso se copia por servicio.
+//
+// **Una sola imagen para los tres ambientes.** Nada de dev, qa ni prod se
+// decide al construir: todo llega por variable de entorno, que es lo que
+// inyecta la task definition. El artefacto que se aprobó en dev es el que llega
+// a prod.
 void bootstrap(AppModule, {
   globalPrefix: 'api/v1',
   cors: { origins: process.env['CORS_ALLOWED_ORIGINS'] ?? '' },
@@ -16,9 +21,10 @@ void bootstrap(AppModule, {
     // prefijo global: cambiar de v1 a v2 no debería mover el enlace que la
     // gente tiene guardado.
     //
-    // Se apaga por variable de entorno para poder decidirlo por ambiente sin
-    // tocar el código.
-    enabled: process.env['OPENAPI_ENABLED'] !== 'false',
+    // `appEnvironment()` no tiene valor por defecto: un contenedor sin APP_ENV
+    // no arranca, y el error nombra la variable. Es lo que evita que el que se
+    // olvidó de inyectarla en prod publique la documentación sin enterarse.
+    enabled: appEnvironment() !== 'prod',
 
     // En false porque este servicio nace sin `auth`. Al declarar
     // `NovaModule.forRoot({ auth: ... })` hay que sacarlo: el guard es global,

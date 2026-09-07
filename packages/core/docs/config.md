@@ -70,6 +70,42 @@ una investigación:
 - **`urlEnv` quita la barra final.** `${base}/path` con barra final produce una
   doble barra, y algunos gateways la enrutan a una regla distinta de la probada.
 
+## El ambiente
+
+```ts
+import { appEnvironment } from '@ahincho/nova-nestjs';
+
+appEnvironment(); // 'dev' | 'qa' | 'prod', leído de APP_ENV
+```
+
+Existe para que **una sola imagen sirva para los tres ambientes**. El artefacto
+que se probó en dev es el que llega a prod, byte por byte; construir uno por
+ambiente significa que lo que se aprobó no es lo que se despliega.
+
+**No tiene valor por defecto, y eso es el punto.** Un contenedor sin `APP_ENV`
+no arranca, y el error nombra la variable:
+
+```
+EnvironmentError: Environment variable APP_ENV is required but was not set
+```
+
+Con un valor por defecto, el que se olvidó de inyectarla en prod arranca
+creyéndose otra cosa, y eso no se descubre hasta que alguien nota que la
+documentación está publicada donde no debía. Un valor en blanco -lo que produce
+una task definition a la que le dejaron el campo vacío- cuenta como ausente.
+
+### No es `NODE_ENV`
+
+Confundirlos es el error que esto existe para evitar.
+
+|            | Qué dice                         | Dónde se fija                       |
+| ---------- | -------------------------------- | ----------------------------------- |
+| `NODE_ENV` | si el artefacto es de producción | en la imagen, siempre `production`  |
+| `APP_ENV`  | dónde está corriendo             | en la task definition, por ambiente |
+
+`NODE_ENV=production` vale igual corriendo en dev: le habla a Node y a las
+librerías, no al despliegue.
+
 ## CORS
 
 ```ts

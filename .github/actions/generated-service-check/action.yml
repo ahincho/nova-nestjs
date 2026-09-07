@@ -89,17 +89,25 @@ runs:
       working-directory: ${{ runner.temp }}/generated/${{ inputs.name }}
       run: pnpm verify
 
-    # `consumer:pack` borra el .npmrc a propósito -para probar que nada de
-    # @ahincho puede llegar del registry- y el Dockerfile lo copia. Acá se
-    # repone vacío: las dependencias ya entraron por tarball, así que este build
-    # no necesita ninguna credencial, que es lo que lo hace barato de correr.
+    # El montaje de cache de BuildKit vive en el runner, y el runner se destruye:
+    # sin exportarla, cada build de CI es frio. `type=gha` la deja en la cache
+    # de Actions, que sobrevive entre corridas.
+    - name: Set up buildx
+      uses: docker/setup-buildx-action@v3
+
+    # `consumer:pack` borra el .npmrc a propósito, para probar que nada de
+    # @ahincho puede llegar del registry. El Dockerfile lo copia con un comodín
+    # que tolera su ausencia, así que este build no necesita credencial alguna
+    # -las dependencias ya entraron por tarball-, y de paso ejercita ese camino.
     - name: Build the image
       shell: bash
       working-directory: ${{ runner.temp }}/generated/${{ inputs.name }}
       run: |
         set -euo pipefail
-        : > .npmrc
-        pnpm docker --tag "nova-${{ inputs.style }}:ci"
+        pnpm docker --tag "nova-${{ inputs.style }}:ci" \
+          --cache-from type=gha,scope=${{ inputs.style }} \
+          --cache-to type=gha,mode=max,scope=${{ inputs.style }} \
+          --load
 
     # Que construya no prueba que arranque. Esto sí: levanta el contenedor y le
     # pide la sonda que mira el balanceador.
@@ -109,7 +117,11 @@ runs:
         IMAGE: nova-${{ inputs.style }}:ci
       run: |
         set -euo pipefail
-        id=$(docker run --rm --detach --publish 3000:3000 "$IMAGE")
+        # APP_ENV no tiene valor por defecto a propósito: sin ella el contenedor
+        # no arranca y el error nombra la variable. Es lo que hace que una sola
+        # imagen sirva para los tres ambientes sin que uno mal configurado
+        # arranque creyéndose otro.
+        id=$(docker run --rm --detach --env APP_ENV=dev --publish 3000:3000 "$IMAGE")
         trap 'docker rm --force "$id" > /dev/null' EXIT
 
         for attempt in $(seq 1 30); do
