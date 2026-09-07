@@ -56,6 +56,17 @@ sondas y las reglas de arquitectura.
 imagen y **levanta el contenedor** hasta que la sonda contesta. Un servicio sin
 CI es un servicio donde la puerta de calidad existe y no la corre nadie.
 
+**Antes del primer push hay que correr `pnpm install` y commitear el
+`pnpm-lock.yaml`.** El generador no lo escribe -resolver el árbol es lo que hace
+el install, y hacerlo acá dejaría un lockfile congelado en la versión del día en
+que se generó-, y el workflow instala con `--frozen-lockfile`, que es lo correcto
+en CI. Sin ese archivo la primera corrida muere en el primer paso.
+
+[`ahincho/nova-nestjs-generated`](https://github.com/ahincho/nova-nestjs-generated)
+es exactamente lo que sale de este generador, empujado sin editar una línea. Sirve
+para mirar el resultado antes de generar, y para comprobar que este workflow corre
+de verdad y no sólo en una prueba unitaria.
+
 La versión de Node vive en un solo lugar del workflow y viaja al build de la
 imagen como `--build-arg`: si el runner y la imagen se separan, se compila con
 un Node distinto al que corre en producción.
