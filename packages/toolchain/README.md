@@ -46,6 +46,10 @@ rangos escritos por servicio que cada equipo podía mover por su cuenta.
 Lo que sobre se le pasa tal cual a la herramienta: `nova test --watch`,
 `nova lint --fix`.
 
+`nova start` es sólo para desarrollo. **El arranque en producción se queda en
+`node dist/main`**, escrito a mano, porque es el contrato con el Dockerfile y no
+una elección de herramienta que la plataforma deba poder cambiar sola.
+
 **El servicio deja de nombrar la herramienta**, que era lo que convertía cada
 cambio de la plataforma en un cambio en cada repositorio. En un solo día hubo
 dos, de Jest a Vitest y de ESLint a oxlint, y los dos obligaron a editar el

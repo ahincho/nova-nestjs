@@ -1,5 +1,19 @@
 # @ahincho/nova-nestjs-toolchain
 
+## 0.10.0
+
+### Minor Changes
+
+- Agrega `nova start`, que faltaba para que el `package.json` de un servicio no quedara con
+  `nova build` al lado de `nest start`.
+
+  ```json
+  { "scripts": { "start": "nova start", "start:dev": "nova start --watch" } }
+  ```
+
+  **El arranque en producción se queda en `node dist/main`**, escrito a mano. Es el contrato con
+  el Dockerfile, no una elección de herramienta que la plataforma deba poder cambiar sola.
+
 ## 0.9.0
 
 ### Minor Changes

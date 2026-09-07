@@ -150,6 +150,18 @@ const commands = new Map([
     },
   ],
   [
+    'start',
+    {
+      // Solo para desarrollo. El arranque en produccion se queda en
+      // `node dist/main`, escrito a mano, porque es el contrato con el
+      // Dockerfile y no una eleccion de herramienta que la plataforma deba
+      // poder cambiar por su cuenta.
+      describe: 'levanta el servicio en desarrollo (nova start --watch)',
+      run: (/** @type {string[]} */ args) =>
+        run('@nestjs/cli', 'nest', ['start', ...args]),
+    },
+  ],
+  [
     'test',
     {
       describe: 'corre la suite',
