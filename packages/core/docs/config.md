@@ -118,7 +118,7 @@ verborrágico, sin algunas cachés. Es la convención que ya está viva en los s
 BFF, y conviene saberla en vez de descubrirla comparando una traza de qa con una
 de prod.
 
-## CORS## CORS
+## CORS
 
 ```ts
 import { buildCorsOptions } from '@ahincho/nova-nestjs';

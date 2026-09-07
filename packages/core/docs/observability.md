@@ -27,9 +27,9 @@ Sobrevive a un `await` y mantiene separadas dos peticiones concurrentes. Fuera d
 una petición —un job programado, un consumidor— devuelve vacío: inventar una
 correlación haría que una traza afirme una relación que no existe.
 
-`headers()` satisface estructuralmente el puerto `OutboundHeadersProvider` de
-`@ahincho/nova-nestjs`. **Ninguno de los dos paquetes importa al otro**:
-los une `@ahincho/nova-nestjs`, y por eso los dos sirven por separado.
+`headers()` satisface estructuralmente el puerto `OutboundHeadersProvider` del
+módulo `http`. **Ninguno de los dos módulos importa al otro**: los une el token
+de DI, y por eso cada uno funciona sin el otro.
 
 ### Qué se propaga
 
