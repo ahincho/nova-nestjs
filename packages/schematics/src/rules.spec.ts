@@ -62,6 +62,12 @@ describe('el generador de servicio', () => {
   it('devuelve una regla para los dos sabores', () => {
     expect(typeof service({ name: 'academic-acl' })).toBe('function');
     expect(typeof service({ name: 'home-bff', style: 'bff' })).toBe('function');
+    // Con `feature` el generador encadena un schematic hermano. `schematic()`
+    // arma la regla sin ejecutarla, asi que esto se puede comprobar sin
+    // coleccion: lo que se prueba es que la rama se arma, no lo que escribe.
+    expect(typeof service({ name: 'academic-acl', feature: 'buildings' })).toBe(
+      'function',
+    );
   });
 
   it('usa el layout hexagonal por defecto', () => {
