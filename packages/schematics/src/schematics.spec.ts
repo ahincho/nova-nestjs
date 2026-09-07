@@ -193,6 +193,46 @@ describe('el generador de feature', () => {
     );
   });
 
+  // OpenAPI se genera de metadatos en tiempo de ejecucion, y un `type` de
+  // TypeScript no deja ninguno: declarado asi, el DTO no se puede documentar y
+  // el endpoint sale sin esquema con el documento igual de verde.
+  it('declara el dto de respuesta como clase documentable', async () => {
+    const acl = await runner.runSchematic('feature', {
+      name: 'buildings',
+      style: 'acl',
+    });
+    const bff = await runner.runSchematic('feature', {
+      name: 'courses',
+      style: 'bff',
+    });
+
+    const aclResponse = acl.readContent(
+      '/src/buildings/adapter/in/web/response/buildings.response.ts',
+    );
+    const bffResponse = bff.readContent(
+      '/src/features/courses/dto/courses.response.ts',
+    );
+
+    for (const content of [aclResponse, bffResponse]) {
+      expect(content).toContain('@ApiProperty(');
+      expect(content).toMatch(/export class \w+Response \{/u);
+      expect(content).not.toMatch(/export type \w+Response = \{/u);
+    }
+  });
+
+  it('documenta la respuesta como el sobre envolviendo al dto', async () => {
+    const acl = await runner.runSchematic('feature', {
+      name: 'buildings',
+      style: 'acl',
+    });
+    const controller = acl.readContent(
+      '/src/buildings/adapter/in/web/buildings.controller.ts',
+    );
+
+    expect(controller).toContain('@ApiEnvelope(BuildingsResponse');
+    expect(controller).toContain('@ApiErrors(404)');
+  });
+
   it('usa acl cuando no se dice el estilo', async () => {
     const tree = await runner.runSchematic('feature', { name: 'events' });
 

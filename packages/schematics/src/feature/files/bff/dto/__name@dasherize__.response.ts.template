@@ -1,7 +1,14 @@
+import { ApiProperty } from '@nestjs/swagger';
+
 /**
  * Lo que ve el frontend. Es un contrato: agregarle un campo a lo que devuelve
- * el upstream no deberia cambiarlo sin que alguien lo decida.
+ * el upstream no debería cambiarlo sin que alguien lo decida.
+ *
+ * Es una clase y no un `type` porque OpenAPI se genera leyendo metadatos en
+ * tiempo de ejecución, y un `type` de TypeScript no deja ninguno: un DTO de
+ * respuesta declarado como tipo no se puede documentar.
  */
-export type <%= classify(name) %>Response = {
+export class <%= classify(name) %>Response {
+  @ApiProperty({ example: '1' })
   id: string;
-};
+}

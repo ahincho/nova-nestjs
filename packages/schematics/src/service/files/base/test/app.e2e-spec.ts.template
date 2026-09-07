@@ -73,5 +73,29 @@ describe('<%= classify(name) %>', () => {
     expect(response.body).toMatchObject({
       info: { title: '<%= classify(name) %>' },
     });
-  });
+  });<% if (feature) { %>
+
+  // Que el documento se sirva no alcanza: un DTO declarado como `type` no deja
+  // metadatos y el endpoint sale sin esquema, con el documento igual de verde.
+  // Esto mira que la respuesta esté descrita como el sobre envolviendo al DTO,
+  // que es lo que sale por el cable.
+  it('describes the response as the envelope wrapping the dto', async () => {
+    const response = await request(app.getHttpServer() as App).get(
+      '/docs/json',
+    );
+    const document = response.body as {
+      components: { schemas: Record<string, unknown> };
+      paths: Record<string, unknown>;
+    };
+
+    expect(document.components.schemas).toHaveProperty(
+      '<%= classify(feature) %>Response',
+    );
+    expect(JSON.stringify(document.paths)).toContain(
+      '#/components/schemas/ApiEnvelopeSchema',
+    );
+    expect(JSON.stringify(document.paths)).toContain(
+      '#/components/schemas/<%= classify(feature) %>Response',
+    );
+  });<% } %>
 });

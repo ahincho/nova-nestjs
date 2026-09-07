@@ -1,13 +1,19 @@
+import { ApiProperty } from '@nestjs/swagger';
 import type { <%= classify(name) %> } from '../../../../domain/<%= dasherize(name) %>';
 
 /**
- * Lo que ve quien llama. Separado del modelo de dominio a proposito: agregarle
- * un campo al dominio no deberia cambiar el contrato publico sin que alguien lo
+ * Lo que ve quien llama. Separado del modelo de dominio a propósito: agregarle
+ * un campo al dominio no debería cambiar el contrato público sin que alguien lo
  * decida.
+ *
+ * Es una clase y no un `type` porque OpenAPI se genera leyendo metadatos en
+ * tiempo de ejecución, y un `type` de TypeScript no deja ninguno: un DTO de
+ * respuesta declarado como tipo no se puede documentar.
  */
-export type <%= classify(name) %>Response = {
+export class <%= classify(name) %>Response {
+  @ApiProperty({ example: '1' })
   id: string;
-};
+}
 
 export function to<%= classify(name) %>Response(
   <%= camelize(name) %>: <%= classify(name) %>,

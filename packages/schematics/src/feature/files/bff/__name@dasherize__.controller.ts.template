@@ -1,10 +1,11 @@
 import { Controller, Get, Inject, Query } from '@nestjs/common';
+import { ApiEnvelope, ApiErrors } from '@ahincho/nova-nestjs';
 import { <%= classify(name) %>Query } from './dto/<%= dasherize(name) %>-query.dto';
+import { <%= classify(name) %>Response } from './dto/<%= dasherize(name) %>.response';
 import {
   GET_<%= underscore(name).toUpperCase() %>_USE_CASE,
   type Get<%= classify(name) %>UseCase,
 } from './port/in/get-<%= dasherize(name) %>.use-case';
-import type { <%= classify(name) %>Response } from './dto/<%= dasherize(name) %>.response';
 
 @Controller('<%= dasherize(name) %>')
 export class <%= classify(name) %>Controller {
@@ -22,8 +23,13 @@ export class <%= classify(name) %>Controller {
    * Devuelve la respuesta pelada: el sobre lo pone el interceptor global de la
    * plataforma. El DTO del query lo valida el pipe global, y un campo que no
    * esté declarado ahí se rechaza en vez de ignorarse en silencio.
+   *
+   * `ApiEnvelope` describe lo que sale por el cable, que no es lo que devuelve
+   * este método: el interceptor lo envuelve después.
    */
   @Get()
+  @ApiEnvelope(<%= classify(name) %>Response, { isArray: true })
+  @ApiErrors(400)
   list(@Query() query: <%= classify(name) %>Query): Promise<<%= classify(name) %>Response[]> {
     return this.<%= camelize(name) %>.list(query);
   }

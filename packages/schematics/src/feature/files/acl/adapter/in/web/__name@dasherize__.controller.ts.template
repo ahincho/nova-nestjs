@@ -1,9 +1,13 @@
 import { Controller, Get, Inject, Param } from '@nestjs/common';
+import { ApiEnvelope, ApiErrors } from '@ahincho/nova-nestjs';
 import {
   GET_<%= underscore(name).toUpperCase() %>_USE_CASE,
   type Get<%= classify(name) %>UseCase,
 } from '../../../port/in/get-<%= dasherize(name) %>.use-case';
-import { to<%= classify(name) %>Response, type <%= classify(name) %>Response } from './response/<%= dasherize(name) %>.response';
+import {
+  to<%= classify(name) %>Response,
+  <%= classify(name) %>Response,
+} from './response/<%= dasherize(name) %>.response';
 
 @Controller('<%= dasherize(name) %>')
 export class <%= classify(name) %>Controller {
@@ -20,8 +24,14 @@ export class <%= classify(name) %>Controller {
   /**
    * Devuelve la respuesta pelada: el sobre lo pone el interceptor global de la
    * plataforma, y ningún controlador lo arma a mano.
+   *
+   * `ApiEnvelope` es lo que hace que el documento diga la verdad. El
+   * interceptor envuelve **después** de que este método devolvió, así que un
+   * documento generado del tipo de retorno describiría el método y no el cable.
    */
   @Get(':id')
+  @ApiEnvelope(<%= classify(name) %>Response, { description: 'El <%= dasherize(name) %> pedido' })
+  @ApiErrors(404)
   async findOne(@Param('id') id: string): Promise<<%= classify(name) %>Response> {
     return to<%= classify(name) %>Response(await this.<%= camelize(name) %>.execute(id));
   }
