@@ -64,6 +64,23 @@ jobs:
         with:
           consumer-ref: ${{ inputs.consumer-ref }}
 
+      # Y ni sin generar un servicio desde cero. El ejemplo esta escrito a mano
+      # y no tiene reglas de arquitectura, asi que `lint:arch`, el generador y
+      # la imagen solo se ejercitan aca. Sin estos pasos, la puerta del release
+      # es mas debil que la de un pull request, que es exactamente al reves de
+      # como tiene que ser.
+      - name: Generated ACL check
+        uses: ./.github/actions/generated-service-check
+        with:
+          style: acl
+          name: academic-acl
+
+      - name: Generated BFF check
+        uses: ./.github/actions/generated-service-check
+        with:
+          style: bff
+          name: home-bff
+
       - name: Dry run
         if: ${{ inputs.dry-run }}
         run: pnpm -r publish --dry-run --no-git-checks
