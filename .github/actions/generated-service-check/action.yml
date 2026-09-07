@@ -33,8 +33,18 @@ runs:
         rm -rf .generated
         mkdir .generated
         cd .generated
+
+        # `--no-dry-run` es obligatorio, y no es cosmético. La CLI enciende el
+        # modo debug por su cuenta cuando cree que la colección es local, y el
+        # debug implica dry-run: imprime los CREATE, no escribe nada y sale con
+        # 0. Su prueba de «local» es de ruta POSIX, así que una ruta de Windows
+        # no la dispara y una del runner de Linux sí. Sin la bandera este paso
+        # pasa en verde sin haber generado nada.
         pnpm dlx "@angular-devkit/schematics-cli@${devkit}" \
-          "${collection}:service" "$NAME" --style "$STYLE"
+          "${collection}:service" "$NAME" --style "$STYLE" --no-dry-run
+
+        # Y por si alguna versión futura vuelve a decidirlo sola.
+        test -f "$NAME/package.json"
 
     # El script borra el `.npmrc` generado, y eso no le quita cobertura: que ese
     # archivo apunte a GitHub Packages lo asegura una prueba unitaria del
@@ -56,7 +66,7 @@ runs:
       run: pnpm peers check
 
     # `verify` y no `test`: el typecheck, oxlint con sus reglas de tipos,
-    # dependency-cruiser y el formato solo se ejercitan desde acá. El servicio
+    # dependency-cruiser y el formato sólo se ejercitan desde acá. El servicio
     # de ejemplo no corre `lint:arch` -no tiene reglas de arquitectura-, así que
     # sin este paso la resolución de dependency-cruiser no la prueba nadie.
     - name: Verify
