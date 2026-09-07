@@ -50,6 +50,20 @@ Trae el `package.json` con **los tres paquetes de la plataforma y nada más**, e
 `bootstrap()`, el `app.module.ts` con `NovaModule.forRoot()`, un test de las
 sondas y las reglas de arquitectura.
 
+### Y nace con su CI
+
+`.github/workflows/ci.yml` corre `install`, `peers check`, `verify`, construye la
+imagen y **levanta el contenedor** hasta que la sonda contesta. Un servicio sin
+CI es un servicio donde la puerta de calidad existe y no la corre nadie.
+
+La versión de Node vive en un solo lugar del workflow y viaja al build de la
+imagen como `--build-arg`: si el runner y la imagen se separan, se compila con
+un Node distinto al que corre en producción.
+
+El paso de la imagen sólo declara `NODE_AUTH_TOKEN`. `nova docker` encuentra la
+credencial solo -busca el npmrc donde npm lo busca y resuelve el marcador que
+`setup-node` deja ahí-, así que no hay que escribir ningún archivo a mano.
+
 Y trae dos archivos que no se ven hasta que faltan. El `.npmrc` apunta el scope
 `@ahincho` a GitHub Packages: sin él, `pnpm install` lo busca en npmjs y corta
 con un 404. El `.gitattributes` fija `eol=lf`: sin él, un clon en Windows queda

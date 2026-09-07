@@ -334,6 +334,27 @@ describe('el generador de servicio', () => {
     }
   });
 
+  // Un servicio sin CI es un servicio donde la puerta de calidad existe y no
+  // la corre nadie. El workflow sale del generador para que no haya que
+  // acordarse de copiarlo.
+  it('nace con su propio workflow de CI', () => {
+    const workflow = tree.readContent('/academic-acl/.github/workflows/ci.yml');
+
+    expect(workflow).toContain('pnpm verify');
+    expect(workflow).toContain('pnpm peers check');
+    // La version de Node vive en un solo lugar: si el runner y la imagen se
+    // separan, se compila con un Node distinto al que corre en produccion.
+    expect(workflow).toContain("NODE_VERSION: '24'");
+    expect(workflow).toContain(
+      '--build-arg NODE_VERSION=${{ env.NODE_VERSION }}',
+    );
+    // `nova docker` resuelve el marcador que setup-node deja en el npmrc, pero
+    // sólo si la variable está en el entorno de ese paso.
+    expect(workflow).toContain('NODE_AUTH_TOKEN: ${{ secrets.GITHUB_TOKEN }}');
+    // Levanta el contenedor: que construya no prueba que arranque.
+    expect(workflow).toContain('--env NODE_ENV=development');
+  });
+
   it('nace con un test que prueba las sondas', () => {
     expect(tree.files).toContain('/academic-acl/test/app.e2e-spec.ts');
   });

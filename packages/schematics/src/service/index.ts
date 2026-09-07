@@ -95,6 +95,9 @@ export function service(options: ServiceOptions): Rule {
         ? ''
         : defaultPathFor(style, featureName).replace('src/', ''),
     nodeFloor: NODE_FLOOR,
+    // El mayor sale del piso declarado, no escrito aparte: si se separan,
+    // el runner de CI compila con un Node distinto al de la imagen.
+    nodeMajor: NODE_FLOOR.split('.')[0] ?? '24',
     pnpmVersion: PNPM_VERSION,
     platformVersion: platformVersion(),
     // Los archivos que empiezan con punto se guardan como `__dot__algo` en las

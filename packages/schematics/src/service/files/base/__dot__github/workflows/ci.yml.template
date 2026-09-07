@@ -1,0 +1,111 @@
+name: CI
+
+# En cada pull request, contra la rama que sea: los repos de la organización
+# usan dev, qa y master, y un filtro de ramas acá se queda viejo en cuanto
+# alguien abre una contra otra base.
+on:
+  pull_request:
+  push:
+    branches: [main, master, dev]
+
+# Una segunda subida a la misma rama cancela la corrida anterior: nadie mira el
+# resultado de un commit que ya fue reemplazado.
+concurrency:
+  group: ci-${{ github.ref }}
+  cancel-in-progress: true
+
+permissions:
+  contents: read
+  # GitHub Packages pide token incluso para un paquete público, y de ahí salen
+  # los tres paquetes de la plataforma.
+  packages: read
+
+# Un solo lugar donde vive la versión de Node, para que el runner y la imagen no
+# se separen sin que nadie lo note.
+env:
+  NODE_VERSION: '<%= nodeMajor %>'
+
+jobs:
+  verify:
+    name: verify
+    runs-on: ubuntu-latest
+
+    steps:
+      - uses: actions/checkout@v7
+      - uses: pnpm/action-setup@v6
+
+      # `registry-url` escribe el npmrc de usuario que autentica contra GitHub
+      # Packages. Hace falta además del `.npmrc` del repositorio: ese sólo dice
+      # a qué registry va el scope, y no lleva credencial.
+      - uses: actions/setup-node@v7
+        with:
+          node-version: ${{ env.NODE_VERSION }}
+          cache: pnpm
+          registry-url: https://npm.pkg.github.com
+          scope: '@ahincho'
+
+      - name: Install
+        run: pnpm install --frozen-lockfile
+        env:
+          NODE_AUTH_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+
+      # `--frozen-lockfile` no revisa los peers: reusa el lockfile tal cual y da
+      # por bueno lo que ya está resuelto. La barrera de strictPeerDependencies
+      # sólo salta en un install que resuelve, o sea en la máquina de quien
+      # agrega la dependencia. Acá hay que pedirla explícitamente.
+      - name: Peers
+        run: pnpm peers check
+
+      # typecheck, lint, lint:arch, test:cov y format:check, en ese orden. Un
+      # error de tipos se lee mejor que los veinte hallazgos que provoca, y el
+      # formato va al final porque es lo único que no dice si el código anda.
+      - name: Verify
+        run: pnpm verify
+
+      # El montaje de cache de BuildKit vive en el runner, y el runner se
+      # destruye: sin exportarla, cada build es frío.
+      - name: Set up buildx
+        uses: docker/setup-buildx-action@v3
+
+      # `nova docker` encuentra la credencial sola: busca el npmrc donde npm lo
+      # busca -NPM_CONFIG_USERCONFIG, que es donde lo dejó setup-node- y resuelve
+      # el ${NODE_AUTH_TOKEN} que ese archivo guarda como marcador. Por eso la
+      # variable tiene que estar en el entorno de ESTE paso: sin ella el token
+      # no se puede resolver y el build corta con un 401.
+      #
+      # Del npmrc de la máquina lleva sólo las credenciales de los registries
+      # que el proyecto declara, y las monta como secreto de BuildKit: no quedan
+      # en ninguna capa de la imagen.
+      - name: Docker
+        env:
+          NODE_AUTH_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+        run: |
+          pnpm docker --tag "<%= dasherize(name) %>:ci" \
+            --build-arg NODE_VERSION=${{ env.NODE_VERSION }} \
+            --cache-from type=gha \
+            --cache-to type=gha,mode=max \
+            --load
+
+      # Que construya no prueba que arranque. Esto sí, y de paso ejercita que
+      # una sola imagen sirva para los tres ambientes: NODE_ENV es lo que
+      # inyecta la task definition, y sin inyectar nada la imagen cae en
+      # `production`, el más restrictivo.
+      - name: Run the image
+        run: |
+          set -euo pipefail
+          id=$(docker run --rm --detach --env NODE_ENV=development \
+            --publish 3000:3000 "<%= dasherize(name) %>:ci")
+          trap 'docker rm --force "$id" > /dev/null' EXIT
+
+          for attempt in $(seq 1 30); do
+            if curl --silent --fail http://localhost:3000/health/live; then
+              echo
+              echo "el contenedor responde"
+              exit 0
+            fi
+            sleep 2
+          done
+
+          echo "el contenedor no respondió en 60 s"
+          docker logs "$id"
+          exit 1
