@@ -38,6 +38,9 @@ jobs:
       # registry-url escribe el .npmrc que autentica contra GitHub Packages
       # usando NODE_AUTH_TOKEN. No hace falta un PAT: el GITHUB_TOKEN del run
       # basta con el permiso packages: write declarado arriba.
+      # Sin matriz a proposito: publicar ocurre una sola vez, y el artefacto
+      # no depende del Node que lo construye porque lo compila `tsc`. Que la
+      # plataforma corra en 24 y en 26 lo prueba CI, no este workflow.
       - name: Setup Node
         uses: actions/setup-node@v7
         with:

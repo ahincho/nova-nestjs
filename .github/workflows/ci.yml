@@ -18,8 +18,21 @@ permissions:
 
 jobs:
   verify:
-    name: verify
+    name: verify (node ${{ matrix.node }})
     runs-on: ubuntu-latest
+
+    # Los paquetes declaran `engines: ">=24.15"`, que permite la linea 26. Sin
+    # esta matriz esa afirmacion no estaba probada: se construia, se probaba y
+    # se publicaba solo en 24. Ninguno de los 1357 rangos `engines` del arbol
+    # excluye 26, pero soporte declarado no es soporte ejercitado.
+    #
+    # La 25 no esta a proposito: es linea impar y sin soporte a largo plazo, y
+    # `vitest` 5 la excluye explicitamente (`^22.12 || ^24 || >=26`).
+    strategy:
+      fail-fast: false
+      matrix:
+        node: [24, 26]
+
     steps:
       - name: Checkout
         uses: actions/checkout@v7
@@ -34,7 +47,7 @@ jobs:
       - name: Setup Node
         uses: actions/setup-node@v7
         with:
-          node-version: 24
+          node-version: ${{ matrix.node }}
           cache: pnpm
 
       - name: Install
