@@ -1,13 +1,24 @@
 # pnpm rechaza por defecto una versión publicada hace muy poco: es la defensa
 # contra un mantenedor comprometido que publica algo malicioso y lo ve
-# instalado al instante. La politica cuida de terceros, y los paquetes de la
+# instalado al instante. La política cuida de terceros, y los paquetes de la
 # plataforma son propios.
 minimumReleaseAgeExclude:
   - '@ahincho/nova-*'
 
+# pnpm 10+ bloquea los scripts de instalación de las dependencias y aborta el
+# install si nadie decidió qué hacer con ellos, así que sin esta decisión un
+# `pnpm install` limpio falla antes de compilar nada.
+#
+# Va en false porque el script de `@scarf/scarf` es telemetría: le reporta al
+# mantenedor que alguien instaló el paquete. Llega arrastrado por
+# `swagger-ui-dist`, dentro de `@nestjs/swagger`, y apagarlo no le quita nada:
+# la documentación se sirve igual.
+allowBuilds:
+  '@scarf/scarf': false
+
 # Un rango de peer que no se cumple deja de ser una advertencia y pasa a romper
-# el install. Es lo que impide terminar en una combinacion que la plataforma no
-# declara soportar: el aviso se lee cuando ya fallo algo, el install fallido se
+# el install. Es lo que impide terminar en una combinación que la plataforma no
+# declara soportar: el aviso se lee cuando ya falló algo, el install fallido se
 # lee al instante.
 strictPeerDependencies: true
 
@@ -17,7 +28,7 @@ strictPeerDependencies: true
 # TS2307.
 #
 # La lista es solo de lo que se importa o lo que resuelve el tsconfig. Las
-# herramientas que unicamente se ejecutan -oxlint, tsgolint, prettier,
+# herramientas que únicamente se ejecutan -oxlint, tsgolint, prettier,
 # dependency-cruiser- no estan, porque el comando `nova` las resuelve desde el
 # toolchain.
 #

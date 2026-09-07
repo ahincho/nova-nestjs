@@ -9,3 +9,4 @@ export * from './config';
 export * from './health';
 export * from './http';
 export * from './observability';
+export * from './openapi';

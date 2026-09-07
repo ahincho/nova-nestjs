@@ -10,7 +10,7 @@ import { defineConfig } from 'vitest/config';
  *
  * El archivo del proyecto va en `.mjs` y no en `.ts` a propósito: es
  * configuración, no código del servicio, y como `.ts` entraria al `include` del
- * tsconfig y habria que declararle tipos que no aportan nada. Es la misma
+ * tsconfig y habría que declararle tipos que no aportan nada. Es la misma
  * decisión que ya toma `eslint.config.mjs`.
  *
  * Las rutas de `include` y de cobertura son relativas al `root` de Vitest, que

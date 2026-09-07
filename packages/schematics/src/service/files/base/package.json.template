@@ -17,6 +17,7 @@
     "test": "nova test",
     "test:cov": "nova test:cov",
     "typecheck": "nova typecheck",
+    "docker": "nova docker",
     "lint": "nova lint",
     "lint:arch": "nova lint:arch",
     "format": "nova format",

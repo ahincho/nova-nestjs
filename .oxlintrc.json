@@ -1,11 +1,28 @@
 {
   "extends": ["./packages/toolchain/oxlint/oxlintrc.json"],
   // La copia del servicio de ejemplo que deja el chequeo de consumidor. Es
-  // codigo de otro repositorio: se lintea alla, no aca.
+  // código de otro repositorio: se lintea allá, no acá.
   "ignorePatterns": [
     "dist/**",
     "coverage/**",
     "node_modules/**",
     ".consumer/**"
+  ],
+  "overrides": [
+    {
+      // El binario de los generadores es CommonJS porque no le queda otra: el
+      // subpath `tools` del DevKit es un directorio sin `exports`, así que
+      // importarlo desde ESM corta con ERR_UNSUPPORTED_DIR_IMPORT. Comprobado,
+      // no supuesto.
+      //
+      // `unbound-method` salta sobre los propios `require` por la misma razón:
+      // sin tipos de módulo, cada uno se lee como una referencia a un método
+      // suelto.
+      "files": ["packages/schematics/bin/*.cjs"],
+      "rules": {
+        "typescript/no-require-imports": "off",
+        "typescript/unbound-method": "off"
+      }
+    }
   ]
 }

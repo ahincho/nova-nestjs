@@ -36,6 +36,7 @@ Cada módulo tiene su carpeta en `src/` y su documento:
 | [`http`](docs/http.md)                   | cliente HTTP saliente con contexto y errores de upstream   |
 | [`observability`](docs/observability.md) | contexto de request, `x-request-id` y opciones de pino     |
 | [`health`](docs/health.md)               | sondas `live`, `ready` y heredada sobre terminus           |
+| [`openapi`](docs/openapi.md)             | documento OpenAPI, su interfaz y el sobre documentado      |
 
 ## Un servicio completo
 

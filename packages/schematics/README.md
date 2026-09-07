@@ -10,25 +10,30 @@ pnpm add -D @ahincho/nova-nestjs-schematics
 
 ## Crear un servicio entero
 
-Dentro de un proyecto que ya tenga la colección instalada:
+```bash
+pnpm dlx @ahincho/nova-nestjs-schematics service academic-acl
+pnpm dlx @ahincho/nova-nestjs-schematics service home-bff --style bff
+```
+
+Sin instalar nada, desde cualquier directorio. Dentro de un proyecto que ya
+tenga la colección también sirve el CLI de Nest:
 
 ```bash
 nest g -c @ahincho/nova-nestjs-schematics service home-bff --style=bff
 ```
 
-Y para el primero, cuando todavía no hay proyecto, desde cualquier directorio de
-trabajo:
+El binario propio existe porque **sin él no había forma cómoda de crear el
+primer servicio**: `nest g -c` necesita un proyecto que todavía no existe, y
+`pnpm dlx` sobre un paquete sin binario corta con `ERR_PNPM_DLX_NO_BIN`. Sumarle
+la CLI del DevKit con `--package` tampoco alcanzaba, porque su motor resuelve la
+colección contra el directorio actual y no contra el que arma `dlx`. Acá la
+colección se resuelve desde el propio binario, así que da igual desde dónde se
+invoque.
 
-```bash
-pnpm add -D @angular-devkit/schematics-cli @ahincho/nova-nestjs-schematics
-pnpm exec schematics @ahincho/nova-nestjs-schematics:service academic-acl
-```
-
-**`pnpm dlx` no sirve acá**, y conviene saberlo antes de intentarlo. El paquete
-no publica ningún binario, así que corta con `ERR_PNPM_DLX_NO_BIN`; y sumarle la
-CLI del DevKit con `--package` tampoco alcanza, porque el motor resuelve la
-colección contra el directorio actual y no contra el que arma `dlx`. Cerrar ese
-hueco es darle al paquete un binario propio, que hoy no tiene.
+`--dry-run` muestra lo que haría sin escribir, y **nunca se enciende solo**. Es
+la diferencia con la CLI del DevKit, que lo deriva del modo debug y ese del
+aspecto de la ruta de la colección: el mismo comando escribe en una máquina y no
+escribe en otra, sin decirlo y saliendo con 0.
 
 Deja un servicio que arranca y pasa su propia puerta de calidad:
 

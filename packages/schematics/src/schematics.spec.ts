@@ -263,6 +263,25 @@ describe('el generador de servicio', () => {
     );
   });
 
+  // El Dockerfile lo comparten todos los servicios y vive en el toolchain, pero
+  // el .dockerignore no puede: Docker lo lee desde la raíz del contexto. Sin él
+  // se copian los binarios nativos de Windows dentro de una imagen Linux y el
+  // fallo aparece recién al arrancar el contenedor.
+  it('excluye node_modules del contexto de build', () => {
+    expect(tree.readContent('/academic-acl/.dockerignore')).toContain(
+      'node_modules/',
+    );
+  });
+
+  it('publica su documentación OpenAPI', () => {
+    const main = tree.readContent('/academic-acl/src/main.ts');
+
+    expect(main).toContain('openapi:');
+    expect(main).toContain("process.env['OPENAPI_ENABLED'] !== 'false'");
+    // Nace sin `auth`, así que declarar que todo pide token sería mentira.
+    expect(main).toContain('bearerAuth: false');
+  });
+
   describe('las reglas de arquitectura', () => {
     it('son genericas, para que no se queden viejas al agregar un contexto', () => {
       const rules = tree.readContent('/academic-acl/.dependency-cruiser.js');

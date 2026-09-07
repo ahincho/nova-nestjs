@@ -1,21 +1,27 @@
 packages:
   - 'packages/*'
 
-# pnpm 10+ bloquea los scripts de instalacion de las dependencias y aborta el
-# install si nadie decidio que hacer con ellos. Decidirlo aca es lo que evita
+# pnpm 10+ bloquea los scripts de instalación de las dependencias y aborta el
+# install si nadie decidió qué hacer con ellos. Decidirlo acá es lo que evita
 # que un `pnpm install` limpio falle en CI antes de compilar nada.
 #
-# Va en false porque no hace falta: unrs-resolver es el binario nativo opcional
-# del resolutor de imports de ESLint, que cae a su implementacion en JavaScript
-# cuando no esta compilado. @parcel/watcher estaba aca por el modo --watch de
-# Jest y salio del arbol junto con el.
+# `@scarf/scarf` va en false porque su script de instalación es telemetría: le
+# reporta al mantenedor que alguien instaló el paquete. Entró al árbol con
+# `@nestjs/swagger`, que lo arrastra por `swagger-ui-dist`. Apagarlo no le quita
+# nada al paquete: la documentación se sirve igual.
+#
+# `unrs-resolver` va en false porque no hace falta: es el binario nativo
+# opcional del resolutor de imports de ESLint, que cae a su implementación en
+# JavaScript cuando no está compilado. @parcel/watcher estaba acá por el modo
+# --watch de Jest y salió del árbol junto con él.
 allowBuilds:
+  '@scarf/scarf': false
   unrs-resolver: false
 
-# Lo unico que queda compartido por catalogo. Las versiones de las
+# Lo único que queda compartido por catálogo. Las versiones de las
 # herramientas se fueron a las `dependencies` del toolchain, que es donde
 # tienen que estar: el toolchain las instala y el comando `nova` las ejecuta,
-# asi que un paquete de aca ya no las nombra.
+# así que un paquete de acá ya no las nombra.
 #
 # `@types/node` sigue declarado en cada paquete porque el `types: ["node"]` del
 # tsconfig lo resuelve desde el paquete, y pnpm no expone un transitivo.
@@ -26,5 +32,5 @@ catalog:
 # Un rango de peer que no se cumple deja de ser una advertencia y pasa a
 # romper el install. Es el mecanismo que impide que un consumidor termine en
 # un NestJS que la plataforma no declara soportar: el aviso se lee cuando ya
-# fallo algo, el install fallido se lee al instante.
+# falló algo, el install fallido se lee al instante.
 strictPeerDependencies: true

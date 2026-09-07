@@ -41,6 +41,7 @@ rangos escritos por servicio que cada equipo podía mover por su cuenta.
 | `nova format`       | `prettier --write .`                                                    |
 | `nova format:check` | `prettier --check .`                                                    |
 | `nova typecheck`    | `tsc -p tsconfig.json --noEmit`                                         |
+| `nova docker`       | `docker build` con el Dockerfile de la plataforma                       |
 | `nova verify`       | typecheck, lint, test:cov y format:check, en ese orden                  |
 
 Lo que sobre se le pasa tal cual a la herramienta: `nova test --watch`,
@@ -49,6 +50,48 @@ Lo que sobre se le pasa tal cual a la herramienta: `nova test --watch`,
 `nova start` es sólo para desarrollo. **El arranque en producción se queda en
 `node dist/main`**, escrito a mano, porque es el contrato con el Dockerfile y no
 una elección de herramienta que la plataforma deba poder cambiar sola.
+
+`nova verify` **no incluye `docker`**: construir una imagen no dice nada sobre si
+el código está bien, y tarda como si lo dijera.
+
+### La imagen es la misma para todos los servicios
+
+El Dockerfile vive en este paquete, en `docker/Dockerfile`, y `nova docker` lo
+usa con `-f`. **No se copia a cada repositorio**, por la misma razón por la que
+los scripts dejaron de nombrar herramientas: una copia envejece, y una imagen
+vieja no falla, sigue construyendo.
+
+```bash
+nova docker                                        # etiqueta <nombre>:<version>
+nova docker --tag academic-acl:dev
+nova docker --build-arg NODE_VERSION=26
+```
+
+La etiqueta sale del `package.json` del servicio, sin el scope. Lo que sobre se
+le pasa tal cual a `docker build`.
+
+**El token del registry viaja como secreto de BuildKit**, montado y no copiado:
+un `ARG` queda en el historial de la imagen y un `COPY` queda en una capa. Si
+existe un `~/.npmrc`, `nova docker` lo monta solo; en CI lo pasa el llamador con
+`--secret`. El `.npmrc` del repositorio sí se copia, porque no lleva credencial:
+sólo apunta el scope al registry.
+
+Lo que cambia por servicio va como `ARG` -`NODE_VERSION`, `PNPM_VERSION`-, no
+como una edición local. Y para un pipeline que exige el archivo en la raíz del
+repositorio y no acepta un `-f`:
+
+```bash
+nova docker --eject
+```
+
+Escribe el Dockerfile con un encabezado diciendo de dónde salió, **debajo de la
+directiva `# syntax=`**, que sólo cuenta si es la primera línea: empujarla hacia
+abajo deja el build en el parser viejo, donde `--mount=type=secret` no existe y
+el token tendría que entrar por un `ARG`.
+
+El `.dockerignore` sí lo genera el schematic en cada servicio, porque Docker lo
+lee desde la raíz del contexto. Es la misma división que con `.gitignore`: la
+lógica se comparte, lo que describe a este repositorio se queda en él.
 
 **El servicio deja de nombrar la herramienta**, que era lo que convertía cada
 cambio de la plataforma en un cambio en cada repositorio. En un solo día hubo

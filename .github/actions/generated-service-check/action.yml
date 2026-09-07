@@ -80,3 +80,39 @@ runs:
       shell: bash
       working-directory: ${{ runner.temp }}/generated/${{ inputs.name }}
       run: pnpm verify
+
+    # `consumer:pack` borra el .npmrc a propósito -para probar que nada de
+    # @ahincho puede llegar del registry- y el Dockerfile lo copia. Acá se
+    # repone vacío: las dependencias ya entraron por tarball, así que este build
+    # no necesita ninguna credencial, que es lo que lo hace barato de correr.
+    - name: Build the image
+      shell: bash
+      working-directory: ${{ runner.temp }}/generated/${{ inputs.name }}
+      run: |
+        set -euo pipefail
+        : > .npmrc
+        pnpm docker --tag "nova-${{ inputs.style }}:ci"
+
+    # Que construya no prueba que arranque. Esto sí: levanta el contenedor y le
+    # pide la sonda que mira el balanceador.
+    - name: Run the image
+      shell: bash
+      env:
+        IMAGE: nova-${{ inputs.style }}:ci
+      run: |
+        set -euo pipefail
+        id=$(docker run --rm --detach --publish 3000:3000 "$IMAGE")
+        trap 'docker rm --force "$id" > /dev/null' EXIT
+
+        for attempt in $(seq 1 30); do
+          if curl --silent --fail http://localhost:3000/health/live; then
+            echo
+            echo "el contenedor responde"
+            exit 0
+          fi
+          sleep 2
+        done
+
+        echo "el contenedor no respondió en 60 s"
+        docker logs "$id"
+        exit 1

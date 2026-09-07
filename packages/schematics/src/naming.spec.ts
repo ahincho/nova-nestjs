@@ -3,7 +3,7 @@ import { normalizePath, templateVariables, toEnvPrefix } from './naming';
 describe('toEnvPrefix', () => {
   // Tiene que dar exactamente lo mismo que la funcion homonima de
   // @ahincho/nova-nestjs-config: lo que se genera aca es el codigo que despues
-  // lee esas variables, y una diferencia se descubre en produccion.
+  // lee esas variables, y una diferencia se descubre en producción.
   it.each([
     ['academic-orchestrator', 'ACADEMIC_ORCHESTRATOR'],
     ['academicOrchestrator', 'ACADEMIC_ORCHESTRATOR'],

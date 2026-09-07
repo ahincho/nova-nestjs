@@ -67,7 +67,7 @@ describe('NovaConfigModule.forRoot', () => {
 
   // Standard Schema desde @nestjs/config 12, no Joi. El doble es el minimo que
   // cumple el contrato: la marca `~standard` con su version, un vendor y la
-  // funcion de validacion.
+  // función de validación.
   it('forwards a validation schema untouched', async () => {
     const schema = {
       '~standard': {

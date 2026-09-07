@@ -1,7 +1,17 @@
 import { ValidationPipe, type INestApplication } from '@nestjs/common';
 import { NestFactory } from '@nestjs/core';
 import { bootstrap } from './bootstrap';
+import { setupOpenApi } from './openapi';
 import type { Mock } from 'vitest';
+
+// El montaje se sustituye porque necesita una aplicación de verdad para
+// recorrer los controladores, y acá el doble es un objeto plano. Lo que se
+// prueba en este archivo es *cuándo* se llama; el qué monta lo prueban los
+// tests de `openapi/`.
+vi.mock('./openapi', async (importOriginal) => ({
+  ...(await importOriginal<typeof import('./openapi')>()),
+  setupOpenApi: vi.fn(),
+}));
 
 type AppDouble = {
   useLogger: Mock;
@@ -168,6 +178,38 @@ describe('bootstrap', () => {
   // The half of the graceful shutdown the hooks do not cover: while the app is
   // closing, a new request has to be turned away with a 503 so the load
   // balancer takes the task out of rotation, and the in-flight ones finish.
+  describe('the OpenAPI document', () => {
+    beforeEach(() => {
+      vi.mocked(setupOpenApi).mockClear();
+    });
+
+    // Igual que CORS y que auth: exponer la documentación es una decisión de
+    // quien despliega, no un default de la plataforma.
+    it('is not published unless asked', async () => {
+      await bootstrap(AppModule);
+
+      expect(setupOpenApi).not.toHaveBeenCalled();
+    });
+
+    it('is published when the options are given', async () => {
+      await bootstrap(AppModule, { openapi: { title: 'Academic ACL' } });
+
+      expect(setupOpenApi).toHaveBeenCalledWith(app, {
+        title: 'Academic ACL',
+      });
+    });
+
+    // `enabled` existe para decidirlo por ambiente sin sacar el bloque, que es
+    // lo que deja el título y los tags escritos donde se leen.
+    it('can be switched off without removing the options', async () => {
+      await bootstrap(AppModule, {
+        openapi: { title: 'Academic ACL', enabled: false },
+      });
+
+      expect(setupOpenApi).not.toHaveBeenCalled();
+    });
+  });
+
   it('answers 503 to new requests while closing', async () => {
     await bootstrap(AppModule);
 

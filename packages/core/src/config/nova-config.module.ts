@@ -31,7 +31,7 @@ export type NovaConfigModuleOptions = {
    * valibot-, no uno de Joi; la plataforma no depende de ninguno, asi que un
    * servicio elige el suyo. Se puede omitir y validar dentro de cada namespace,
    * o pasar `validate` a `ConfigModule` directamente, que es una funcion y no
-   * necesita libreria.
+   * necesita librería.
    */
   readonly validationSchema?: ValidationSchema;
 

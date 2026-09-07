@@ -9,6 +9,7 @@ import { NestFactory } from '@nestjs/core';
 import { validationExceptionFactory } from './api';
 import { DEFAULT_HEALTH_PATH } from './health';
 import { buildCorsOptions, numberEnv, type CorsPolicyOptions } from './config';
+import { setupOpenApi, type OpenApiOptions } from './openapi';
 
 export type BootstrapOptions = {
   /** Defaults to the `PORT` variable, and to 3000 when it is unset. */
@@ -54,6 +55,13 @@ export type BootstrapOptions = {
    * antes.
    */
   readonly routeConflicts?: RouteConflictPolicy;
+
+  /**
+   * Publica el documento OpenAPI y su interfaz. Omitir la deja apagada: un
+   * servicio interno puede no querer exponerla, y esa decisión es de quien lo
+   * despliega, no de la plataforma.
+   */
+  readonly openapi?: OpenApiOptions;
 };
 
 /**
@@ -146,6 +154,12 @@ export async function bootstrap(
     // After create(), not inside its options: the allowed origins usually come
     // from configuration, which does not exist until the app does.
     app.enableCors(buildCorsOptions(options.cors));
+  }
+
+  // Después del prefijo global, porque `useGlobalPrefix` lo necesita puesto, y
+  // antes de escuchar, para que el documento exista desde la primera petición.
+  if (options.openapi && (options.openapi.enabled ?? true)) {
+    setupOpenApi(app, options.openapi);
   }
 
   const port = options.port ?? numberEnv('PORT', 3000);

@@ -11,7 +11,7 @@ import { normalizePath, templateVariables } from '../naming';
 import type { UpstreamOptions } from './schema';
 
 /**
- * Genera la declaracion completa de un upstream.
+ * Genera la declaración completa de un upstream.
  *
  * Es el generador que mas paga: un upstream son cuatro archivos que solo
  * cambian de nombre entre uno y otro, y copiarlos es como se llega a tres

@@ -69,7 +69,7 @@ const toLineFeed = forEach((entry: FileEntry) => ({
  * ni `src/core/`. El filtro global, el interceptor del sobre, las sondas de
  * salud, el cliente HTTP, la configuración, el contexto de petición y el logger
  * llegan dentro de `@ahincho/nova-nestjs`. En los templates de los que sale
- * está forma, esas dos carpetas eran entre el 40 % y el 50 % de `src`.
+ * esta forma, esas dos carpetas eran entre el 40 % y el 50 % de `src`.
  *
  * Se arma en dos pasadas sobre el mismo destino: la base, que es igual para los
  * dos sabores, y encima lo que distingue a uno del otro -hoy, sus reglas de

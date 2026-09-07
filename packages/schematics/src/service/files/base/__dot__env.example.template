@@ -1,9 +1,13 @@
 # El puerto que escucha el servicio.
 PORT=3000
 
-# Origenes permitidos, separados por coma. Una lista vacía no permite ninguno:
-# un contenedor que nadie configuro falla cerrado.
+# Orígenes permitidos, separados por coma. Una lista vacía no permite ninguno:
+# un contenedor que nadie configuró falla cerrado.
 CORS_ALLOWED_ORIGINS=http://localhost:5173
+
+# La documentación OpenAPI, en /docs. Sólo `false` la apaga: cualquier otro
+# valor, y la ausencia de la variable, la dejan encendida.
+OPENAPI_ENABLED=true
 
 # Un upstream declarado con `defineUpstream('academic')` lee ACADEMIC_URL y
 # ACADEMIC_TIMEOUT_MS. Sin la URL el servicio no arranca, y el error nombra la

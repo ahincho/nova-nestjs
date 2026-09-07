@@ -17,6 +17,7 @@
   "types": "./dist/index.d.ts",
   "schematics": "./dist/collection.json",
   "files": [
+    "bin",
     "dist",
     "README.md"
   ],
@@ -39,5 +40,8 @@
     "@types/node": "catalog:",
     "rimraf": "catalog:",
     "vitest": "^5.0.0"
+  },
+  "bin": {
+    "nova-nestjs-schematics": "./bin/nova-nestjs-schematics.cjs"
   }
 }
