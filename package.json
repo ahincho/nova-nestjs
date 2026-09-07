@@ -19,6 +19,7 @@
     "test": "pnpm -r run test",
     "test:cov": "pnpm -r run test:cov",
     "verify": "pnpm peers check && pnpm build && pnpm typecheck && pnpm lint && pnpm test:cov && pnpm format:check",
+    "consumer:pack": "node scripts/rewire-consumer.mjs",
     "clean": "pnpm -r run clean",
     "format": "nova format",
     "format:check": "nova format:check",

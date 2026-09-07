@@ -9,6 +9,14 @@ on:
         description: 'Recorrer todo sin publicar'
         type: boolean
         default: true
+      consumer-ref:
+        description: >-
+          Rama del servicio de ejemplo contra la que probar. Vacio usa su rama
+          por defecto. Solo se llena cuando este release trae un cambio
+          incompatible y el ejemplo ya tiene la rama que lo absorbe.
+        type: string
+        required: false
+        default: ''
 
 permissions:
   contents: write
@@ -44,6 +52,14 @@ jobs:
       # Nada se publica sin pasar la misma puerta que un pull request.
       - name: Verify
         run: pnpm verify
+
+      # Ni sin instalarse en un servicio de verdad. La 0.8.0 se publico rota
+      # con Verify en verde: el choque de peers entre `@nestjs/cli` y los
+      # schematics solo existe en el arbol aplanado de un consumidor.
+      - name: Consumer check
+        uses: ./.github/actions/consumer-check
+        with:
+          consumer-ref: ${{ inputs.consumer-ref }}
 
       - name: Dry run
         if: ${{ inputs.dry-run }}

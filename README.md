@@ -129,6 +129,37 @@ El stack Java usa `release-please` porque cada repo se versiona solo. Acá el bu
 tiene que propagarse entre paquetes del mismo commit, que es justo lo que Changesets
 resuelve y `release-please` no.
 
+### Nada se publica sin instalarse en un servicio
+
+**El monorepo no puede ver un conflicto de peers.** Cada paquete del workspace
+resuelve su propio árbol, así que dos dependencias incompatibles entre paquetes
+distintos conviven sin problema; un servicio las aplana en uno solo y ahí el
+install corta.
+
+Así salió publicada la 0.8.0, con `pnpm verify` en verde: `@nestjs/cli` 12 trae
+`chokidar` 5 y los schematics pedían Angular DevKit 20, cuyo peer es `chokidar` ^4.
+El defecto lo encontró instalar el paquete ya publicado en el servicio de ejemplo.
+
+Por eso CI y el release corren `.github/actions/consumer-check`, que empaqueta los
+tres paquetes, los instala en una copia del servicio de ejemplo y corre allí el
+`install`, el chequeo de peers, el build y la suite:
+
+```bash
+# lo mismo, a mano
+pnpm build
+pnpm consumer:pack ../una-copia-del-ejemplo
+```
+
+El script borra el lockfile y el `.npmrc` de esa copia. Lo segundo no es comodidad
+de credenciales: sin ese archivo, cualquier `@ahincho/*` que la reescritura no haya
+cubierto se resuelve contra npmjs y falla con un 404, así que además comprueba que
+los tarballs reemplazan al registry por completo.
+
+**Cuando el release trae un cambio incompatible**, el chequeo se traba: no se puede
+publicar hasta que el ejemplo compile, y el ejemplo no compila hasta que se publique.
+La salida es el input `consumer-ref` del workflow, que apunta el chequeo a la rama del
+ejemplo que ya absorbió el cambio.
+
 ## Consumirlos desde otro proyecto
 
 [`nova-nestjs-example`](https://github.com/ahincho/nova-nestjs-example) es el

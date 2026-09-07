@@ -1,0 +1,62 @@
+name: Consumer check
+description: >-
+  Empaqueta los tres paquetes e instala esos tarballs en el servicio de ejemplo,
+  que es la unica forma de ver el arbol de dependencias aplanado que ve un
+  consumidor.
+
+inputs:
+  consumer-ref:
+    description: >-
+      Rama o tag del servicio de ejemplo. Vacio usa su rama por defecto. Se
+      apunta a una rama cuando la plataforma trae un cambio incompatible y el
+      ejemplo todavia no esta actualizado: sin eso, el chequeo se traba - no se
+      puede publicar hasta que el ejemplo compile, y el ejemplo no compila hasta
+      que se publique.
+    required: false
+    default: ''
+
+runs:
+  using: composite
+  steps:
+    # El monorepo no puede ver un conflicto de peers: cada paquete de un
+    # workspace resuelve su propio arbol, asi que dos dependencias incompatibles
+    # entre paquetes distintos conviven sin problema. Un servicio las aplana en
+    # uno solo y ahi el install corta. Asi salio publicada la 0.8.0 rota, con
+    # `pnpm peers check` en verde sobre el monorepo.
+    - name: Check out the example service
+      uses: actions/checkout@v7
+      with:
+        repository: ahincho/nova-nestjs-example
+        ref: ${{ inputs.consumer-ref }}
+        path: .consumer
+
+    # Requiere que el dist ya este construido: `pnpm pack` no compila, solo
+    # empaqueta lo que declara `files`.
+    - name: Pack the platform into the consumer
+      shell: bash
+      run: pnpm consumer:pack .consumer
+
+    # Sin --frozen-lockfile a proposito: el script borra el lockfile del
+    # ejemplo, porque fija versiones del registry. Resolver de cero es
+    # justamente lo que ejercita los peers.
+    - name: Install
+      shell: bash
+      working-directory: .consumer
+      run: pnpm install --no-frozen-lockfile
+
+    - name: Peers
+      shell: bash
+      working-directory: .consumer
+      run: pnpm peers check
+
+    # Compilar y correr la suite del ejemplo prueba ademas el comando `nova`,
+    # que llega dentro del tarball del toolchain.
+    - name: Build
+      shell: bash
+      working-directory: .consumer
+      run: pnpm build
+
+    - name: Test
+      shell: bash
+      working-directory: .consumer
+      run: pnpm test

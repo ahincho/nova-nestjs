@@ -44,3 +44,9 @@ jobs:
       # el dist de su hermano, asi que el typecheck no puede ir primero.
       - name: Verify
         run: pnpm verify
+
+      # Verify solo mira el monorepo, donde cada paquete resuelve su propio
+      # arbol. Esto instala los tarballs en un servicio de verdad, que es el
+      # unico lugar donde se ven los peers aplanados.
+      - name: Consumer check
+        uses: ./.github/actions/consumer-check

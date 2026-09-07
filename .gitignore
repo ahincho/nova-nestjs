@@ -5,3 +5,7 @@ coverage/
 .DS_Store
 .env
 .env.local
+
+# Copia efimera del servicio de ejemplo que deja el chequeo de consumidor.
+.consumer/
+.tarballs/

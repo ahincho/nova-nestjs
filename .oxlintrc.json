@@ -1,3 +1,11 @@
 {
-  "extends": ["./packages/toolchain/oxlint/oxlintrc.json"]
+  "extends": ["./packages/toolchain/oxlint/oxlintrc.json"],
+  // La copia del servicio de ejemplo que deja el chequeo de consumidor. Es
+  // codigo de otro repositorio: se lintea alla, no aca.
+  "ignorePatterns": [
+    "dist/**",
+    "coverage/**",
+    "node_modules/**",
+    ".consumer/**"
+  ]
 }
