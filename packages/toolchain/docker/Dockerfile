@@ -52,6 +52,14 @@ WORKDIR /app
 # una capa. Montado, no toca ninguna de las dos. El `.npmrc` del repositorio sí
 # se copia, porque no lleva credencial: sólo apunta el scope al registry.
 FROM base AS build
+
+# `pnpm prune` borra node_modules, y sin TTY corta pidiendo confirmación
+# -ERR_PNPM_ABORTED_REMOVE_MODULES_DIR_NO_TTY-. Un build de imagen es no
+# interactivo por definición, así que decirlo es lo correcto; la alternativa,
+# `confirmModulesPurge: false`, cambiaría también el comportamiento de quien
+# corre pnpm a mano en su máquina.
+ENV CI=true
+
 COPY . .
 RUN --mount=type=secret,id=npmrc,target=/root/.npmrc \
     --mount=type=cache,target=/pnpm/store,sharing=locked \
