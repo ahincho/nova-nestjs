@@ -32,6 +32,21 @@ jobs:
         with:
           fetch-depth: 0
 
+      # Sin esto changesets no puede etiquetar. Crea los tags con
+      # `git tag <nombre> -m <nombre>`, que es un tag ANOTADO -lo hace a
+      # proposito, su propio codigo comenta que de otro modo `--follow-tags` no
+      # los empujaria-, y un tag anotado exige identidad de committer: sin ella
+      # git sale con 128 y «Committer identity unknown».
+      #
+      # Nadie se enteraba porque changesets imprime «New tag: X» ANTES de
+      # llamar a git y descarta el resultado. Por eso veintiuna versiones se
+      # publicaron con el log diciendo que las habia etiquetado y sin un solo
+      # tag en el repositorio.
+      - name: Git identity
+        run: |
+          git config user.name 'github-actions[bot]'
+          git config user.email '41898282+github-actions[bot]@users.noreply.github.com'
+
       - name: Setup pnpm
         uses: pnpm/action-setup@v6
 
@@ -94,10 +109,10 @@ jobs:
       #
       # La señal es la línea que changesets imprime cuando publicó algo, y no
       # una deducción. El primer intento comparaba los tags de HEAD antes y
-      # después de publicar, y falló en falso en la 0.14.1: las tres se
-      # publicaron, changesets creó los tres tags, y la comparación no los vio.
-      # Una comprobación que corta un release bueno es peor que la que se
-      # quería evitar, así que ahora se lee lo que la herramienta declara.
+      # después de publicar, y cortó el release de la 0.14.1 aunque las tres se
+      # habían publicado: no había tags porque el job no tenía identidad de git
+      # -eso se arregla más arriba-, no porque no se hubiera publicado. Los
+      # tags se comprueban ahora en su propio paso, que es donde significan algo.
       - name: Publish
         if: ${{ !inputs.dry-run }}
         run: |
@@ -110,6 +125,17 @@ jobs:
         env:
           NODE_AUTH_TOKEN: ${{ secrets.GITHUB_TOKEN }}
 
+      # Comprobar despues de empujar, y no confiar en el log de changesets, es
+      # exactamente lo que faltaba: el paso decia «Everything up-to-date» y
+      # nadie lo leia como un fallo.
       - name: Push the release tags
         if: ${{ !inputs.dry-run }}
-        run: git push --tags
+        run: |
+          set -euo pipefail
+          git push --tags
+          if [ -z "$(git tag --points-at HEAD)" ]; then
+            echo "::error::se publico pero no quedo ningun tag en este commit. Revisar la identidad de git del job."
+            exit 1
+          fi
+          echo "etiquetado:"
+          git tag --points-at HEAD

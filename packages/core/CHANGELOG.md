@@ -8,10 +8,16 @@
 
   Dos defectos del workflow de release que salieron al publicar la 0.14.0:
 
-  - **`git push --follow-tags` sólo empuja tags anotados**, y los que crea changesets son
-    lightweight. El paso decía «Everything up-to-date» y no subía ninguno, así que se publicaron
-    veintiún versiones sin que quedara en git una sola marca de qué commit produjo cada una. Se
-    recuperaron los 55 tags a partir del SHA de cada corrida de release.
+  - **Ningún release había etiquetado nada.** Veintiún versiones publicadas sin que quedara en
+    git una sola marca de qué commit produjo cada una. Se recuperaron los 55 tags a partir del
+    SHA de cada corrida de release.
+
+    Corrección posterior a la 0.14.1: esta nota culpaba a `git push --follow-tags` por empujar
+    sólo tags anotados mientras changesets creaba lightweight. Es al revés. changesets los crea
+    **anotados a propósito** -su código comenta que si no, `--follow-tags` no los empujaría-, y
+    un tag anotado exige identidad de committer. El job de release no configuraba ninguna, así
+    que `git tag -m` salía con 128 y changesets no se enteraba: imprime «New tag: X» antes de
+    llamar a git y descarta el resultado.
   - **Una corrida podía publicar nada y quedar verde.** `changeset publish` publica lo que dicen
     los manifiestos: sin el commit de `version-packages` en la rama, termina bien sin subir nada.
     Ahora el paso lee la línea que changesets imprime cuando publicó algo, y corta si no

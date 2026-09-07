@@ -58,6 +58,8 @@ const DEFAULT_THRESHOLDS = {
  * @param {object|false} [options.thresholds] umbral global, o `false` para no exigir ninguno
  * @param {string[]} [options.setupFiles] módulos que se cargan antes de los tests
  * @param {number} [options.timeoutMs] limite por test y por hook
+ * @param {Record<string,string>} [options.env] variables de entorno de la corrida,
+ *   mezcladas sobre las del preset
  */
 export function novaVitestConfig(options = {}) {
   const {
@@ -67,6 +69,7 @@ export function novaVitestConfig(options = {}) {
     thresholds = DEFAULT_THRESHOLDS,
     setupFiles = ['reflect-metadata'],
     timeoutMs = DEFAULT_TIMEOUT_MS,
+    env = {},
   } = options;
 
   return defineConfig({
@@ -79,6 +82,16 @@ export function novaVitestConfig(options = {}) {
       // proyecto de NestJS; un paquete sin decoradores pasa una lista
       // vacía, porque `reflect-metadata` no sería ni una dependencia suya.
       setupFiles,
+      // Vitest fija `NODE_ENV=test`, y en esta plataforma NODE_ENV es el
+      // ambiente de despliegue: `appEnvironment()` sólo acepta development, qa
+      // y production, así que un test que importe código que la llame muere
+      // con un EnvironmentError que no tiene nada que ver con lo que se está
+      // probando. Correr una suite no es desplegar en un ambiente llamado
+      // «test», y de los tres el que corresponde es el menos restrictivo.
+      //
+      // Un proyecto que necesite el `test` de la convención de npm lo
+      // reestablece en su propio `env`, que se mezcla después de éste.
+      env: { NODE_ENV: 'development', ...env },
       testTimeout: timeoutMs,
       // Un `beforeAll` que arma un módulo de prueba paga el mismo costo.
       hookTimeout: timeoutMs,

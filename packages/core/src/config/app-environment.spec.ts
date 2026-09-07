@@ -53,4 +53,13 @@ describe('appEnvironment', () => {
     expect(() => appEnvironment()).toThrow(EnvironmentError);
     expect(() => appEnvironment()).toThrow(/development, qa, production/u);
   });
+
+  // Vitest fija NODE_ENV=test, que no es uno de los tres, así que sin el
+  // preset del toolchain esta llamada -y cualquier test que importe código que
+  // la haga- moriría con un EnvironmentError ajeno a lo que se prueba. Este
+  // test falla si alguien saca ese `env` del preset.
+  it('does not blow up under the test runner', () => {
+    expect(process.env['NODE_ENV']).not.toBe('test');
+    expect(() => appEnvironment()).not.toThrow();
+  });
 });
