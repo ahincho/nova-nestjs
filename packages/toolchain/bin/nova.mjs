@@ -1,7 +1,13 @@
 #!/usr/bin/env node
 import { spawn } from 'node:child_process';
-import { existsSync, readFileSync, writeFileSync } from 'node:fs';
-import { homedir } from 'node:os';
+import {
+  existsSync,
+  mkdtempSync,
+  readFileSync,
+  rmSync,
+  writeFileSync,
+} from 'node:fs';
+import { homedir, tmpdir } from 'node:os';
 import { delimiter, dirname, join } from 'node:path';
 import { fileURLToPath } from 'node:url';
 
@@ -257,28 +263,185 @@ function eject() {
  * @param {string[]} args
  * @returns {Promise<number>}
  */
+/** Las claves con las que un .npmrc guarda una credencial por registry. */
+const CREDENTIAL_KEYS = [
+  '_authToken',
+  '_auth',
+  'username',
+  '_password',
+  'email',
+];
+
+/**
+ * Reemplaza `${VAR}` por su valor del entorno, que es lo que hace npm al leer
+ * un .npmrc.
+ *
+ * Hace falta porque el archivo que escribe `actions/setup-node` guarda
+ * `${NODE_AUTH_TOKEN}` como marcador, no el token. Montado tal cual en el
+ * build, al `pnpm install` le llega el marcador y corta con un 401 que no dice
+ * nada de la causa.
+ *
+ * Devuelve undefined si alguna variable no está definida: una credencial a
+ * medias es peor que ninguna.
+ *
+ * @param {string} value
+ * @returns {string | undefined}
+ */
+function expandEnv(value) {
+  let out = '';
+  let rest = value;
+
+  for (let open = rest.indexOf('${'); open !== -1; open = rest.indexOf('${')) {
+    const close = rest.indexOf('}', open);
+    if (close === -1) break;
+
+    const resolved = process.env[rest.slice(open + 2, close)];
+    if (resolved === undefined) return undefined;
+
+    out += rest.slice(0, open) + resolved;
+    rest = rest.slice(close + 1);
+  }
+
+  return out + rest;
+}
+
+/**
+ * Los hosts de registry que declara el .npmrc del proyecto.
+ *
+ * Es el proyecto quien dice contra qué registries resuelve, así que es la
+ * lista correcta de credenciales a llevar al build. Todo lo demás que haya en
+ * el .npmrc de la máquina no tiene nada que hacer ahí.
+ *
+ * @returns {Set<string>}
+ */
+function projectRegistries() {
+  /** @type {Set<string>} */
+  const hosts = new Set();
+  const npmrc = join(process.cwd(), '.npmrc');
+
+  if (!existsSync(npmrc)) return hosts;
+
+  for (const line of readFileSync(npmrc, 'utf8').split(NEWLINE)) {
+    const trimmed = line.trim();
+    if (trimmed.startsWith('#') || trimmed.startsWith(';')) continue;
+
+    const equals = trimmed.indexOf('=');
+    if (equals === -1) continue;
+
+    const key = trimmed.slice(0, equals).trim();
+    if (key !== 'registry' && !key.endsWith(':registry')) continue;
+
+    const url = expandEnv(trimmed.slice(equals + 1).trim());
+    if (url === undefined) continue;
+
+    try {
+      hosts.add(new URL(url).host);
+    } catch {
+      // Una URL que no parsea no es un registry: se ignora en silencio, igual
+      // que haría npm.
+    }
+  }
+
+  return hosts;
+}
+
+/**
+ * Arma un .npmrc con las credenciales de esos registries **y nada más**.
+ *
+ * Montar el `~/.npmrc` entero mete al build todas las credenciales de la
+ * máquina: las de otro cliente, las de un registry local, las que no tienen
+ * nada que ver con este servicio. Va montado y no copiado, así que no queda en
+ * ninguna capa de la imagen, pero cualquier `RUN` de esa etapa puede leerlo, y
+ * un `RUN` ejecuta código de terceros.
+ *
+ * @param {Set<string>} hosts
+ * @returns {string[]}
+ */
+function credentialsFor(hosts) {
+  // Donde npm de verdad guarda la configuración del usuario. En CI no es el
+  // home: `actions/setup-node` la escribe en RUNNER_TEMP y lo anuncia por esta
+  // variable, que es la que npm y pnpm leen. Mirar sólo el home dejaba a `nova
+  // docker` sin credencial justo donde más hace falta.
+  const npmrc =
+    process.env['NPM_CONFIG_USERCONFIG'] ?? join(homedir(), '.npmrc');
+  if (!existsSync(npmrc)) return [];
+
+  /** @type {string[]} */
+  const kept = [];
+
+  for (const line of readFileSync(npmrc, 'utf8').split(NEWLINE)) {
+    const trimmed = line.trim();
+    if (!trimmed.startsWith('//')) continue;
+
+    const equals = trimmed.indexOf('=');
+    if (equals === -1) continue;
+
+    const key = trimmed.slice(0, equals);
+    const host = key.slice(2, key.indexOf('/', 2));
+    if (!hosts.has(host)) continue;
+    if (!CREDENTIAL_KEYS.some((name) => key.endsWith(`:${name}`))) continue;
+
+    const value = expandEnv(trimmed.slice(equals + 1));
+    if (value === undefined) continue;
+
+    kept.push(`${key}=${value}`);
+  }
+
+  return kept;
+}
+
+/**
+ * Construye la imagen del servicio con el Dockerfile de la plataforma.
+ *
+ * El Dockerfile no se copia a cada repositorio: se usa con `-f` desde el
+ * toolchain. Es la misma razón por la que los scripts no nombran herramientas.
+ * Una copia por servicio envejece, y una imagen vieja no avisa: sigue
+ * construyendo.
+ *
+ * @param {string[]} args
+ * @returns {Promise<number>}
+ */
 async function docker(args) {
   if (args.includes('--eject')) {
     return eject();
   }
 
-  const npmrc = join(homedir(), '.npmrc');
   const build = ['build', '--file', DOCKERFILE];
 
   if (!args.some((arg) => arg === '-t' || arg === '--tag')) {
     build.push('--tag', imageTag());
   }
 
-  // El token del registry viaja como secreto de BuildKit, montado y no copiado.
-  // Se agrega solo si existe: en CI el llamador pasa el suyo, y ahí este
-  // archivo no está.
-  if (!args.some((arg) => arg.startsWith('--secret')) && existsSync(npmrc)) {
-    build.push('--secret', `id=npmrc,src=${npmrc}`);
+  /** @type {string | undefined} */
+  let workspace;
+
+  // Si el llamador pasa su propio secreto, no se toca nada: sabe lo que hace.
+  if (!args.some((arg) => arg.startsWith('--secret'))) {
+    const hosts = projectRegistries();
+    const credentials = credentialsFor(hosts);
+
+    if (credentials.length > 0) {
+      workspace = mkdtempSync(join(tmpdir(), 'nova-docker-'));
+      const scoped = join(workspace, 'npmrc');
+
+      writeFileSync(scoped, credentials.join(NEWLINE) + NEWLINE, {
+        mode: 0o600,
+      });
+      build.push('--secret', `id=npmrc,src=${scoped}`);
+
+      console.error(`nova docker: credenciales para ${[...hosts].join(', ')}`);
+    }
   }
 
   build.push(...args, '.');
 
-  return runBinary('docker', build);
+  try {
+    return await runBinary('docker', build);
+  } finally {
+    if (workspace !== undefined) {
+      rmSync(workspace, { recursive: true, force: true });
+    }
+  }
 }
 
 /**

@@ -71,10 +71,35 @@ La etiqueta sale del `package.json` del servicio, sin el scope. Lo que sobre se
 le pasa tal cual a `docker build`.
 
 **El token del registry viaja como secreto de BuildKit**, montado y no copiado:
-un `ARG` queda en el historial de la imagen y un `COPY` queda en una capa. Si
-existe un `~/.npmrc`, `nova docker` lo monta solo; en CI lo pasa el llamador con
-`--secret`. El `.npmrc` del repositorio sí se copia, porque no lleva credencial:
-sólo apunta el scope al registry.
+un `ARG` queda en el historial de la imagen y un `COPY` queda en una capa. El
+`.npmrc` del repositorio sí se copia, porque no lleva credencial: sólo apunta el
+scope al registry.
+
+Y **no se monta el `~/.npmrc` entero**. `nova docker` lee del `.npmrc` del
+proyecto contra qué registries resuelve, saca del de la máquina sólo las
+credenciales de esos, y las escribe en un archivo temporal que borra al
+terminar. Lo dice al arrancar:
+
+```
+nova docker: credenciales para npm.pkg.github.com
+```
+
+El motivo es que un `~/.npmrc` de trabajo suele tener las credenciales de otros
+clientes y de registries locales. Montado entero, todo eso entra al build: no
+queda en ninguna capa de la imagen, pero cualquier `RUN` de esa etapa puede
+leerlo, y un `RUN` ejecuta código de terceros.
+
+Busca esa configuración donde npm la busca: `NPM_CONFIG_USERCONFIG` si está, y
+si no el `~/.npmrc`. En un runner de GitHub no es el home -`actions/setup-node`
+la escribe en `RUNNER_TEMP` y lo anuncia por esa variable-, así que mirar sólo
+el home dejaba a `nova docker` sin credencial justo donde más hace falta.
+
+Y resuelve `${VARIABLE}`, que es lo que hace npm al leer un `.npmrc`. Sin eso el
+archivo de `setup-node` -que guarda `${NODE_AUTH_TOKEN}` como marcador, no el
+token- llega al build como marcador y el install corta con un 401 que no dice
+nada de la causa.
+
+Un `--secret` explícito desactiva todo esto: quien lo pasa sabe lo que hace.
 
 Lo que cambia por servicio va como `ARG` -`NODE_VERSION`, `PNPM_VERSION`-, no
 como una edición local. Y para un pipeline que exige el archivo en la raíz del
