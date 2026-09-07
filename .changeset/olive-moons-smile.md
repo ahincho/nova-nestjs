@@ -33,6 +33,15 @@ proyecto que todavía no existe, y `pnpm dlx` cortaba con `ERR_PNPM_DLX_NO_BIN`.
 **El servicio generado** nace con los dos: `openapi` en su `main.ts` -apagable con
 `OPENAPI_ENABLED`-, un test que pide `/docs/json`, un `.dockerignore` y el script `nova docker`.
 
-Y un `allowBuilds` que hay que tener: `@nestjs/swagger` arrastra `@scarf/scarf`, cuyo script de
-instalación es telemetría. pnpm aborta el install cuando hay un script sin decidir, así que va
-apagado en el `pnpm-workspace.yaml` de la plataforma y en el que genera el schematic.
+**Al actualizar hay que agregar una línea.** `@nestjs/swagger` arrastra `@scarf/scarf`, cuyo script
+de instalación es telemetría, y pnpm **aborta el install** cuando hay un script sin decidir. Un
+servicio que ya existe falla en `pnpm install` -antes de compilar nada- hasta que su
+`pnpm-workspace.yaml` diga:
+
+```yaml
+allowBuilds:
+  '@scarf/scarf': false
+```
+
+Los servicios nuevos ya nacen con esa línea. Apagarlo no le quita nada: la documentación se sirve
+igual.
