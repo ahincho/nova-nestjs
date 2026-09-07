@@ -30,24 +30,32 @@ RUN npm install --global pnpm@${PNPM_VERSION}
 WORKDIR /app
 
 # ---------------------------------------------------------------------------
-# deps: el árbol completo, con el lockfile mandando
+# build: instala, compila y descarta lo que sólo servía para compilar
 # ---------------------------------------------------------------------------
+# El contexto entero entra antes de instalar, y no sólo los manifiestos. La
+# receta clásica -copiar package.json, instalar, después copiar el código- se
+# apoya en la caché de capas, y acá esa caché la da el montaje del store de
+# pnpm: con el store caliente, un cambio de código relinkea en vez de volver a
+# descargar.
+#
+# A cambio funciona con un servicio cuyas dependencias son archivos del propio
+# repositorio, que es como se prueba esta imagen en CI. Con los manifiestos
+# sueltos, un `file:./.tarballs/...` no resuelve porque el archivo no está en la
+# etapa.
+#
+# Lo que no entra lo decide el `.dockerignore` del servicio, y `node_modules` es
+# el que importa: sin él se copian binarios nativos de Windows dentro de una
+# imagen Linux.
+#
 # El token del registry entra como secreto de BuildKit y no como ARG ni como
 # archivo copiado: un ARG queda en el historial de la imagen y un COPY queda en
-# una capa. Montado, no toca ninguna de las dos.
-#
-# El `.npmrc` del repositorio sí se copia, porque no lleva credencial: sólo
-# apunta el scope al registry.
-FROM base AS deps
-COPY package.json pnpm-lock.yaml pnpm-workspace.yaml .npmrc ./
-RUN --mount=type=secret,id=npmrc,target=/root/.npmrc \
-    pnpm install --frozen-lockfile
-
-# ---------------------------------------------------------------------------
-# build: compila y descarta lo que sólo servía para compilar
-# ---------------------------------------------------------------------------
-FROM deps AS build
+# una capa. Montado, no toca ninguna de las dos. El `.npmrc` del repositorio sí
+# se copia, porque no lleva credencial: sólo apunta el scope al registry.
+FROM base AS build
 COPY . .
+RUN --mount=type=secret,id=npmrc,target=/root/.npmrc \
+    --mount=type=cache,target=/pnpm/store,sharing=locked \
+    pnpm install --frozen-lockfile --store-dir /pnpm/store
 RUN pnpm build && pnpm prune --prod
 
 # ---------------------------------------------------------------------------
@@ -61,7 +69,7 @@ WORKDIR /app
 
 COPY --from=build --chown=node:node /app/node_modules ./node_modules
 COPY --from=build --chown=node:node /app/dist ./dist
-COPY --chown=node:node package.json ./
+COPY --from=build --chown=node:node /app/package.json ./
 
 USER node
 
