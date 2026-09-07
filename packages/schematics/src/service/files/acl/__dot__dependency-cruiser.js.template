@@ -5,7 +5,12 @@
  * La idea de fondo: la frontera entre el modelo propio y el del sistema externo
  * no se sostiene con acuerdos de equipo, se sostiene con el CI.
  *
- * **Las reglas son genericas.** `CONTEXT` es un comodin, asi que aplican a
+ * El `name` de cada regla va en inglés porque es un identificador: aparece en
+ * la salida, y es la clave con la que un baseline de `--ignore-known` la
+ * referencia. El `comment` va en español porque lo lee una persona cuando la
+ * regla salta.
+ *
+ * **Las reglas son genéricas.** `CONTEXT` es un comodín, así que aplican a
  * cualquier contexto acotado que se agregue sin tocar este archivo. Enumerarlos
  * a mano es como una regla se queda vieja sin que nadie lo note: sigue en
  * verde, pero ya no mira los contextos nuevos.
@@ -15,37 +20,37 @@ const CONTEXT = '[^/]+';
 module.exports = {
   forbidden: [
     // ---------------------------------------------------------------
-    // NUCLEO
+    // NÚCLEO
     // ---------------------------------------------------------------
     {
-      name: 'domain-no-depende-de-nadie',
+      name: 'domain-depends-on-nothing',
       severity: 'error',
       comment:
-        'domain/ es el contrato interno. Si conoce un adapter, un puerto o un framework, dejo de ser independiente del sistema externo.',
+        'domain/ es el contrato interno. Si conoce un adapter, un puerto o un framework, dejó de ser independiente del sistema externo.',
       from: { path: `^src/(${CONTEXT})/domain/` },
       to: { path: '^src/$1/(port|service|adapter|exception)/' },
     },
     {
-      name: 'exception-no-depende-de-nadie',
+      name: 'exceptions-depend-on-nothing',
       severity: 'error',
       comment:
-        'Las excepciones de dominio son Error puro. Si heredan o importan de Nest, el nucleo queda atado al transporte HTTP.',
+        'Las excepciones de dominio son Error puro. Si heredan o importan de Nest, el núcleo queda atado al transporte HTTP.',
       from: { path: `^src/(${CONTEXT})/exception/` },
       to: { path: '^src/$1/(port|service|adapter|domain)/' },
     },
     {
-      name: 'service-no-importa-adapter',
+      name: 'service-must-not-import-adapter',
       severity: 'error',
       comment:
-        'LA REGLA CENTRAL. El nucleo orquesta la traduccion sin saber quien esta del otro lado. Si el service importa un adapter, el ACL dejo de proteger nada.',
+        'LA REGLA CENTRAL. El núcleo orquesta la traducción sin saber quién está del otro lado. Si el service importa un adapter, el ACL dejó de proteger nada.',
       from: { path: `^src/(${CONTEXT})/service/` },
       to: { path: '^src/$1/adapter/' },
     },
     {
-      name: 'port-no-importa-adapter',
+      name: 'port-must-not-import-adapter',
       severity: 'error',
       comment:
-        'El puerto lo declara el nucleo y lo implementa el adapter. Si el puerto conoce al adapter, la dependencia esta al reves.',
+        'El puerto lo declara el núcleo y lo implementa el adapter. Si el puerto conoce al adapter, la dependencia está al revés.',
       from: { path: `^src/(${CONTEXT})/port/` },
       to: { path: '^src/$1/(adapter|service)/' },
     },
@@ -54,10 +59,10 @@ module.exports = {
     // BORDES
     // ---------------------------------------------------------------
     {
-      name: 'los-dos-bordes-no-se-conocen',
+      name: 'edges-must-not-know-each-other',
       severity: 'error',
       comment:
-        'Entrada y salida se comunican SOLO a traves del nucleo. Si se importan entre si, el service quedo de adorno.',
+        'Entrada y salida se comunican SÓLO a través del núcleo. Si se importan entre sí, el service quedó de adorno.',
       from: { path: `^src/(${CONTEXT})/adapter/(in|out)/([^/]+)/` },
       to: {
         path: '^src/$1/adapter/(in|out)/',
@@ -65,18 +70,18 @@ module.exports = {
       },
     },
     {
-      name: 'dtos-del-legado-no-salen-del-restclient',
+      name: 'upstream-dtos-stay-in-their-adapter',
       severity: 'error',
       comment:
-        'El modelo crudo del sistema externo muere en su adapter. Si aparece en el nucleo o en el borde web, se filtro: eso es exactamente lo que el ACL existe para impedir.',
+        'El modelo crudo del sistema externo muere en su adapter. Si aparece en el núcleo o en el borde web, se filtró: eso es exactamente lo que el ACL existe para impedir.',
       from: { pathNot: `^src/${CONTEXT}/adapter/out/restclient/` },
       to: { path: `^src/${CONTEXT}/adapter/out/restclient/response/` },
     },
     {
-      name: 'contratos-web-no-salen-del-borde-web',
+      name: 'web-contracts-stay-at-the-web-edge',
       severity: 'error',
       comment:
-        'request/ y response/ son la forma del JSON publico. El nucleo no debe saber que shape tiene lo que sale.',
+        'request/ y response/ son la forma del JSON público. El núcleo no debe saber qué shape tiene lo que sale.',
       from: { pathNot: `^src/${CONTEXT}/adapter/in/web/` },
       to: { path: `^src/${CONTEXT}/adapter/in/web/(request|response)/` },
     },
@@ -85,16 +90,16 @@ module.exports = {
     // ENTRE CONTEXTOS
     // ---------------------------------------------------------------
     {
-      name: 'un-contexto-no-importa-otro',
+      name: 'context-must-not-import-another-context',
       severity: 'error',
       comment:
-        'Cada contexto acotado es independiente. Si dos comparten algo, ese algo es de la plataforma o es un tercer contexto, no una importacion cruzada.',
+        'Cada contexto acotado es independiente. Si dos comparten algo, ese algo es de la plataforma o es un tercer contexto, no una importación cruzada.',
       from: { path: `^src/(${CONTEXT})/` },
       to: { path: `^src/${CONTEXT}/`, pathNot: '^src/$1/' },
     },
 
     {
-      name: 'sin-dependencias-circulares',
+      name: 'no-circular-dependencies',
       severity: 'error',
       from: {},
       to: { circular: true },
@@ -105,9 +110,9 @@ module.exports = {
     tsConfig: { fileName: 'tsconfig.json' },
     tsPreCompilationDeps: true,
     // `[.]` en vez de un backslash escapado: significan lo mismo y una clase de
-    // caracter no se puede perder al pasar por una plantilla ni por un editor.
-    // Con el escape mal puesto la expresion queda como `.`, que acepta
-    // cualquier caracter, y nada avisa.
+    // carácter no se puede perder al pasar por una plantilla ni por un editor.
+    // Con el escape mal puesto la expresión queda como `.`, que acepta
+    // cualquier carácter, y nada avisa.
     exclude: { path: '[.]spec[.]ts$' },
   },
 };

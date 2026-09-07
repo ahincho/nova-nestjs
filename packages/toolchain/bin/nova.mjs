@@ -15,19 +15,19 @@ import { fileURLToPath } from 'node:url';
  * un dia hubo dos: de Jest a Vitest y de ESLint a oxlint. Los dos obligaron a
  * tocar el package.json de cada consumidor para reemplazar una palabra.
  *
- * Y hay un motivo que no es comodidad. `oxlint` sin `--type-aware` no evalua
+ * Y hay un motivo que no es comodidad. `oxlint` sin `--type-aware` no evalúa
  * las 23 reglas que necesitan tipos, y **no avisa**: el reporte sale verde con
- * la mitad del analisis sin hacer. Un script escrito a mano puede perder esa
- * bandera sin que nada se rompa. Aca no se puede perder.
+ * la mitad del análisis sin hacer. Un script escrito a mano puede perder esa
+ * bandera sin que nada se rompa. Acá no se puede perder.
  */
 
-/** La raiz del paquete del toolchain, o sea el directorio que contiene `bin/`. */
+/** La raíz del paquete del toolchain, o sea el directorio que contiene `bin/`. */
 const TOOLCHAIN_DIR = dirname(dirname(fileURLToPath(import.meta.url)));
 
 /**
  * @typedef {object} Tool
  * @property {string} path el archivo que se ejecuta
- * @property {string} packageDir la raiz del paquete que lo publica
+ * @property {string} packageDir la raíz del paquete que lo publica
  */
 
 /**
@@ -35,9 +35,9 @@ const TOOLCHAIN_DIR = dirname(dirname(fileURLToPath(import.meta.url)));
  *
  * Se resuelve con `import.meta.resolve` y no con `require.resolve` porque el
  * `exports` de un paquete puede declarar solo la condicion `import` -es el caso
- * de `dependency-cruiser`- y entonces la resolucion de CommonJS no lo alcanza.
+ * de `dependency-cruiser`- y entonces la resolución de CommonJS no lo alcanza.
  *
- * Y se prueban dos caminos porque **un paquete no esta obligado a exportar su
+ * Y se prueban dos caminos porque **un paquete no está obligado a exportar su
  * propio manifiesto**: `dependency-cruiser` no lo hace. Cuando falta, se
  * resuelve la entrada y se sube hasta el package.json que la contiene.
  *
@@ -50,8 +50,8 @@ function manifestOf(packageName) {
   } catch {
     let dir = dirname(fileURLToPath(import.meta.resolve(packageName)));
 
-    // La raiz del paquete es el primer ancestro con un package.json. El limite
-    // es llegar a la raiz del disco, donde dirname deja de cambiar.
+    // La raíz del paquete es el primer ancestro con un package.json. El limite
+    // es llegar a la raíz del disco, donde dirname deja de cambiar.
     for (let parent = dirname(dir); ; dir = parent, parent = dirname(dir)) {
       const candidate = join(dir, 'package.json');
       if (existsSync(candidate)) {
@@ -76,7 +76,7 @@ function manifestOf(packageName) {
 function toolBin(packageName, binName) {
   const manifestPath = manifestOf(packageName);
   // El `bin` de un package.json puede ser una cadena o un mapa, y quien lo
-  // escribio no es esta plataforma. Se lee como `unknown` y se estrecha, en vez
+  // escribio no es está plataforma. Se lee como `unknown` y se estrecha, en vez
   // de afirmar una forma que el paquete no prometio.
   /** @type {unknown} */
   const manifest = JSON.parse(readFileSync(manifestPath, 'utf8'));
@@ -107,10 +107,10 @@ function toolBin(packageName, binName) {
  * `oxlint --type-aware` lanza `tsgolint`, que pnpm le deja en su propio
  * `node_modules/.bin` y no en el del proyecto. Lanzarlo sin esto corta con
  * «Failed to find tsgolint executable», que es lo que `pnpm exec` resuelve por
- * detras y aca hay que hacer a mano.
+ * detras y acá hay que hacer a mano.
  *
- * Cortar es el buen caso. El malo seria que la herramienta decidiera seguir sin
- * su companera, que para el analisis de tipos significa un reporte verde con la
+ * Cortar es el buen caso. El malo sería que la herramienta decidiera seguir sin
+ * su compañera, que para el análisis de tipos significa un reporte verde con la
  * mitad del trabajo sin hacer.
  *
  * @param {string} packageDir
@@ -126,7 +126,7 @@ function pathWith(packageDir) {
 }
 
 /**
- * Todos los binarios que envuelve son scripts de Node con shebang, asi que se
+ * Todos los binarios que envuelve son scripts de Node con shebang, así que se
  * lanzan con el mismo ejecutable en vez de por el shell: no hay comillas que
  * escapar ni diferencia entre Windows y Linux.
  *
@@ -151,7 +151,7 @@ function run(packageName, binName, args) {
 /**
  * Un servicio se compila con el CLI de NestJS y un paquete con `tsc`. La
  * diferencia se decide por la presencia de `nest-cli.json`, que es el archivo
- * que distingue una aplicacion de una libreria, en vez de pedir una opcion que
+ * que distingue una aplicación de una libreria, en vez de pedir una opcion que
  * nadie se acordaria de poner.
  *
  * @param {string[]} args
@@ -167,7 +167,7 @@ function build(args) {
 
 /**
  * @typedef {object} Command
- * @property {string} describe una linea para la ayuda
+ * @property {string} describe una línea para la ayuda
  * @property {(args: string[]) => Promise<number>} run
  */
 
@@ -211,7 +211,7 @@ const commands = new Map([
   [
     'lint',
     {
-      // La bandera va aca y no en el script del servicio a proposito: sin ella
+      // La bandera va acá y no en el script del servicio a propósito: sin ella
       // oxlint se salta las reglas con tipos en silencio.
       describe: 'lintea, siempre con analisis de tipos',
       run: (/** @type {string[]} */ args) =>
@@ -223,7 +223,7 @@ const commands = new Map([
     {
       // Las reglas de arquitectura son las unicas que oxlint no puede
       // expresar: su `no-restricted-imports` filtra por el especificador y no
-      // por donde esta el archivo que importa, asi que no sabe decir «el
+      // por donde está el archivo que importa, así que no sabe decir «el
       // service no importa el adapter, pero el module si».
       describe: 'verifica las fronteras entre capas (dependency-cruiser)',
       run: (/** @type {string[]} */ args) =>
@@ -259,7 +259,7 @@ const commands = new Map([
 /**
  * El orden importa: el typecheck antes que el lint porque un error de tipos se
  * lee mejor que los veinte hallazgos que provoca, y el formato al final porque
- * es lo unico que no dice nada sobre si el codigo funciona.
+ * es lo único que no dice nada sobre si el código funciona.
  */
 const VERIFY = ['typecheck', 'lint', 'lint:arch', 'test:cov', 'format:check'];
 

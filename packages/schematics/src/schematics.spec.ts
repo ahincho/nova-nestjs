@@ -254,8 +254,8 @@ describe('el generador de servicio', () => {
       const rules = tree.readContent('/academic-acl/.dependency-cruiser.js');
 
       expect(rules).toContain("const CONTEXT = '[^/]+'");
-      expect(rules).toContain('service-no-importa-adapter');
-      expect(rules).toContain('un-contexto-no-importa-otro');
+      expect(rules).toContain('service-must-not-import-adapter');
+      expect(rules).toContain('context-must-not-import-another-context');
     });
 
     it('las del bff hablan de features y upstream', async () => {
@@ -265,8 +265,8 @@ describe('el generador de servicio', () => {
       });
       const rules = bff.readContent('/home-bff/.dependency-cruiser.js');
 
-      expect(rules).toContain('feature-solo-usa-el-port-del-upstream');
-      expect(rules).toContain('upstream-no-importa-upstream');
+      expect(rules).toContain('feature-uses-only-the-upstream-port');
+      expect(rules).toContain('upstream-must-not-import-another-upstream');
     });
   });
 });

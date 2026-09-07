@@ -6,10 +6,10 @@
  *   node scripts/rewire-consumer.mjs ../nova-nestjs-example
  *
  * Existe porque **el monorepo no puede ver un conflicto de peers**. Cada
- * paquete de un workspace resuelve su propio arbol, asi que dos dependencias
+ * paquete de un workspace resuelve su propio arbol, así que dos dependencias
  * incompatibles entre paquetes distintos conviven sin problema; un servicio las
  * aplana en un solo arbol y ahi el install corta. Eso fue exactamente lo que
- * dejo salir la 0.8.0 rota: `@nestjs/cli` 12 trae `chokidar` 5 y los schematics
+ * dejó salir la 0.8.0 rota: `@nestjs/cli` 12 trae `chokidar` 5 y los schematics
  * pedian Angular DevKit 20, cuyo peer es `chokidar` ^4. `pnpm peers check`
  * sobre el monorepo pasaba en verde.
  *
@@ -22,7 +22,7 @@
  *
  * El paso 4 no es solo comodidad de credenciales: sin ese archivo, cualquier
  * `@ahincho/*` que la reescritura no haya cubierto se resuelve contra npmjs y
- * falla con un 404. O sea que ademas comprueba que los tarballs reemplazan al
+ * falla con un 404. O sea que además comprueba que los tarballs reemplazan al
  * registry por completo.
  *
  * No corre ninguna puerta de calidad. De eso se ocupa quien lo llama, para que
@@ -89,7 +89,7 @@ function pack(packageDir, destination) {
     { cwd: join(ROOT, packageDir), encoding: 'utf8' },
   );
 
-  // pnpm imprime la ruta del tarball en la ultima linea con contenido.
+  // pnpm imprime la ruta del tarball en la última línea con contenido.
   const line = output.trim().split('\n').at(-1)?.trim();
   if (line === undefined || line === '') {
     throw new Error(`pnpm pack no dijo que archivo creo en ${packageDir}`);
@@ -123,7 +123,7 @@ const devDependencies = /** @type {Record<string, string>} */ (
 
 for (const pkg of PACKAGES) {
   const tarball = pack(pkg.dir, tarballDir);
-  // Relativa para que el manifiesto no lleve una ruta de esta maquina.
+  // Relativa para que el manifiesto no lleve una ruta de está máquina.
   const spec = `file:./${relative(consumerDir, tarball).split('\\').join('/')}`;
   const target = pkg.dev ? devDependencies : dependencies;
 

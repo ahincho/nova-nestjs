@@ -1,21 +1,21 @@
 {
-  // Configuracion de oxlint compartida por los proyectos de Nova Platform.
+  // Configuración de oxlint compartida por los proyectos de Nova Platform.
   //
   //   // .oxlintrc.json del servicio
   //   { "extends": ["./node_modules/@ahincho/nova-nestjs-toolchain/oxlint/oxlintrc.json"] }
   //
-  // La ruta va relativa y entra a node_modules a proposito: `extends` de oxlint
+  // La ruta va relativa y entra a node_modules a propósito: `extends` de oxlint
   // resuelve rutas de archivo, no especificadores de paquete. Como el toolchain
   // es una dependencia directa del servicio, pnpm le deja un enlace real en la
-  // raiz de node_modules, asi que la ruta es estable.
+  // raíz de node_modules, así que la ruta es estable.
   //
   // Las reglas con tipos -las 23 del bloque de abajo- solo corren con
   // `oxlint --type-aware`, que necesita `oxlint-tsgolint` instalado. Sin esa
-  // bandera oxlint no avisa: simplemente no las evalua.
+  // bandera oxlint no avisa: simplemente no las evalúa.
   "plugins": ["typescript", "unicorn", "vitest"],
 
-  // El listado es explicito en vez de encender la categoria entera para que
-  // una version nueva de oxlint no agregue reglas al pipeline sin que nadie lo
+  // El listado es explícito en vez de encender la categoría entera para que
+  // una versión nueva de oxlint no agregue reglas al pipeline sin que nadie lo
   // haya decidido.
   "categories": {
     "correctness": "off"
@@ -79,7 +79,7 @@
     "no-unused-labels": "error",
     "no-unused-private-class-members": "error",
 
-    // El parametro sin usar se marca con guion bajo: eso hace explicito que la
+    // El parámetro sin usar se marca con guion bajo: eso hace explícito que la
     // firma la impone una interfaz de Nest y no un descuido.
     "no-unused-vars": [
       "error",
@@ -101,9 +101,9 @@
     "typescript/ban-ts-comment": "error",
     "typescript/no-duplicate-enum-values": "error",
 
-    // Un puerto o un DTO se declaran como tipo vacio a proposito mientras el
-    // contrato del upstream todavia no esta cerrado. Es el sucesor de
-    // `no-empty-interface`, que typescript-eslint 8 retiro.
+    // Un puerto o un DTO se declaran como tipo vacío a propósito mientras el
+    // contrato del upstream todavía no está cerrado. Es el sucesor de
+    // `no-empty-interface`, que typescript-eslint 8 retiró.
     "typescript/no-empty-object-type": "off",
 
     // `any` es error, no aviso: en un BFF el `any` viaja desde la respuesta del
@@ -124,8 +124,8 @@
     "typescript/triple-slash-reference": "error",
 
     // Las 23 reglas con tipos. `@oxlint/migrate` las descarta en silencio al
-    // convertir una configuracion de ESLint, asi que la migracion automatica
-    // deja una configuracion que se ve completa y no lo esta. Van escritas a
+    // convertir una configuración de ESLint, así que la migración automática
+    // deja una configuración que se ve completa y no lo está. Van escritas a
     // mano por eso.
     "typescript/await-thenable": "error",
     "typescript/no-array-delete": "error",
@@ -154,8 +154,8 @@
   "overrides": [
     {
       // En TypeScript el compilador ya cubre estas, y dejarlas encendidas
-      // duplica el diagnostico. Es lo que hace la configuracion recomendada de
-      // typescript-eslint y aca se replica.
+      // duplica el diagnóstico. Es lo que hace la configuración recomendada de
+      // typescript-eslint y acá se replica.
       "files": ["**/*.ts", "**/*.tsx", "**/*.mts", "**/*.cts"],
       "rules": {
         "constructor-super": "off",
@@ -181,7 +181,7 @@
       }
     },
     {
-      // Un test arma dobles parciales a proposito.
+      // Un test arma dobles parciales a propósito.
       "files": ["**/*.spec.ts", "**/*.e2e-spec.ts"],
       "rules": {
         "typescript/no-unsafe-argument": "off",

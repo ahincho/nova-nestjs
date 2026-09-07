@@ -1,7 +1,7 @@
 {
   "extends": "@ahincho/nova-nestjs-toolchain/tsconfig/nestjs.json",
   "compilerOptions": {
-    // Explicito porque TypeScript 6 ya no lo infiere: `include` abarca ./src
+    // Explícito porque TypeScript 6 ya no lo infiere: `include` abarca ./src
     // y ./test, y sin decirlo el compilador corta con TS5011 al buscar el
     // directorio comun. El build real usa tsconfig.build.json, que lo estrecha
     // a ./src.

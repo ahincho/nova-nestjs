@@ -7,8 +7,8 @@ import { AppModule } from '../src/app.module';
 /**
  * El test con el que nace el servicio.
  *
- * Prueba lo unico que hay el primer dia, que igual es lo que mas cuesta cuando
- * se rompe: que el modulo levanta y que las sondas contestan donde el balanceador
+ * Prueba lo único que hay el primer dia, que igual es lo que mas cuesta cuando
+ * se rompe: que el módulo levanta y que las sondas contestan donde el balanceador
  * las busca. Un despliegue muere por una sonda movida mucho antes que por una
  * regla de negocio.
  */
@@ -47,7 +47,7 @@ describe('<%= classify(name) %>', () => {
     expect(response.body).toMatchObject({ status: 'ok' });
   });
 
-  // Las sondas quedan fuera del prefijo global a proposito: moverlas es mover
+  // Las sondas quedan fuera del prefijo global a propósito: moverlas es mover
   // el target group, y una sonda que responde 404 desregistra la tarea unos
   // nueve segundos despues de registrarla.
   it('keeps the probes outside the global prefix', async () => {

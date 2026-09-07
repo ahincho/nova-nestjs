@@ -4,13 +4,13 @@ import { NovaModule } from '@ahincho/nova-nestjs';
 @Module({
   imports: [
     NovaModule.forRoot({
-      // Cada upstream declarado con `defineUpstream()` va aca. Si su variable
-      // de URL no esta inyectada, el servicio no arranca y el error la nombra.
+      // Cada upstream declarado con `defineUpstream()` va acá. Si su variable
+      // de URL no está inyectada, el servicio no arranca y el error la nombra.
       config: { load: [] },
 
       health: {
         // Tras SIGTERM el servicio sigue respondiendo, pero `ready` pasa a 503
-        // durante esta ventana. Le da al balanceador tiempo de sacar la tarea
+        // durante está ventana. Le da al balanceador tiempo de sacar la tarea
         // de rotacion antes de que el proceso cierre, que es lo que evita los
         // errores del final de cada despliegue. Conviene mayor al intervalo de
         // la sonda y menor al stopTimeout.

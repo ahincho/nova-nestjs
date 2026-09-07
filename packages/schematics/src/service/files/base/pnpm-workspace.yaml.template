@@ -1,4 +1,4 @@
-# pnpm rechaza por defecto una version publicada hace muy poco: es la defensa
+# pnpm rechaza por defecto una versión publicada hace muy poco: es la defensa
 # contra un mantenedor comprometido que publica algo malicioso y lo ve
 # instalado al instante. La politica cuida de terceros, y los paquetes de la
 # plataforma son propios.
@@ -21,7 +21,7 @@ strictPeerDependencies: true
 # dependency-cruiser- no estan, porque el comando `nova` las resuelve desde el
 # toolchain.
 #
-# Es la contrapartida de que el servicio no elija ninguna version.
+# Es la contrapartida de que el servicio no elija ninguna versión.
 publicHoistPattern:
   - '@nestjs/*'
   - '@types/*'

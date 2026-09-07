@@ -60,11 +60,15 @@ se agreguen:
 ```js
 const CONTEXT = '[^/]+';
 {
-  name: 'service-no-importa-adapter',
+  name: 'service-must-not-import-adapter',
   from: { path: `^src/(${CONTEXT})/service/` },
   to: { path: '^src/$1/adapter/' },
 }
 ```
+
+El `name` va en inglés porque es un identificador -aparece en la salida y es la
+clave de un baseline de `--ignore-known`-; el `comment` va en español, que es lo
+que lee quien ve saltar la regla.
 
 Es deliberado: una regla que lista los contextos uno por uno **sigue en verde
 cuando aparece el octavo**, y nadie se entera de que dejó de mirarlo.

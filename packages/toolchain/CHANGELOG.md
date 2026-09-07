@@ -1,5 +1,28 @@
 # @ahincho/nova-nestjs-toolchain
 
+## 0.11.1
+
+### Patch Changes
+
+- Corrige el idioma de las reglas de arquitectura que genera el schematic, y las tildes de los
+  comentarios.
+
+  **Los 14 `name` de `.dependency-cruiser.js` estaban en español** -`service-no-importa-adapter`-
+  copiados tal cual de los templates de donde salió esta forma. Un `name` es un identificador:
+  aparece en la salida y es la clave con la que un baseline de `--ignore-known` referencia la
+  regla, así que va en inglés. Ahora son `service-must-not-import-adapter`,
+  `context-must-not-import-another-context`, `feature-uses-only-the-upstream-port` y así.
+
+  El `comment` de cada regla se queda en español, porque es lo que lee una persona cuando la regla
+  salta. Eso no cambia.
+
+  **Y las tildes.** Los comentarios en español las llevan, y se habían perdido en 11 archivos
+  \-`nova.mjs`, el preset de Vitest, la configuración de oxlint, el script del chequeo de
+  consumidor, el generador y sus plantillas-. Restituidas, revisando a mano los casos que un
+  reemplazo automático se equivoca: `quien` relativo no lleva tilde y `quién` interrogativo sí.
+
+  Sólo cambia texto: ningún comportamiento.
+
 ## 0.11.0
 
 ### Minor Changes

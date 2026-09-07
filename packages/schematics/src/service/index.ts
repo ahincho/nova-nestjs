@@ -24,15 +24,15 @@ export const NODE_FLOOR = '24.15';
 export const PNPM_VERSION = '11.24.0';
 
 /**
- * La version de la plataforma que el servicio va a pinear.
+ * La versión de la plataforma que el servicio va a pinear.
  *
  * Se lee del propio package.json de este paquete en vez de escribirse a mano,
- * porque los tres se publican con una sola version: el servicio generado queda
- * pineado exactamente a la release que lo genero, y no a un numero que alguien
+ * porque los tres se publican con una sola versión: el servicio generado queda
+ * pineado exactamente a la release que lo genero, y no a un número que alguien
  * se olvido de subir.
  */
 export function platformVersion(): string {
-  // Sube desde dist/service/ o src/service/ hasta la raiz del paquete.
+  // Sube desde dist/service/ o src/service/ hasta la raíz del paquete.
   const manifestPath = join(dirname(dirname(__dirname)), 'package.json');
   const parsed: unknown = JSON.parse(readFileSync(manifestPath, 'utf8'));
 
@@ -49,12 +49,12 @@ export function platformVersion(): string {
 }
 
 /**
- * Normaliza los finales de linea a LF.
+ * Normaliza los finales de línea a LF.
  *
  * El motor de plantillas del DevKit devuelve CRLF en Windows aunque la
  * plantilla en disco tenga LF, y entonces `nova format:check` falla en el
  * servicio recien generado: **el generador estaria emitiendo algo que su propia
- * puerta de calidad rechaza**. Normalizar aca ademas hace que el resultado sea
+ * puerta de calidad rechaza**. Normalizar acá además hace que el resultado sea
  * el mismo en cualquier sistema.
  */
 const toLineFeed = forEach((entry: FileEntry) => ({
@@ -67,9 +67,9 @@ const toLineFeed = forEach((entry: FileEntry) => ({
  *
  * Lo que **no** genera es tan importante como lo que si: no hay `src/common/`
  * ni `src/core/`. El filtro global, el interceptor del sobre, las sondas de
- * salud, el cliente HTTP, la configuracion, el contexto de peticion y el logger
+ * salud, el cliente HTTP, la configuración, el contexto de petición y el logger
  * llegan dentro de `@ahincho/nova-nestjs`. En los templates de los que sale
- * esta forma, esas dos carpetas eran entre el 40 % y el 50 % de `src`.
+ * está forma, esas dos carpetas eran entre el 40 % y el 50 % de `src`.
  *
  * Se arma en dos pasadas sobre el mismo destino: la base, que es igual para los
  * dos sabores, y encima lo que distingue a uno del otro -hoy, sus reglas de
