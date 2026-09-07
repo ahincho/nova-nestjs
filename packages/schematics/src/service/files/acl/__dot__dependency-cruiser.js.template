@@ -1,0 +1,113 @@
+/**
+ * Reglas de arquitectura del ACL, verificadas en CI con `nova lint:arch`.
+ * Equivalente a ArchUnit en Java.
+ *
+ * La idea de fondo: la frontera entre el modelo propio y el del sistema externo
+ * no se sostiene con acuerdos de equipo, se sostiene con el CI.
+ *
+ * **Las reglas son genericas.** `CONTEXT` es un comodin, asi que aplican a
+ * cualquier contexto acotado que se agregue sin tocar este archivo. Enumerarlos
+ * a mano es como una regla se queda vieja sin que nadie lo note: sigue en
+ * verde, pero ya no mira los contextos nuevos.
+ */
+const CONTEXT = '[^/]+';
+
+module.exports = {
+  forbidden: [
+    // ---------------------------------------------------------------
+    // NUCLEO
+    // ---------------------------------------------------------------
+    {
+      name: 'domain-no-depende-de-nadie',
+      severity: 'error',
+      comment:
+        'domain/ es el contrato interno. Si conoce un adapter, un puerto o un framework, dejo de ser independiente del sistema externo.',
+      from: { path: `^src/(${CONTEXT})/domain/` },
+      to: { path: '^src/$1/(port|service|adapter|exception)/' },
+    },
+    {
+      name: 'exception-no-depende-de-nadie',
+      severity: 'error',
+      comment:
+        'Las excepciones de dominio son Error puro. Si heredan o importan de Nest, el nucleo queda atado al transporte HTTP.',
+      from: { path: `^src/(${CONTEXT})/exception/` },
+      to: { path: '^src/$1/(port|service|adapter|domain)/' },
+    },
+    {
+      name: 'service-no-importa-adapter',
+      severity: 'error',
+      comment:
+        'LA REGLA CENTRAL. El nucleo orquesta la traduccion sin saber quien esta del otro lado. Si el service importa un adapter, el ACL dejo de proteger nada.',
+      from: { path: `^src/(${CONTEXT})/service/` },
+      to: { path: '^src/$1/adapter/' },
+    },
+    {
+      name: 'port-no-importa-adapter',
+      severity: 'error',
+      comment:
+        'El puerto lo declara el nucleo y lo implementa el adapter. Si el puerto conoce al adapter, la dependencia esta al reves.',
+      from: { path: `^src/(${CONTEXT})/port/` },
+      to: { path: '^src/$1/(adapter|service)/' },
+    },
+
+    // ---------------------------------------------------------------
+    // BORDES
+    // ---------------------------------------------------------------
+    {
+      name: 'los-dos-bordes-no-se-conocen',
+      severity: 'error',
+      comment:
+        'Entrada y salida se comunican SOLO a traves del nucleo. Si se importan entre si, el service quedo de adorno.',
+      from: { path: `^src/(${CONTEXT})/adapter/(in|out)/([^/]+)/` },
+      to: {
+        path: '^src/$1/adapter/(in|out)/',
+        pathNot: '^src/$1/adapter/$2/$3/',
+      },
+    },
+    {
+      name: 'dtos-del-legado-no-salen-del-restclient',
+      severity: 'error',
+      comment:
+        'El modelo crudo del sistema externo muere en su adapter. Si aparece en el nucleo o en el borde web, se filtro: eso es exactamente lo que el ACL existe para impedir.',
+      from: { pathNot: `^src/${CONTEXT}/adapter/out/restclient/` },
+      to: { path: `^src/${CONTEXT}/adapter/out/restclient/response/` },
+    },
+    {
+      name: 'contratos-web-no-salen-del-borde-web',
+      severity: 'error',
+      comment:
+        'request/ y response/ son la forma del JSON publico. El nucleo no debe saber que shape tiene lo que sale.',
+      from: { pathNot: `^src/${CONTEXT}/adapter/in/web/` },
+      to: { path: `^src/${CONTEXT}/adapter/in/web/(request|response)/` },
+    },
+
+    // ---------------------------------------------------------------
+    // ENTRE CONTEXTOS
+    // ---------------------------------------------------------------
+    {
+      name: 'un-contexto-no-importa-otro',
+      severity: 'error',
+      comment:
+        'Cada contexto acotado es independiente. Si dos comparten algo, ese algo es de la plataforma o es un tercer contexto, no una importacion cruzada.',
+      from: { path: `^src/(${CONTEXT})/` },
+      to: { path: `^src/${CONTEXT}/`, pathNot: '^src/$1/' },
+    },
+
+    {
+      name: 'sin-dependencias-circulares',
+      severity: 'error',
+      from: {},
+      to: { circular: true },
+    },
+  ],
+  options: {
+    doNotFollow: { path: 'node_modules' },
+    tsConfig: { fileName: 'tsconfig.json' },
+    tsPreCompilationDeps: true,
+    // `[.]` en vez de un backslash escapado: significan lo mismo y una clase de
+    // caracter no se puede perder al pasar por una plantilla ni por un editor.
+    // Con el escape mal puesto la expresion queda como `.`, que acepta
+    // cualquier caracter, y nada avisa.
+    exclude: { path: '[.]spec[.]ts$' },
+  },
+};

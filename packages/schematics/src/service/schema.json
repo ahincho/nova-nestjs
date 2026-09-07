@@ -1,0 +1,40 @@
+{
+  "$schema": "http://json-schema.org/schema",
+  "$id": "NovaService",
+  "title": "Nova service",
+  "type": "object",
+  "properties": {
+    "name": {
+      "type": "string",
+      "description": "Nombre del servicio, en kebab-case o camelCase",
+      "$default": { "$source": "argv", "index": 0 },
+      "x-prompt": "¿Cómo se llama el servicio?"
+    },
+    "style": {
+      "type": "string",
+      "description": "Sabor a generar",
+      "enum": ["acl", "bff"],
+      "default": "acl",
+      "x-prompt": {
+        "message": "¿Qué sabor?",
+        "type": "list",
+        "items": [
+          {
+            "value": "acl",
+            "label": "acl - hexagonal por contexto acotado, con domain/"
+          },
+          {
+            "value": "bff",
+            "label": "bff - features por pantalla y adaptadores en src/upstream/"
+          }
+        ]
+      }
+    },
+    "path": {
+      "type": "string",
+      "description": "Dónde escribirlo. Por defecto un directorio con el nombre del servicio",
+      "format": "path"
+    }
+  },
+  "required": ["name"]
+}

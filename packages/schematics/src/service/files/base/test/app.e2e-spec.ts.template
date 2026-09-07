@@ -1,0 +1,58 @@
+import type { INestApplication } from '@nestjs/common';
+import { Test } from '@nestjs/testing';
+import request from 'supertest';
+import type { App } from 'supertest/types';
+import { AppModule } from '../src/app.module';
+
+/**
+ * El test con el que nace el servicio.
+ *
+ * Prueba lo unico que hay el primer dia, que igual es lo que mas cuesta cuando
+ * se rompe: que el modulo levanta y que las sondas contestan donde el balanceador
+ * las busca. Un despliegue muere por una sonda movida mucho antes que por una
+ * regla de negocio.
+ */
+describe('<%= classify(name) %>', () => {
+  let app: INestApplication;
+
+  beforeAll(async () => {
+    const moduleRef = await Test.createTestingModule({
+      imports: [AppModule],
+    }).compile();
+
+    app = moduleRef.createNestApplication();
+    await app.init();
+  });
+
+  afterAll(async () => {
+    await app.close();
+  });
+
+  // Vive y disponible no son lo mismo: la primera dice que el proceso responde,
+  // la segunda que puede atender. Si `live` mirara dependencias, el orquestador
+  // reiniciaria el contenedor por una caida que no es suya.
+  it('answers the liveness probe without touching dependencies', async () => {
+    const response = await request(app.getHttpServer() as App)
+      .get('/health/live')
+      .expect(200);
+
+    expect(response.body).toMatchObject({ status: 'ok' });
+  });
+
+  it('answers the readiness probe', async () => {
+    const response = await request(app.getHttpServer() as App)
+      .get('/health/ready')
+      .expect(200);
+
+    expect(response.body).toMatchObject({ status: 'ok' });
+  });
+
+  // Las sondas quedan fuera del prefijo global a proposito: moverlas es mover
+  // el target group, y una sonda que responde 404 desregistra la tarea unos
+  // nueve segundos despues de registrarla.
+  it('keeps the probes outside the global prefix', async () => {
+    await request(app.getHttpServer() as App)
+      .get('/api/v1/health/live')
+      .expect(404);
+  });
+});

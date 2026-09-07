@@ -1,5 +1,46 @@
 # @ahincho/nova-nestjs-toolchain
 
+## 0.11.0
+
+### Minor Changes
+
+- Agrega el generador de servicio y `nova lint:arch`.
+
+  ```bash
+  pnpm dlx @ahincho/nova-nestjs-schematics service academic-acl
+  cd academic-acl && pnpm install && pnpm verify
+  ```
+
+  Deja un servicio que arranca y **pasa su propia puerta de calidad**: los tres paquetes de la
+  plataforma y nada más, el `publicHoistPattern`, los dos `tsconfig`, el `nest-cli.json`, el
+  `.oxlintrc.json`, el `vitest.config.mjs`, `bootstrap()`, `NovaModule.forRoot()`, un test de las
+  sondas y las reglas de arquitectura. Con `--style=bff` o `--style=acl`, la misma distinción que
+  ya hace `feature`.
+
+  **Lo que no genera es el argumento del paquete: no hay `src/common/` ni `src/core/`.** El filtro
+  global, el interceptor del sobre, las sondas, el cliente HTTP, la configuración, el contexto de
+  petición y el logger llegan dentro de `@ahincho/nova-nestjs`. Medido sobre los templates de los
+  que sale esta forma, esas dos carpetas eran **el 50 % de `src` en un BFF y el 40 % en un ACL**.
+
+  **`nova lint:arch`** corre `dependency-cruiser`, que entra al toolchain. Es la única puerta que
+  oxlint no puede cubrir: su `no-restricted-imports` filtra por el especificador y no por dónde
+  está el archivo que importa, así que no sabe decir «el service no importa el adapter, pero el
+  module sí». Va dentro de `nova verify`.
+
+  **Las reglas generadas no enumeran contextos a mano**, usan un comodín. Una regla que los lista
+  uno por uno sigue en verde cuando aparece el siguiente, y nadie se entera de que dejó de mirarlo.
+
+  Dos arreglos que salieron de generar y correr el servicio de verdad:
+
+  - `nova` resolvía los binarios con `require.resolve`, que no alcanza a un paquete cuyo `exports`
+    declara sólo la condición `import` -es el caso de `dependency-cruiser`- ni a uno que no exporta
+    su propio `package.json`. Ahora usa `import.meta.resolve` y, si hace falta, sube desde la
+    entrada hasta el manifiesto.
+  - El generador normaliza los finales de línea a LF: el motor de plantillas del DevKit devuelve
+    CRLF en Windows, y el servicio recién generado no pasaba su propio `format:check`.
+
+  No genera `Dockerfile`: la imagen base, el usuario y el puerto dependen de dónde se despliegue.
+
 ## 0.10.2
 
 ### Patch Changes

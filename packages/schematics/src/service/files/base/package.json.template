@@ -1,0 +1,33 @@
+{
+  "name": "<%= name %>",
+  "version": "0.1.0",
+  "private": true,
+  "description": "<%= classify(name) %>, sobre la plataforma Nova",
+  "license": "UNLICENSED",
+  "type": "commonjs",
+  "packageManager": "pnpm@<%= pnpmVersion %>",
+  "engines": {
+    "node": ">=<%= nodeFloor %>"
+  },
+  "scripts": {
+    "build": "nova build",
+    "start": "nova start",
+    "start:dev": "nova start --watch",
+    "start:prod": "node dist/main",
+    "test": "nova test",
+    "test:cov": "nova test:cov",
+    "typecheck": "nova typecheck",
+    "lint": "nova lint",
+    "lint:arch": "nova lint:arch",
+    "format": "nova format",
+    "format:check": "nova format:check",
+    "verify": "nova verify"
+  },
+  "dependencies": {
+    "@ahincho/nova-nestjs": "^<%= platformVersion %>"
+  },
+  "devDependencies": {
+    "@ahincho/nova-nestjs-schematics": "^<%= platformVersion %>",
+    "@ahincho/nova-nestjs-toolchain": "^<%= platformVersion %>"
+  }
+}

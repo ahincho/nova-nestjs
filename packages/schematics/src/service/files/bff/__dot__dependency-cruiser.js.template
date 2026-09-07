@@ -1,0 +1,62 @@
+/**
+ * Reglas de arquitectura del BFF, verificadas en CI con `nova lint:arch`.
+ * Equivalente a ArchUnit en Java.
+ *
+ * **Las reglas son genericas.** Los comodines aplican a cualquier feature o
+ * upstream que se agregue sin tocar este archivo. Enumerarlos a mano es como
+ * una regla se queda vieja sin que nadie lo note: sigue en verde, pero ya no
+ * mira lo que se agrego despues.
+ */
+module.exports = {
+  forbidden: [
+    {
+      name: 'upstream-no-importa-features',
+      severity: 'error',
+      comment:
+        'Un upstream solo sabe hablar con SU servicio. Si necesita algo de un feature, la dependencia esta al reves.',
+      from: { path: '^src/upstream/' },
+      to: { path: '^src/features/' },
+    },
+    {
+      name: 'upstream-no-importa-upstream',
+      severity: 'error',
+      comment:
+        'Si un upstream llama a otro, se acopla y deja de ser reusable. Juntar dos fuentes es trabajo del feature.',
+      from: { path: '^src/upstream/([^/]+)/' },
+      to: { path: '^src/upstream/', pathNot: '^src/upstream/$1/' },
+    },
+    {
+      name: 'feature-no-importa-otro-feature',
+      severity: 'error',
+      comment:
+        'Cada pantalla es independiente. Si dos comparten algo, ese algo baja a un upstream o sube a la plataforma.',
+      from: { path: '^src/features/([^/]+)/([^/]+)/' },
+      to: { path: '^src/features/', pathNot: '^src/features/$1/$2/' },
+    },
+    {
+      name: 'feature-solo-usa-el-port-del-upstream',
+      severity: 'error',
+      comment:
+        'El feature depende de la interfaz, nunca del adapter HTTP ni del mapper. Si no, no se puede mockear ni cambiar la fuente.',
+      from: { path: '^src/features/' },
+      // `[.]` en vez de un backslash escapado, por el mismo motivo que abajo.
+      to: { path: '^src/upstream/[^/]+/.+[.](http|mapper)[.]ts$' },
+    },
+    {
+      name: 'sin-dependencias-circulares',
+      severity: 'error',
+      from: {},
+      to: { circular: true },
+    },
+  ],
+  options: {
+    doNotFollow: { path: 'node_modules' },
+    tsConfig: { fileName: 'tsconfig.json' },
+    tsPreCompilationDeps: true,
+    // `[.]` en vez de un backslash escapado: significan lo mismo y una clase de
+    // caracter no se puede perder al pasar por una plantilla ni por un editor.
+    // Con el escape mal puesto la expresion queda como `.`, que acepta
+    // cualquier caracter, y nada avisa.
+    exclude: { path: '[.]spec[.]ts$' },
+  },
+};

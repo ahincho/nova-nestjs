@@ -1,0 +1,34 @@
+# pnpm rechaza por defecto una version publicada hace muy poco: es la defensa
+# contra un mantenedor comprometido que publica algo malicioso y lo ve
+# instalado al instante. La politica cuida de terceros, y los paquetes de la
+# plataforma son propios.
+minimumReleaseAgeExclude:
+  - '@ahincho/nova-*'
+
+# Un rango de peer que no se cumple deja de ser una advertencia y pasa a romper
+# el install. Es lo que impide terminar en una combinacion que la plataforma no
+# declara soportar: el aviso se lee cuando ya fallo algo, el install fallido se
+# lee al instante.
+strictPeerDependencies: true
+
+# Todo lo que este servicio usa llega dentro de los tres paquetes de la
+# plataforma, y pnpm aisla node_modules: un paquete transitivo no se puede
+# importar. Sin esto el `import { Module } from '@nestjs/common'` corta con
+# TS2307.
+#
+# La lista es solo de lo que se importa o lo que resuelve el tsconfig. Las
+# herramientas que unicamente se ejecutan -oxlint, tsgolint, prettier,
+# dependency-cruiser- no estan, porque el comando `nova` las resuelve desde el
+# toolchain.
+#
+# Es la contrapartida de que el servicio no elija ninguna version.
+publicHoistPattern:
+  - '@nestjs/*'
+  - '@types/*'
+  - rxjs
+  - reflect-metadata
+  - class-validator
+  - class-transformer
+  - typescript
+  - vitest
+  - supertest

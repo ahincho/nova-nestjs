@@ -1,6 +1,12 @@
 {
   "$schema": "http://json-schema.org/schema",
   "schematics": {
+    "service": {
+      "aliases": ["s"],
+      "factory": "./service",
+      "description": "Crea un servicio entero: configuracion, arranque y reglas de arquitectura",
+      "schema": "./service/schema.json"
+    },
     "upstream": {
       "aliases": ["u"],
       "factory": "./upstream",

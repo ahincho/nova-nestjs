@@ -1,5 +1,5 @@
 import { SchematicTestRunner } from '@angular-devkit/schematics/testing';
-import { existsSync } from 'node:fs';
+import { existsSync, readFileSync } from 'node:fs';
 import { join } from 'node:path';
 import type { UnitTestTree } from '@angular-devkit/schematics/testing';
 
@@ -178,5 +178,95 @@ describe('el generador de feature', () => {
     });
 
     expect(tree.files).toContain('/src/modules/events/events.module.ts');
+  });
+});
+
+describe('el generador de servicio', () => {
+  let tree: UnitTestTree;
+
+  beforeAll(async () => {
+    tree = await runner.runSchematic('service', { name: 'academic-acl' });
+  });
+
+  // Lo que NO genera es el argumento del paquete: en los templates de los que
+  // sale esta forma, `common/` y `core/` eran entre el 40 % y el 50 % de src.
+  it('no genera common/ ni core/, que los trae la plataforma', () => {
+    expect(
+      tree.files.filter((file) => /\/src\/(common|core)\//.test(file)),
+    ).toEqual([]);
+  });
+
+  it('declara solo los tres paquetes de la plataforma', () => {
+    const manifest = JSON.parse(
+      tree.readContent('/academic-acl/package.json'),
+    ) as {
+      dependencies: Record<string, string>;
+      devDependencies: Record<string, string>;
+    };
+
+    expect(Object.keys(manifest.dependencies)).toEqual([
+      '@ahincho/nova-nestjs',
+    ]);
+    expect(Object.keys(manifest.devDependencies).sort()).toEqual([
+      '@ahincho/nova-nestjs-schematics',
+      '@ahincho/nova-nestjs-toolchain',
+    ]);
+  });
+
+  // Si un script nombrara la herramienta, cambiar de runner volveria a obligar
+  // a editar cada servicio, que es justo lo que el comando `nova` resolvio.
+  it('no deja ningun script nombrando una herramienta', () => {
+    const manifest = JSON.parse(
+      tree.readContent('/academic-acl/package.json'),
+    ) as { scripts: Record<string, string> };
+
+    const named = Object.entries(manifest.scripts).filter(
+      ([, command]) =>
+        !command.startsWith('nova ') && command !== 'node dist/main',
+    );
+
+    expect(named).toEqual([]);
+  });
+
+  it('pinea la version del propio paquete', () => {
+    const manifest = tree.readContent('/academic-acl/package.json');
+    const { version } = JSON.parse(
+      readFileSync(join(__dirname, '..', 'package.json'), 'utf8'),
+    ) as { version: string };
+
+    expect(manifest).toContain(`"@ahincho/nova-nestjs": "^${version}"`);
+  });
+
+  // El generador tiene que emitir algo que pase su propia puerta de calidad, y
+  // el motor de plantillas del DevKit devuelve CRLF en Windows.
+  it('escribe con finales de linea LF', () => {
+    for (const file of tree.files) {
+      expect(tree.readContent(file)).not.toContain('\r\n');
+    }
+  });
+
+  it('nace con un test que prueba las sondas', () => {
+    expect(tree.files).toContain('/academic-acl/test/app.e2e-spec.ts');
+  });
+
+  describe('las reglas de arquitectura', () => {
+    it('son genericas, para que no se queden viejas al agregar un contexto', () => {
+      const rules = tree.readContent('/academic-acl/.dependency-cruiser.js');
+
+      expect(rules).toContain("const CONTEXT = '[^/]+'");
+      expect(rules).toContain('service-no-importa-adapter');
+      expect(rules).toContain('un-contexto-no-importa-otro');
+    });
+
+    it('las del bff hablan de features y upstream', async () => {
+      const bff = await runner.runSchematic('service', {
+        name: 'home-bff',
+        style: 'bff',
+      });
+      const rules = bff.readContent('/home-bff/.dependency-cruiser.js');
+
+      expect(rules).toContain('feature-solo-usa-el-port-del-upstream');
+      expect(rules).toContain('upstream-no-importa-upstream');
+    });
   });
 });

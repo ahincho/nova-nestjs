@@ -1,6 +1,5 @@
 #!/usr/bin/env node
 import { spawn } from 'node:child_process';
-import { createRequire } from 'node:module';
 import { existsSync, readFileSync } from 'node:fs';
 import { delimiter, dirname, join } from 'node:path';
 import { fileURLToPath } from 'node:url';
@@ -22,8 +21,6 @@ import { fileURLToPath } from 'node:url';
  * bandera sin que nada se rompa. Aca no se puede perder.
  */
 
-const require = createRequire(import.meta.url);
-
 /** La raiz del paquete del toolchain, o sea el directorio que contiene `bin/`. */
 const TOOLCHAIN_DIR = dirname(dirname(fileURLToPath(import.meta.url)));
 
@@ -32,6 +29,40 @@ const TOOLCHAIN_DIR = dirname(dirname(fileURLToPath(import.meta.url)));
  * @property {string} path el archivo que se ejecuta
  * @property {string} packageDir la raiz del paquete que lo publica
  */
+
+/**
+ * Encuentra el package.json de un paquete instalado.
+ *
+ * Se resuelve con `import.meta.resolve` y no con `require.resolve` porque el
+ * `exports` de un paquete puede declarar solo la condicion `import` -es el caso
+ * de `dependency-cruiser`- y entonces la resolucion de CommonJS no lo alcanza.
+ *
+ * Y se prueban dos caminos porque **un paquete no esta obligado a exportar su
+ * propio manifiesto**: `dependency-cruiser` no lo hace. Cuando falta, se
+ * resuelve la entrada y se sube hasta el package.json que la contiene.
+ *
+ * @param {string} packageName
+ * @returns {string}
+ */
+function manifestOf(packageName) {
+  try {
+    return fileURLToPath(import.meta.resolve(`${packageName}/package.json`));
+  } catch {
+    let dir = dirname(fileURLToPath(import.meta.resolve(packageName)));
+
+    // La raiz del paquete es el primer ancestro con un package.json. El limite
+    // es llegar a la raiz del disco, donde dirname deja de cambiar.
+    for (let parent = dirname(dir); ; dir = parent, parent = dirname(dir)) {
+      const candidate = join(dir, 'package.json');
+      if (existsSync(candidate)) {
+        return candidate;
+      }
+      if (parent === dir) {
+        throw new Error(`no se encontro el package.json de ${packageName}`);
+      }
+    }
+  }
+}
 
 /**
  * Resuelve el binario que instalo el toolchain, no el que el consumidor tenga
@@ -43,7 +74,7 @@ const TOOLCHAIN_DIR = dirname(dirname(fileURLToPath(import.meta.url)));
  * @returns {Tool}
  */
 function toolBin(packageName, binName) {
-  const manifestPath = require.resolve(`${packageName}/package.json`);
+  const manifestPath = manifestOf(packageName);
   // El `bin` de un package.json puede ser una cadena o un mapa, y quien lo
   // escribio no es esta plataforma. Se lee como `unknown` y se estrecha, en vez
   // de afirmar una forma que el paquete no prometio.
@@ -188,6 +219,18 @@ const commands = new Map([
     },
   ],
   [
+    'lint:arch',
+    {
+      // Las reglas de arquitectura son las unicas que oxlint no puede
+      // expresar: su `no-restricted-imports` filtra por el especificador y no
+      // por donde esta el archivo que importa, asi que no sabe decir «el
+      // service no importa el adapter, pero el module si».
+      describe: 'verifica las fronteras entre capas (dependency-cruiser)',
+      run: (/** @type {string[]} */ args) =>
+        run('dependency-cruiser', 'depcruise', ['src', '--config', ...args]),
+    },
+  ],
+  [
     'format',
     {
       describe: 'formatea el repositorio',
@@ -218,7 +261,7 @@ const commands = new Map([
  * lee mejor que los veinte hallazgos que provoca, y el formato al final porque
  * es lo unico que no dice nada sobre si el codigo funciona.
  */
-const VERIFY = ['typecheck', 'lint', 'test:cov', 'format:check'];
+const VERIFY = ['typecheck', 'lint', 'lint:arch', 'test:cov', 'format:check'];
 
 function usage() {
   const width = Math.max(

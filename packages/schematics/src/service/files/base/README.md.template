@@ -1,0 +1,61 @@
+# <%= name %>
+
+<%= classify(name) %>, sobre [`@ahincho/nova-nestjs`](https://github.com/ahincho/nova-nestjs).
+
+```bash
+pnpm install
+cp .env.example .env
+pnpm start:dev
+```
+
+| Ruta            | Qué es                                                 |
+| --------------- | ------------------------------------------------------ |
+| `/health/live`  | el proceso está vivo; no toca dependencias             |
+| `/health/ready` | los chequeos registrados; 503 si uno cae o hay apagado |
+| `/api/v1/...`   | el resto, bajo el prefijo global                       |
+
+Las sondas quedan **fuera** del prefijo global a propósito: moverlas es mover el
+target group.
+
+## Tres dependencias, todas de la plataforma
+
+```json
+"dependencies":    { "@ahincho/nova-nestjs": "^<%= platformVersion %>" },
+"devDependencies": {
+  "@ahincho/nova-nestjs-schematics": "^<%= platformVersion %>",
+  "@ahincho/nova-nestjs-toolchain": "^<%= platformVersion %>"
+}
+```
+
+NestJS no aparece, ni Vitest, TypeScript, oxlint o Prettier. Llegan dentro de
+esos tres, en las versiones contra las que la plataforma corre su suite. Por eso
+hace falta el `publicHoistPattern` del `pnpm-workspace.yaml`: pnpm aísla
+`node_modules` y sin él un `import` de `@nestjs/common` corta con `TS2307`.
+
+## Los scripts no nombran la herramienta
+
+Todos pasan por `nova`, que es del toolchain. El día que la plataforma cambie de
+runner, de linter o de formateador, este `package.json` no cambia.
+
+```bash
+pnpm verify   # typecheck, lint, lint:arch, cobertura y formato
+```
+
+`nova lint` corre **siempre** con `--type-aware`. Sin esa bandera oxlint se
+salta las 23 reglas que necesitan tipos y no avisa: el reporte sale verde con la
+mitad del análisis sin hacer.
+
+## La arquitectura la verifica el CI
+
+`.dependency-cruiser.js` tiene las reglas, una por frontera, cada una con el
+motivo escrito. `nova lint:arch` las corre y forma parte de `nova verify`.
+
+**Las reglas son genéricas**: aplican a cualquier <%= style === 'acl' ? 'contexto' : 'feature o upstream' %>
+que agregues sin tocar ese archivo.
+
+## Agregar código
+
+```bash
+pnpm exec nest g <%= style === 'acl' ? 'feature' : 'feature' %> <nombre> --style=<%= style %>
+pnpm exec nest g upstream <nombre>
+```
