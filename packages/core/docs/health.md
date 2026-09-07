@@ -39,7 +39,9 @@ exactamente lo que terminus resuelve, y además:
 - **Apagado ordenado.** Con `gracefulShutdownTimeoutMs`, al recibir SIGTERM el
   servicio sigue vivo esa ventana respondiendo 503 con `status: 'shutting_down'`
   en `ready`; el balanceador deja de enviarle tráfico y recién entonces cierra.
-  Es lo que evita los errores de los últimos segundos de cada despliegue.
+  Es lo que evita los errores de los últimos segundos de cada despliegue. Ver
+  también [el 503 del apagado](#el-503-del-apagado-es-sobre-conexiones-ya-abiertas),
+  que es la parte que se malinterpreta al probarla.
 - **Un cuerpo estándar** que cualquiera que haya visto un servicio NestJS
   reconoce.
 
@@ -88,6 +90,40 @@ muere diez minutos más tarde con un timeout que se lee como un problema de
 recursos. Si usas `globalPrefix`, `bootstrap()` deja las sondas y la ruta
 heredada fuera del prefijo por esta misma razón — y activa los hooks de apagado,
 sin los cuales la ventana de `gracefulShutdownTimeoutMs` nunca se abre.
+
+## El 503 del apagado es sobre conexiones ya abiertas
+
+`bootstrap()` pasa `return503OnClosing: true` desde NestJS 12. Es la mitad del
+apagado que los hooks no cubren: los hooks avisan a los módulos, y esta opción
+decide qué contesta el proceso mientras se está apagando.
+
+**Actúa sobre las conexiones ya establecidas.** Una petición que llega por una
+conexión que sigue abierta recibe `503 Service Unavailable`. Una conexión TCP
+nueva, en cambio, se rechaza antes de que exista una petición HTTP que
+contestar, porque el listener ya dejó de aceptar: ahí lo que se ve es un
+`ECONNREFUSED`.
+
+Medido sobre un servicio real, con el cierre disparado en t=1200 ms:
+
+| Qué                                      | Cuándo    | Resultado                   |
+| ---------------------------------------- | --------- | --------------------------- |
+| petición en vuelo cuando llega el cierre | t=3021 ms | **200**, terminó completa   |
+| petición nueva, conexión ya abierta      | t=3022 ms | **503 Service Unavailable** |
+| petición nueva, conexión TCP nueva       | t=1845 ms | **ECONNREFUSED**            |
+
+Para el caso que importa es exactamente lo que se quiere: **un balanceador
+mantiene la conexión abierta**, así que recibe el 503 y saca la tarea de
+rotación en vez de encontrarse la conexión cortada a mitad de una petición.
+
+**Al probarlo a mano se ve al revés.** Un `curl` suelto abre una conexión nueva
+y recibe `connection refused`, que se lee como que la opción no funciona. Para
+verlo hay que reusar la conexión:
+
+```js
+const agent = new http.Agent({ keepAlive: true });
+// una petición cualquiera primero, para abrir la conexión;
+// después el cierre; después otra por el mismo agente -> 503
+```
 
 ## Opciones
 

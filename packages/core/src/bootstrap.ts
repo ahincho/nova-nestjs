@@ -96,10 +96,18 @@ export async function bootstrap(
       bufferLogs: true,
       routeConflictPolicy: options.routeConflicts ?? DEFAULT_ROUTE_CONFLICTS,
       // La otra mitad del apagado ordenado. `enableShutdownHooks` avisa a los
-      // módulos, pero sin esto el proceso sigue aceptando peticiones nuevas
-      // mientras se apaga y contesta con la conexión cortada. Con esto una
-      // petición nueva recibe 503 -que es lo que el balanceador necesita para
-      // sacar la tarea de rotación- y las que ya estaban en vuelo terminan.
+      // módulos; esto decide qué contesta el proceso mientras se apaga.
+      //
+      // Actúa sobre las conexiones **ya establecidas**: una petición que llega
+      // por una que sigue abierta recibe 503, y las que estaban en vuelo
+      // terminan. Una conexión TCP nueva, en cambio, se rechaza antes de que
+      // exista una petición HTTP que contestar, porque el listener ya dejó de
+      // aceptar: ahí lo que se ve es un connection refused, no un 503.
+      //
+      // Para el caso que importa es lo correcto, porque un balanceador mantiene
+      // la conexión abierta y necesita el 503 para sacar la tarea de rotación.
+      // Medido: cierre en t=1200 ms, la petición en vuelo terminó 200 a los
+      // 3021 ms y la nueva sobre la misma conexión recibió 503.
       return503OnClosing: true,
     },
   );

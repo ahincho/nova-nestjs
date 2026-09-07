@@ -102,10 +102,9 @@ Y dos que llegaron con NestJS 12:
   ruta ensombrecida -`/users/me` contra `/users/:id`- solo avisa, porque a veces
   es deliberada.
 - **`return503OnClosing`**, la otra mitad del apagado ordenado. `enableShutdownHooks`
-  avisa a los módulos; sin esto el proceso sigue aceptando peticiones nuevas
-  mientras se apaga. Con esto una petición nueva recibe 503 -que es lo que el
-  balanceador necesita para sacar la tarea de rotación- y las que ya estaban en
-  vuelo terminan.
+  avisa a los módulos; esto decide qué contesta el proceso mientras se apaga.
+  Actúa sobre las conexiones **ya establecidas**, que es la distinción que
+  importa al probarlo — está en [docs/health.md](docs/health.md#el-503-del-apagado-es-sobre-conexiones-ya-abiertas).
 
 | Opción                    | Por defecto                                         |
 | ------------------------- | --------------------------------------------------- |

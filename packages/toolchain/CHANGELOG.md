@@ -1,5 +1,28 @@
 # @ahincho/nova-nestjs-toolchain
 
+## 0.10.2
+
+### Patch Changes
+
+- Documenta cómo se comporta de verdad `return503OnClosing`, que estaba descrito de más.
+
+  Decía que durante el apagado «una petición nueva recibe 503», a secas. **Actúa sobre las
+  conexiones ya establecidas.** Medido con el cierre disparado en t=1200 ms:
+
+  | Qué                                      | Resultado                   |
+  | ---------------------------------------- | --------------------------- |
+  | petición en vuelo cuando llega el cierre | **200**, terminó completa   |
+  | petición nueva, conexión ya abierta      | **503 Service Unavailable** |
+  | petición nueva, conexión TCP nueva       | **ECONNREFUSED**            |
+
+  Una conexión nueva se rechaza antes de que exista una petición HTTP que contestar, porque el
+  listener ya dejó de aceptar. Para el caso real es lo correcto -un balanceador mantiene la
+  conexión abierta- pero **probarlo con un `curl` suelto muestra el rechazo y no el 503**, y se
+  lee como que la opción no funciona.
+
+  Está en `packages/core/docs/health.md`, con la receta de `http.Agent({ keepAlive: true })` que
+  hace falta para verlo. Sólo cambia documentación y un comentario.
+
 ## 0.10.1
 
 ### Patch Changes
