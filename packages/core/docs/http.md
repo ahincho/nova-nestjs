@@ -70,6 +70,27 @@ upstream suele devolver los identificadores de la persona sobre la que era la
 petición, y un query string los lleva directamente. Del URL se registra sólo
 esquema, host y ruta.
 
+## Lo que no hace: reintentar
+
+**No hay reintentos ni corte de circuito, y es deliberado.** Una llamada es una
+llamada: si el upstream falla, el fallo se traduce -502 si cayó, 504 si tardó- y
+sale con su id de correlación.
+
+Tres razones. Un reintento automático **amplifica** el incidente que pretende
+cubrir: el caso donde aparece de verdad no es el fallo aislado sino el upstream
+saturado, y ahí duplicar el tráfico entrante es la diferencia entre lento y
+caído. No se puede reintentar sin saber si la operación es **idempotente**, y un
+cliente genérico que sólo ve el método está adivinando el contrato del upstream.
+Y el lugar donde esto se resuelve bien es la infraestructura, que ve toda la
+flota, no un proceso que sólo ve sus propias llamadas.
+
+Un servicio que necesite reintentar una llamada concreta lo hace **en su caso de
+uso**, que es donde sí sabe si esa operación se puede repetir. Lo que no hay es
+una política automática y global.
+
+El detalle, con las consecuencias negativas y el disparador que obliga a
+revisarlo, está en ADR-029.
+
 ## Opciones
 
 | Opción             | Por defecto | Para qué                                            |
