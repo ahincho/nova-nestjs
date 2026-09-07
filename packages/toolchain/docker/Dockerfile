@@ -34,45 +34,62 @@ RUN npm install --global pnpm@${PNPM_VERSION}
 WORKDIR /app
 
 # ---------------------------------------------------------------------------
-# deps: el árbol completo, con el lockfile mandando
+# build: instala, compila y descarta lo que sólo servía para compilar
 # ---------------------------------------------------------------------------
-# **Sólo los manifiestos, nunca el fuente.** Es lo que decide si el build es
-# rápido: con un `COPY . .` antes del install, cambiar una línea de `src/`
-# invalida la instalación entera. Medido sobre un servicio generado: tocar
-# `main.ts` costaba 23s de un build frío de 41s; separando los manifiestos baja
-# a 7s.
+# El contexto entero entra antes de instalar, y no sólo los manifiestos. La
+# receta clásica -copiar package.json, instalar, después copiar el código- se
+# apoya en la caché de capas, y acá esa caché la da el montaje del store de
+# pnpm: con el store caliente, un cambio de código relinkea en vez de volver a
+# descargar.
 #
-# El `.npmrc` del repositorio es obligatorio y se copia porque no lleva
-# credencial: sólo apunta el scope al registry. Un servicio sin él no puede
-# resolver `@ahincho/*` de ninguna manera, así que exigirlo no agrega ninguna
-# restricción que no existiera ya.
+# A cambio funciona con un servicio cuyas dependencias son archivos del propio
+# repositorio, que es como se prueba esta imagen en CI. Con los manifiestos
+# sueltos, un `file:./.tarballs/...` no resuelve porque el archivo no está en la
+# etapa.
 #
-# El token entra como secreto de BuildKit y no como ARG ni como archivo
-# copiado: un ARG queda en el historial de la imagen y un COPY queda en una
-# capa. Montado, no toca ninguna de las dos.
-FROM base AS deps
-COPY package.json pnpm-lock.yaml pnpm-workspace.yaml .npmrc ./
+# Lo que no entra lo decide el `.dockerignore` del servicio, y `node_modules` es
+# el que importa: sin él se copian binarios nativos de Windows dentro de una
+# imagen Linux.
+#
+# El token del registry entra como secreto de BuildKit y no como ARG ni como
+# archivo copiado: un ARG queda en el historial de la imagen y un COPY queda en
+# una capa. Montado, no toca ninguna de las dos. El `.npmrc` del repositorio sí
+# se copia, porque no lleva credencial: sólo apunta el scope al registry.
+# **El `COPY . .` va antes del install a propósito, y cuesta.** Medido sobre un
+# servicio generado, reconstruir tras tocar una línea de `src/` toma 23s contra
+# los 41s de un build frío: cualquier cambio de fuente invalida la instalación
+# entera. Con una etapa `deps` que copie sólo los manifiestos baja a 14s, y con
+# una etapa `prod-deps` en paralelo a 7s.
+#
+# Las dos formas rompen las dependencias `file:`, que necesitan su archivo en el
+# contexto y no están en ningún manifiesto. El arnés de CI instala tarballs
+# empaquetados, así que el build muere en `deps` sin poder resolverlos.
+#
+# El arreglo no es un parche acá: es que el arnés sirva esos paquetes desde un
+# registry local en vez de por ruta. Mientras tanto se paga la reinstalación,
+# que es lenta pero correcta.
+FROM base AS build
+
+# `pnpm prune` borra node_modules, y sin TTY corta pidiendo confirmación
+# -ERR_PNPM_ABORTED_REMOVE_MODULES_DIR_NO_TTY-. Un build de imagen es no
+# interactivo por definición, así que decirlo es lo correcto; la alternativa,
+# `confirmModulesPurge: false`, cambiaría también el comportamiento de quien
+# corre pnpm a mano en su máquina.
+ENV CI=true
+
+COPY . .
 RUN --mount=type=secret,id=npmrc,target=/root/.npmrc \
     --mount=type=cache,target=/pnpm/store,sharing=locked \
     pnpm install --frozen-lockfile
 
-# ---------------------------------------------------------------------------
-# build: compila y se queda con las dependencias de producción
-# ---------------------------------------------------------------------------
-# `pnpm prune --prod` va acá y no en una etapa aparte que copie sólo los
-# manifiestos. Se intentó así -corría en paralelo con la compilación y ahorraba
-# unos segundos- y rompía cualquier dependencia `file:`, que necesita el archivo
-# en el contexto: el arnés de CI instala tarballs empaquetados y se quedaba sin
-# ellos. La ganancia real no estaba ahí de todos modos, sino en que `deps` copie
-# sólo los manifiestos.
-#
-# Y prune necesita el secreto: no es una poda local, vuelve a resolver el árbol
-# sin las dependencias de desarrollo y descarga. Sin él, el build muere con un
-# 401 después de haber instalado bien.
-FROM deps AS build
-ENV CI=true
-COPY . .
+# Compilar no toca la red, así que este paso va sin el secreto: cuanto menos
+# amplio sea el montaje, menos código de terceros puede leerlo.
 RUN pnpm build
+
+# `pnpm prune --prod` sí lo necesita. No es una poda local: vuelve a resolver
+# el árbol sin las dependencias de desarrollo y **descarga**. Sin el secreto
+# acá, el build muere con un 401 después de haber instalado bien, que es de
+# los fallos más desconcertantes que puede dar esta receta.
 RUN --mount=type=secret,id=npmrc,target=/root/.npmrc \
     --mount=type=cache,target=/pnpm/store,sharing=locked \
     pnpm prune --prod
@@ -80,8 +97,8 @@ RUN --mount=type=secret,id=npmrc,target=/root/.npmrc \
 # ---------------------------------------------------------------------------
 # runtime: node, node_modules de producción y dist
 # ---------------------------------------------------------------------------
-# Arranca de la imagen oficial y NO de `base`, así que pnpm no llega acá. Corre
-# como `node`, el usuario sin privilegios que la imagen ya trae.
+# Sin pnpm ni el código fuente. Corre como `node`, el usuario sin privilegios
+# que la imagen oficial ya trae.
 FROM node:${NODE_VERSION}-alpine AS runtime
 ENV NODE_ENV=production
 WORKDIR /app
