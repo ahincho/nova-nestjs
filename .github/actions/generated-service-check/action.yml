@@ -15,8 +15,14 @@ inputs:
 runs:
   using: composite
   steps:
+    # El servicio se genera FUERA del repositorio, y eso es parte de la prueba.
+    # Adentro, el `.gitignore` de la plataforma lo alcanza -oxlint sube el árbol
+    # buscando archivos de ignore- y `nova lint` termina con «No files found to
+    # lint», que además sale con código 1. Un servicio de verdad tampoco vive
+    # dentro del repositorio de la plataforma.
+    #
     # La CLI de schematics sale de la misma versión de DevKit que declara el
-    # paquete. Fijarla a mano acá dejaría que las dos divergieran en silencio, y
+    # paquete: fijarla a mano acá dejaría que las dos divergieran en silencio, y
     # el motor de plantillas es justo la pieza que decide qué se emite.
     #
     # Se apunta al `dist/` del workspace y no al tarball porque lo que se está
@@ -26,13 +32,14 @@ runs:
       env:
         NAME: ${{ inputs.name }}
         STYLE: ${{ inputs.style }}
+        TARGET: ${{ runner.temp }}/generated
       run: |
         set -euo pipefail
         devkit=$(node -p "require('$PWD/packages/schematics/package.json').dependencies['@angular-devkit/schematics']")
         collection="$PWD/packages/schematics/dist/collection.json"
-        rm -rf .generated
-        mkdir .generated
-        cd .generated
+        rm -rf "$TARGET"
+        mkdir -p "$TARGET"
+        cd "$TARGET"
 
         # `--no-dry-run` es obligatorio, y no es cosmético. La CLI enciende el
         # modo debug por su cuenta cuando cree que la colección es local, y el
@@ -53,16 +60,16 @@ runs:
     # publicada.
     - name: Pack the platform into it
       shell: bash
-      run: pnpm consumer:pack ".generated/${{ inputs.name }}"
+      run: pnpm consumer:pack "${{ runner.temp }}/generated/${{ inputs.name }}"
 
     - name: Install
       shell: bash
-      working-directory: .generated/${{ inputs.name }}
+      working-directory: ${{ runner.temp }}/generated/${{ inputs.name }}
       run: pnpm install --no-frozen-lockfile
 
     - name: Peers
       shell: bash
-      working-directory: .generated/${{ inputs.name }}
+      working-directory: ${{ runner.temp }}/generated/${{ inputs.name }}
       run: pnpm peers check
 
     # `verify` y no `test`: el typecheck, oxlint con sus reglas de tipos,
@@ -71,5 +78,5 @@ runs:
     # sin este paso la resolución de dependency-cruiser no la prueba nadie.
     - name: Verify
       shell: bash
-      working-directory: .generated/${{ inputs.name }}
+      working-directory: ${{ runner.temp }}/generated/${{ inputs.name }}
       run: pnpm verify

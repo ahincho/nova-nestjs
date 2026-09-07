@@ -6,8 +6,9 @@ coverage/
 .env
 .env.local
 
-# Copias efímeras que dejan los chequeos de consumidor: el servicio de ejemplo,
-# el servicio recién generado y los tarballs que se les instalan.
+# Copia efímera del servicio de ejemplo que deja el chequeo de consumidor, y los
+# tarballs que se le instalan. El servicio que se genera para probar el
+# generador no está acá a propósito: se arma fuera del repositorio, porque este
+# mismo archivo alcanzaría a oxlint y lo dejaría sin nada que mirar.
 .consumer/
-.generated/
 .tarballs/
