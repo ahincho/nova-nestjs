@@ -26,6 +26,10 @@ ARG PNPM_VERSION=11.24.0
 # nada que ver con el servicio.
 FROM node:${NODE_VERSION}-alpine AS base
 ARG PNPM_VERSION
+# El store va a una ruta fija para que el montaje de cache de BuildKit lo
+# encuentre. Como variable y no como bandera: `pnpm prune` no acepta
+# `--store-dir`, y descubrirlo cuesta un build entero.
+ENV npm_config_store_dir=/pnpm/store
 RUN npm install --global pnpm@${PNPM_VERSION}
 WORKDIR /app
 
@@ -63,8 +67,19 @@ ENV CI=true
 COPY . .
 RUN --mount=type=secret,id=npmrc,target=/root/.npmrc \
     --mount=type=cache,target=/pnpm/store,sharing=locked \
-    pnpm install --frozen-lockfile --store-dir /pnpm/store
-RUN pnpm build && pnpm prune --prod
+    pnpm install --frozen-lockfile
+
+# Compilar no toca la red, así que este paso va sin el secreto: cuanto menos
+# amplio sea el montaje, menos código de terceros puede leerlo.
+RUN pnpm build
+
+# `pnpm prune --prod` sí lo necesita. No es una poda local: vuelve a resolver
+# el árbol sin las dependencias de desarrollo y **descarga**. Sin el secreto
+# acá, el build muere con un 401 después de haber instalado bien, que es de
+# los fallos más desconcertantes que puede dar esta receta.
+RUN --mount=type=secret,id=npmrc,target=/root/.npmrc \
+    --mount=type=cache,target=/pnpm/store,sharing=locked \
+    pnpm prune --prod
 
 # ---------------------------------------------------------------------------
 # runtime: node, node_modules de producción y dist
