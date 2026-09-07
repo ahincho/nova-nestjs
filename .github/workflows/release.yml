@@ -87,12 +87,36 @@ jobs:
         env:
           NODE_AUTH_TOKEN: ${{ secrets.GITHUB_TOKEN }}
 
+      # `changeset publish` no consume changesets: publica las versiones que los
+      # manifiestos ya llevan. Si `changeset version` no corrió y su commit no
+      # está en la rama, esto termina bien y no sube nada, y la corrida queda
+      # verde. Pasó seis veces antes de que existiera esta comprobación.
+      #
+      # changesets crea un tag por paquete publicado, así que un tag nuevo en
+      # HEAD es la prueba de que algo salió. Se compara contra los que ya
+      # estaban, para que un segundo disparo sobre el mismo commit tampoco pase
+      # en falso.
       - name: Publish
         if: ${{ !inputs.dry-run }}
-        run: pnpm release
+        run: |
+          set -euo pipefail
+          git tag --points-at HEAD | sort > "$RUNNER_TEMP/tags-antes"
+          pnpm release
+          git tag --points-at HEAD | sort > "$RUNNER_TEMP/tags-despues"
+          nuevos=$(comm -13 "$RUNNER_TEMP/tags-antes" "$RUNNER_TEMP/tags-despues")
+          if [ -z "$nuevos" ]; then
+            echo "::error::changeset publish no publicó nada. Falta correr 'pnpm version-packages' y dejar ese commit en la rama antes de disparar el release."
+            exit 1
+          fi
+          echo "publicado:"
+          echo "$nuevos"
         env:
           NODE_AUTH_TOKEN: ${{ secrets.GITHUB_TOKEN }}
 
+      # `--tags` y no `--follow-tags`. El segundo empuja sólo tags **anotados**, y
+      # los que crea changesets son lightweight: el paso decía «Everything
+      # up-to-date» y no subía ninguno. Así se publicaron veintiún versiones sin
+      # que quedara en git una sola marca de qué commit produjo cada una.
       - name: Push the release tags
         if: ${{ !inputs.dry-run }}
-        run: git push --follow-tags
+        run: git push --tags
