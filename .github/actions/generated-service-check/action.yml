@@ -1,0 +1,65 @@
+name: Generated service check
+description: >-
+  Genera un servicio desde cero, le instala los tarballs de la plataforma y le
+  corre `nova verify` entero. Es lo único que prueba el generador contra un
+  árbol de dependencias real.
+
+inputs:
+  style:
+    description: '`acl` o `bff`. Los dos generan un servicio distinto.'
+    required: true
+  name:
+    description: Nombre del servicio a generar.
+    required: true
+
+runs:
+  using: composite
+  steps:
+    # La CLI de schematics sale de la misma versión de DevKit que declara el
+    # paquete. Fijarla a mano acá dejaría que las dos divergieran en silencio, y
+    # el motor de plantillas es justo la pieza que decide qué se emite.
+    #
+    # Se apunta al `dist/` del workspace y no al tarball porque lo que se está
+    # probando es el servicio que sale, no la forma de invocar al generador.
+    - name: Generate the service
+      shell: bash
+      env:
+        NAME: ${{ inputs.name }}
+        STYLE: ${{ inputs.style }}
+      run: |
+        set -euo pipefail
+        devkit=$(node -p "require('$PWD/packages/schematics/package.json').dependencies['@angular-devkit/schematics']")
+        collection="$PWD/packages/schematics/dist/collection.json"
+        rm -rf .generated
+        mkdir .generated
+        cd .generated
+        pnpm dlx "@angular-devkit/schematics-cli@${devkit}" \
+          "${collection}:service" "$NAME" --style "$STYLE"
+
+    # El script borra el `.npmrc` generado, y eso no le quita cobertura: que ese
+    # archivo apunte a GitHub Packages lo asegura una prueba unitaria del
+    # paquete. Acá hace falta lo contrario -que nada de `@ahincho` pueda venir
+    # del registry- porque la versión que se está probando todavía no existe
+    # publicada.
+    - name: Pack the platform into it
+      shell: bash
+      run: pnpm consumer:pack ".generated/${{ inputs.name }}"
+
+    - name: Install
+      shell: bash
+      working-directory: .generated/${{ inputs.name }}
+      run: pnpm install --no-frozen-lockfile
+
+    - name: Peers
+      shell: bash
+      working-directory: .generated/${{ inputs.name }}
+      run: pnpm peers check
+
+    # `verify` y no `test`: el typecheck, oxlint con sus reglas de tipos,
+    # dependency-cruiser y el formato solo se ejercitan desde acá. El servicio
+    # de ejemplo no corre `lint:arch` -no tiene reglas de arquitectura-, así que
+    # sin este paso la resolución de dependency-cruiser no la prueba nadie.
+    - name: Verify
+      shell: bash
+      working-directory: .generated/${{ inputs.name }}
+      run: pnpm verify

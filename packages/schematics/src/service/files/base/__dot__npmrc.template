@@ -1,0 +1,13 @@
+# Los paquetes de la plataforma se publican en GitHub Packages, que exige que el
+# scope npm sea el dueño del repositorio: por eso el prefijo `nova-` va en el
+# nombre del paquete y no en el scope. Sin esta línea `pnpm install` resuelve
+# `@ahincho/*` contra npmjs y corta con un 404.
+#
+# Acá va SÓLO el registry. La credencial no puede vivir en este archivo: pnpm
+# ignora a propósito las variables de entorno en las credenciales que vienen de
+# un .npmrc versionado, porque alguien podría cambiar la URL del registry en un
+# pull request y llevarse el token. Va en el ~/.npmrc de cada persona o, en CI,
+# en el que escribe actions/setup-node con `registry-url`.
+#
+#   pnpm config set "//npm.pkg.github.com/:_authToken" <token con read:packages>
+@ahincho:registry=https://npm.pkg.github.com

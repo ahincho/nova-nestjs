@@ -249,6 +249,20 @@ describe('el generador de servicio', () => {
     expect(tree.files).toContain('/academic-acl/test/app.e2e-spec.ts');
   });
 
+  // Los dos archivos que deciden si el servicio funciona en manos de otra
+  // persona. Sin el .npmrc, `pnpm install` busca `@ahincho/*` en npmjs y corta
+  // con un 404, porque la plataforma se publica en GitHub Packages. Sin el
+  // .gitattributes, un clon en Windows queda en CRLF y `nova format:check`
+  // falla en local mientras pasa en el runner de Linux.
+  it('fija el registry y el fin de línea', () => {
+    expect(tree.readContent('/academic-acl/.npmrc')).toContain(
+      '@ahincho:registry=https://npm.pkg.github.com',
+    );
+    expect(tree.readContent('/academic-acl/.gitattributes')).toContain(
+      '* text=auto eol=lf',
+    );
+  });
+
   describe('las reglas de arquitectura', () => {
     it('son genericas, para que no se queden viejas al agregar un contexto', () => {
       const rules = tree.readContent('/academic-acl/.dependency-cruiser.js');

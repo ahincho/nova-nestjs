@@ -10,11 +10,25 @@ pnpm add -D @ahincho/nova-nestjs-schematics
 
 ## Crear un servicio entero
 
+Dentro de un proyecto que ya tenga la colección instalada:
+
 ```bash
-pnpm dlx @ahincho/nova-nestjs-schematics service academic-acl
-# o, dentro de un proyecto que ya tenga la coleccion:
 nest g -c @ahincho/nova-nestjs-schematics service home-bff --style=bff
 ```
+
+Y para el primero, cuando todavía no hay proyecto, desde cualquier directorio de
+trabajo:
+
+```bash
+pnpm add -D @angular-devkit/schematics-cli @ahincho/nova-nestjs-schematics
+pnpm exec schematics @ahincho/nova-nestjs-schematics:service academic-acl
+```
+
+**`pnpm dlx` no sirve acá**, y conviene saberlo antes de intentarlo. El paquete
+no publica ningún binario, así que corta con `ERR_PNPM_DLX_NO_BIN`; y sumarle la
+CLI del DevKit con `--package` tampoco alcanza, porque el motor resuelve la
+colección contra el directorio actual y no contra el que arma `dlx`. Cerrar ese
+hueco es darle al paquete un binario propio, que hoy no tiene.
 
 Deja un servicio que arranca y pasa su propia puerta de calidad:
 
@@ -22,11 +36,28 @@ Deja un servicio que arranca y pasa su propia puerta de calidad:
 cd academic-acl && pnpm install && pnpm verify
 ```
 
-Trae el `package.json` con **los tres paquetes de la plataforma y nada mas**, el
+Trae el `package.json` con **los tres paquetes de la plataforma y nada más**, el
 `pnpm-workspace.yaml` con su `publicHoistPattern`, los dos `tsconfig`, el
 `nest-cli.json`, el `.oxlintrc.json`, el `vitest.config.mjs`, el `main.ts` con
 `bootstrap()`, el `app.module.ts` con `NovaModule.forRoot()`, un test de las
 sondas y las reglas de arquitectura.
+
+Y trae dos archivos que no se ven hasta que faltan. El `.npmrc` apunta el scope
+`@ahincho` a GitHub Packages: sin él, `pnpm install` lo busca en npmjs y corta
+con un 404. El `.gitattributes` fija `eol=lf`: sin él, un clon en Windows queda
+en CRLF y `nova format:check` falla en local mientras pasa en el runner de
+Linux, que es el falso negativo más caro de diagnosticar de los dos.
+
+El registry sí pide credencial, y **no va en el `.npmrc` del repositorio** -pnpm
+ignora las variables de entorno en credenciales que vengan de un archivo
+versionado, precisamente para que nadie se lleve el token cambiando la URL en un
+pull request-. Una vez por máquina:
+
+```bash
+pnpm config set "//npm.pkg.github.com/:_authToken" <token con read:packages>
+```
+
+En CI lo escribe `actions/setup-node` con `registry-url` y `NODE_AUTH_TOKEN`.
 
 ### Lo que no genera
 

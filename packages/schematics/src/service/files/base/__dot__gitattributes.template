@@ -1,0 +1,9 @@
+# En Windows `core.autocrlf` suele venir en true, así que sin esto el working
+# copy queda en CRLF y `nova format:check` reporta decenas de diferencias que no
+# existen en el runner de Linux. Fijar el fin de línea en el repositorio es lo
+# que evita ese falso negativo, que cuesta más leerlo que arreglarlo.
+* text=auto eol=lf
+
+*.png binary
+*.jpg binary
+*.ico binary

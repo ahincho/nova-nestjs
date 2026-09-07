@@ -6,6 +6,8 @@ coverage/
 .env
 .env.local
 
-# Copia efimera del servicio de ejemplo que deja el chequeo de consumidor.
+# Copias efímeras que dejan los chequeos de consumidor: el servicio de ejemplo,
+# el servicio recién generado y los tarballs que se les instalan.
 .consumer/
+.generated/
 .tarballs/

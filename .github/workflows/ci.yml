@@ -21,13 +21,13 @@ jobs:
     name: verify (node ${{ matrix.node }})
     runs-on: ubuntu-latest
 
-    # Los paquetes declaran `engines: ">=24.15"`, que permite la linea 26. Sin
-    # esta matriz esa afirmacion no estaba probada: se construia, se probaba y
-    # se publicaba solo en 24. Ninguno de los 1357 rangos `engines` del arbol
+    # Los paquetes declaran `engines: ">=24.15"`, que permite la línea 26. Sin
+    # esta matriz esa afirmación no estaba probada: se construía, se probaba y
+    # se publicaba solo en 24. Ninguno de los 1357 rangos `engines` del árbol
     # excluye 26, pero soporte declarado no es soporte ejercitado.
     #
-    # La 25 no esta a proposito: es linea impar y sin soporte a largo plazo, y
-    # `vitest` 5 la excluye explicitamente (`^22.12 || ^24 || >=26`).
+    # La 25 no está a propósito: es línea impar y sin soporte a largo plazo, y
+    # `vitest` 5 la excluye explícitamente (`^22.12 || ^24 || >=26`).
     strategy:
       fail-fast: false
       matrix:
@@ -37,9 +37,9 @@ jobs:
       - name: Checkout
         uses: actions/checkout@v7
 
-      # Este workflow es autocontenido a proposito. La composite action
+      # Este workflow es autocontenido a propósito. La composite action
       # nova-setup-node de nova-devops acepta un input `package-manager` pero su
-      # paso de instalacion siempre corre npm, asi que no sirve para un
+      # paso de instalación siempre corre npm, así que no sirve para un
       # workspace de pnpm. Migrar a ella cuando soporte pnpm de verdad.
       - name: Setup pnpm
         uses: pnpm/action-setup@v6
@@ -54,12 +54,27 @@ jobs:
         run: pnpm install --frozen-lockfile
 
       # build, typecheck, cobertura y formato, en ese orden: un paquete consume
-      # el dist de su hermano, asi que el typecheck no puede ir primero.
+      # el dist de su hermano, así que el typecheck no puede ir primero.
       - name: Verify
         run: pnpm verify
 
       # Verify solo mira el monorepo, donde cada paquete resuelve su propio
-      # arbol. Esto instala los tarballs en un servicio de verdad, que es el
-      # unico lugar donde se ven los peers aplanados.
+      # árbol. Esto instala los tarballs en un servicio de verdad, que es el
+      # único lugar donde se ven los peers aplanados.
       - name: Consumer check
         uses: ./.github/actions/consumer-check
+
+      # El ejemplo está escrito a mano, así que no prueba el generador -ni
+      # `lint:arch`, que no corre en ningún otro lugar-. Estos dos generan un
+      # servicio en limpio y le pasan la puerta de calidad entera.
+      - name: Generated ACL check
+        uses: ./.github/actions/generated-service-check
+        with:
+          style: acl
+          name: academic-acl
+
+      - name: Generated BFF check
+        uses: ./.github/actions/generated-service-check
+        with:
+          style: bff
+          name: home-bff
