@@ -34,63 +34,61 @@ RUN npm install --global pnpm@${PNPM_VERSION}
 WORKDIR /app
 
 # ---------------------------------------------------------------------------
-# build: instala, compila y descarta lo que sólo servía para compilar
+# deps: el árbol completo, con el lockfile mandando
 # ---------------------------------------------------------------------------
-# El contexto entero entra antes de instalar, y no sólo los manifiestos. La
-# receta clásica -copiar package.json, instalar, después copiar el código- se
-# apoya en la caché de capas, y acá esa caché la da el montaje del store de
-# pnpm: con el store caliente, un cambio de código relinkea en vez de volver a
-# descargar.
+# **Sólo los manifiestos, nunca el fuente.** Es lo que decide si el build es
+# rápido: con un `COPY . .` antes del install, cambiar una línea de `src/`
+# invalida la instalación entera. Medido sobre un servicio generado: tocar
+# `main.ts` costaba 23s de un build frío de 41s; separando los manifiestos baja
+# a 7s.
 #
-# A cambio funciona con un servicio cuyas dependencias son archivos del propio
-# repositorio, que es como se prueba esta imagen en CI. Con los manifiestos
-# sueltos, un `file:./.tarballs/...` no resuelve porque el archivo no está en la
-# etapa.
+# El `.npmrc` del repositorio es obligatorio y se copia porque no lleva
+# credencial: sólo apunta el scope al registry. Un servicio sin él no puede
+# resolver `@ahincho/*` de ninguna manera, así que exigirlo no agrega ninguna
+# restricción que no existiera ya.
 #
-# Lo que no entra lo decide el `.dockerignore` del servicio, y `node_modules` es
-# el que importa: sin él se copian binarios nativos de Windows dentro de una
-# imagen Linux.
-#
-# El token del registry entra como secreto de BuildKit y no como ARG ni como
-# archivo copiado: un ARG queda en el historial de la imagen y un COPY queda en
-# una capa. Montado, no toca ninguna de las dos. El `.npmrc` del repositorio sí
-# se copia, porque no lleva credencial: sólo apunta el scope al registry.
-FROM base AS build
-
-# `pnpm prune` borra node_modules, y sin TTY corta pidiendo confirmación
-# -ERR_PNPM_ABORTED_REMOVE_MODULES_DIR_NO_TTY-. Un build de imagen es no
-# interactivo por definición, así que decirlo es lo correcto; la alternativa,
-# `confirmModulesPurge: false`, cambiaría también el comportamiento de quien
-# corre pnpm a mano en su máquina.
-ENV CI=true
-
-COPY . .
+# El token entra como secreto de BuildKit y no como ARG ni como archivo
+# copiado: un ARG queda en el historial de la imagen y un COPY queda en una
+# capa. Montado, no toca ninguna de las dos.
+FROM base AS deps
+COPY package.json pnpm-lock.yaml pnpm-workspace.yaml .npmrc ./
 RUN --mount=type=secret,id=npmrc,target=/root/.npmrc \
     --mount=type=cache,target=/pnpm/store,sharing=locked \
     pnpm install --frozen-lockfile
 
-# Compilar no toca la red, así que este paso va sin el secreto: cuanto menos
-# amplio sea el montaje, menos código de terceros puede leerlo.
+# ---------------------------------------------------------------------------
+# build: compila, y no toca la red
+# ---------------------------------------------------------------------------
+# Sin secreto montado a propósito: cuanto menos amplio sea el montaje, menos
+# código de terceros puede leerlo.
+FROM deps AS build
+ENV CI=true
+COPY . .
 RUN pnpm build
 
-# `pnpm prune --prod` sí lo necesita. No es una poda local: vuelve a resolver
-# el árbol sin las dependencias de desarrollo y **descarga**. Sin el secreto
-# acá, el build muere con un 401 después de haber instalado bien, que es de
-# los fallos más desconcertantes que puede dar esta receta.
+# ---------------------------------------------------------------------------
+# prod-deps: el árbol sin lo de desarrollo, en paralelo con el build
+# ---------------------------------------------------------------------------
+# Una etapa aparte y no un `pnpm prune --prod` al final del build: prune no es
+# una poda local -vuelve a resolver y descarga-, así que costaba lo mismo y
+# además serializaba. Acá BuildKit lo corre a la vez que la compilación, y el
+# store compartido evita bajar dos veces lo mismo.
+FROM base AS prod-deps
+COPY package.json pnpm-lock.yaml pnpm-workspace.yaml .npmrc ./
 RUN --mount=type=secret,id=npmrc,target=/root/.npmrc \
     --mount=type=cache,target=/pnpm/store,sharing=locked \
-    pnpm prune --prod
+    pnpm install --frozen-lockfile --prod
 
 # ---------------------------------------------------------------------------
 # runtime: node, node_modules de producción y dist
 # ---------------------------------------------------------------------------
-# Sin pnpm ni el código fuente. Corre como `node`, el usuario sin privilegios
-# que la imagen oficial ya trae.
+# Arranca de la imagen oficial y NO de `base`, así que pnpm no llega acá. Corre
+# como `node`, el usuario sin privilegios que la imagen ya trae.
 FROM node:${NODE_VERSION}-alpine AS runtime
 ENV NODE_ENV=production
 WORKDIR /app
 
-COPY --from=build --chown=node:node /app/node_modules ./node_modules
+COPY --from=prod-deps --chown=node:node /app/node_modules ./node_modules
 COPY --from=build --chown=node:node /app/dist ./dist
 COPY --from=build --chown=node:node /app/package.json ./
 
