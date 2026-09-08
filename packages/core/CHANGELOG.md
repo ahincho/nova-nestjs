@@ -1,5 +1,26 @@
 # @ahincho/nova-nestjs
 
+## 0.15.0
+
+### Patch Changes
+
+- dd9b26c: La ventana de apagado decía servir para algo que no hace.
+
+  `gracefulShutdownTimeoutMs` estaba documentado -en la opción, en `health.md`, en la plantilla del
+  generador- como el mecanismo que le da tiempo al balanceador a sacar la tarea de rotación, y como
+  un valor que conviene **mayor al intervalo de la sonda**.
+
+  Las dos cosas son falsas. En ECS el orden es al revés: primero se desregistra el target, después
+  se espera el _deregistration delay_, y sólo entonces llega el SIGTERM; cuando el proceso se
+  entera, el balanceador ya dejó de mandarle tráfico. Y los target groups de A303 tienen
+  `HealthCheckIntervalSeconds: 60`, así que no hay valor razonable que cumpla esa regla: los 5000 ms
+  que trae el generador son doce veces menores.
+
+  El valor está bien, la explicación no. La ventana sirve para que las peticiones **en vuelo**
+  terminen, y se dimensiona por eso: mayor que la petición más lenta que valga la pena esperar, y
+  menor que el `stopTimeout` de la tarea -30 s por defecto-, porque pasado ese plazo llega un
+  SIGKILL a mitad del drenaje.
+
 ## 0.14.1
 
 ### Patch Changes
@@ -18,6 +39,7 @@
     un tag anotado exige identidad de committer. El job de release no configuraba ninguna, así
     que `git tag -m` salía con 128 y changesets no se enteraba: imprime «New tag: X» antes de
     llamar a git y descarta el resultado.
+
   - **Una corrida podía publicar nada y quedar verde.** `changeset publish` publica lo que dicen
     los manifiestos: sin el commit de `version-packages` en la rama, termina bien sin subir nada.
     Ahora el paso lee la línea que changesets imprime cuando publicó algo, y corta si no
