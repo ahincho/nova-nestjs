@@ -54,11 +54,24 @@ export type NovaHealthModuleOptions = {
   /**
    * Cuánto se demora el apagado después de SIGTERM, en milisegundos. Durante
    * esa ventana `ready` y la ruta heredada responden 503 con
-   * `status: 'shutting_down'`, para que el balanceador deje de enviar tráfico
-   * antes de que el proceso cierre. Por defecto 0: se apaga de inmediato.
+   * `status: 'shutting_down'` mientras el proceso sigue vivo y termina lo que
+   * tenga en vuelo. Por defecto 0: se apaga de inmediato.
    *
-   * Conviene un valor algo mayor que el intervalo de la sonda del target
-   * group, y menor que el `stopTimeout` de la tarea.
+   * **No es esto lo que saca la tarea de rotación.** En ECS el orden es al
+   * revés: primero se desregistra el target, después se espera el
+   * `deregistration delay`, y sólo entonces llega el SIGTERM. Cuando el
+   * proceso se entera, el balanceador ya dejó de mandarle tráfico. La ventana
+   * sirve para que las peticiones que ya estaban corriendo terminen.
+   *
+   * Se dimensiona por eso: mayor que la petición más lenta que valga la pena
+   * esperar, y **menor que el `stopTimeout` de la tarea** -30 s por defecto en
+   * ECS-, porque pasado ese plazo el contenedor recibe SIGKILL a mitad del
+   * drenaje.
+   *
+   * El 503 sólo lo ve un balanceador que sondee dentro de la ventana. Con un
+   * `HealthCheckIntervalSeconds` de 60, como el de los target groups de A303,
+   * no llega a sondear ni una vez: no es un defecto, es que ahí el 503 no es
+   * el mecanismo que importa.
    */
   readonly gracefulShutdownTimeoutMs?: number;
 };

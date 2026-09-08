@@ -112,8 +112,8 @@ Medido sobre un servicio real, con el cierre disparado en t=1200 ms:
 | petición nueva, conexión TCP nueva       | t=1845 ms | **ECONNREFUSED**            |
 
 Para el caso que importa es exactamente lo que se quiere: **un balanceador
-mantiene la conexión abierta**, así que recibe el 503 y saca la tarea de
-rotación en vez de encontrarse la conexión cortada a mitad de una petición.
+mantiene la conexión abierta**, así que recibe un 503 en vez de encontrarse la
+conexión cortada a mitad de una petición.
 
 **Al probarlo a mano se ve al revés.** Un `curl` suelto abre una conexión nueva
 y recibe `connection refused`, que se lee como que la opción no funciona. Para
@@ -124,6 +124,25 @@ const agent = new http.Agent({ keepAlive: true });
 // una petición cualquiera primero, para abrir la conexión;
 // después el cierre; después otra por el mismo agente -> 503
 ```
+
+### Para qué sirve la ventana, y para qué no
+
+**No es lo que saca la tarea de rotación.** Es fácil leerlo así, y en ECS el
+orden es al revés: primero se desregistra el target, después se espera el
+_deregistration delay_, y **sólo entonces** llega el SIGTERM. Cuando el proceso
+se entera de que se está apagando, el balanceador ya dejó de mandarle tráfico.
+
+Lo que la ventana compra es que las peticiones que **ya estaban corriendo**
+terminen en vez de morir a la mitad. Se dimensiona por eso: mayor que la
+petición más lenta que valga la pena esperar, y **menor que el `stopTimeout` de
+la tarea** —30 s por defecto en ECS—, porque pasado ese plazo llega un SIGKILL
+sin importar en qué punto del drenaje esté.
+
+El 503 de `shutting_down` sólo lo ve un balanceador que sondee **dentro** de la
+ventana. Los target groups de A303 tienen `HealthCheckIntervalSeconds: 60`, así
+que con los 5 s que trae el generador no sondean ni una vez. No es un defecto:
+es que en ese despliegue el 503 no es el mecanismo que importa, y el valor se
+elige por las peticiones en vuelo.
 
 ## Opciones
 
