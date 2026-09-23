@@ -2,6 +2,7 @@ import { NovaAuthModule } from './auth';
 import { OUTBOUND_HEADERS_PROVIDER } from './http';
 import { RequestContextService } from './observability';
 import { NovaModule } from './nova.module';
+import { NOVA_PROFILE } from './profile';
 
 type ExistingProvider = { provide: unknown; useExisting?: unknown };
 
@@ -47,10 +48,14 @@ describe('NovaModule.forRoot', () => {
     ).toBe(true);
   });
 
-  // Only the binding this module owns: the sub-modules are global, so what
-  // they export is already visible everywhere.
-  it('exports the headers port', () => {
-    expect(NovaModule.forRoot().exports).toEqual([OUTBOUND_HEADERS_PROVIDER]);
+  // Only the bindings this module owns: the sub-modules are global, so what
+  // they export is already visible everywhere. El perfil se exporta porque lo
+  // lee `bootstrap()`.
+  it('exports the headers port and the profile', () => {
+    expect(NovaModule.forRoot().exports).toEqual([
+      OUTBOUND_HEADERS_PROVIDER,
+      NOVA_PROFILE,
+    ]);
   });
 
   // Global, so a feature module injects the client or the context without

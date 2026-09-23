@@ -3,7 +3,22 @@ import { Reflector } from '@nestjs/core';
 import { RequestContextService } from '../observability';
 import { NovaAuthGuard, type AuthenticatedRequest } from './auth.guard';
 import { Public } from './public.decorator';
-import { resolveAuthOptions, type NovaAuthModuleOptions } from './tokens';
+import {
+  normalizeUserId,
+  resolveAuthOptions,
+  type NovaAuthModuleOptions,
+} from './tokens';
+
+/**
+ * Cómo se lee un token de Keycloak, declarado como lo haría el perfil de una
+ * organización: los defaults del núcleo ya no son los de ningún proveedor.
+ */
+const keycloak: NovaAuthModuleOptions = {
+  rolesClaim: 'realm_access.roles',
+  ignoredRoles: ['offline_access', 'uma_authorization'],
+  ignoredRolePrefixes: ['default-roles-'],
+  normalizeId: normalizeUserId,
+};
 
 function token(claims: unknown): string {
   const payload = Buffer.from(JSON.stringify(claims)).toString('base64url');
@@ -48,7 +63,7 @@ function guard(
   context?: RequestContextService,
 ): NovaAuthGuard {
   return new NovaAuthGuard(
-    resolveAuthOptions(options),
+    resolveAuthOptions({ ...keycloak, ...options }),
     new Reflector(),
     context,
   );

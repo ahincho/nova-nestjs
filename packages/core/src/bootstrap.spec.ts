@@ -2,6 +2,7 @@ import { ValidationPipe, type INestApplication } from '@nestjs/common';
 import { NestFactory } from '@nestjs/core';
 import { bootstrap } from './bootstrap';
 import { setupOpenApi } from './openapi';
+import { NOVA_PROFILE, defineProfile } from './profile';
 import type { Mock } from 'vitest';
 
 // El montaje se sustituye porque necesita una aplicación de verdad para
@@ -20,6 +21,7 @@ type AppDouble = {
   enableCors: Mock;
   enableShutdownHooks: Mock;
   listen: Mock;
+  close: Mock;
   get: Mock;
 };
 
@@ -43,6 +45,7 @@ describe('bootstrap', () => {
       enableCors: vi.fn(),
       enableShutdownHooks: vi.fn(),
       listen: vi.fn().mockResolvedValue(undefined),
+      close: vi.fn().mockResolvedValue(undefined),
       // Por defecto no hay nada que resolver: es el servicio que apagó el
       // logger de la plataforma, y ahí queda el de Nest.
       get: vi.fn().mockImplementation(() => {
@@ -161,7 +164,11 @@ describe('bootstrap', () => {
   // dos configuraciones que se pueden separar sin que nadie lo note.
   it('installs the platform logger when no other is given', async () => {
     const platform = { log: vi.fn(), error: vi.fn(), warn: vi.fn() };
-    app.get.mockReturnValue(platform);
+    // Como en una aplicación de verdad: el módulo registra su perfil -ninguno-
+    // y el logger, cada uno bajo su token.
+    app.get.mockImplementation((token: unknown) =>
+      token === NOVA_PROFILE ? null : platform,
+    );
 
     await bootstrap(AppModule);
 
@@ -175,31 +182,35 @@ describe('bootstrap', () => {
   });
 
   describe('the port', () => {
-    // APP_PORT es la que inyecta la task definition a partir del puerto del
-    // contenedor, o sea la que operaciones puede mover sin tocar la imagen;
-    // PORT es la que fija el Dockerfile.
-    it('prefers APP_PORT over PORT', async () => {
+    // PORT es la convención de Node. Otra variable -la que inyecta la
+    // plataforma de una organización- la declara su perfil.
+    it('reads only PORT by default', async () => {
       process.env['APP_PORT'] = '8080';
       process.env['PORT'] = '3000';
 
       await bootstrap(AppModule);
 
-      expect(app.listen).toHaveBeenCalledWith(8080, '0.0.0.0');
+      expect(app.listen).toHaveBeenCalledWith(3000, '0.0.0.0');
     });
 
-    it('falls back to PORT', async () => {
-      process.env['PORT'] = '4001';
+    it('reads the variables the profile declares, in order', async () => {
+      process.env['APP_PORT'] = '8080';
+      process.env['PORT'] = '3000';
+      const acme = defineProfile({
+        name: 'acme',
+        bootstrap: { portVariables: ['APP_PORT', 'PORT'] },
+      });
 
-      await bootstrap(AppModule);
+      await bootstrap(AppModule, { profile: acme });
 
-      expect(app.listen).toHaveBeenCalledWith(4001, '0.0.0.0');
+      expect(app.listen).toHaveBeenCalledWith(8080, '0.0.0.0');
     });
 
     it('skips a variable that was left blank', async () => {
       process.env['APP_PORT'] = '   ';
       process.env['PORT'] = '4002';
 
-      await bootstrap(AppModule);
+      await bootstrap(AppModule, { portVariables: ['APP_PORT', 'PORT'] });
 
       expect(app.listen).toHaveBeenCalledWith(4002, '0.0.0.0');
     });
@@ -216,9 +227,9 @@ describe('bootstrap', () => {
     // Nombrar la que se encontró y no la lista entera es lo que hace el mensaje
     // accionable.
     it('dies naming the variable that is not a number', async () => {
-      process.env['APP_PORT'] = 'eight thousand';
+      process.env['PORT'] = 'eight thousand';
 
-      await expect(bootstrap(AppModule)).rejects.toThrow('APP_PORT');
+      await expect(bootstrap(AppModule)).rejects.toThrow('PORT');
     });
   });
 
@@ -241,7 +252,7 @@ describe('bootstrap', () => {
         return Promise.resolve(app as unknown as INestApplication);
       });
 
-      await bootstrap(AppModule, { secrets: true });
+      await bootstrap(AppModule, { secrets: { prefix: 'SECRET_' } });
 
       expect(hostWhenCreated).toBe('academic');
     });
@@ -257,9 +268,109 @@ describe('bootstrap', () => {
     it('stops the boot on a malformed secret', async () => {
       process.env['SECRET_DB'] = 'not json';
 
-      await expect(bootstrap(AppModule, { secrets: true })).rejects.toThrow(
-        'SECRET_DB',
+      await expect(
+        bootstrap(AppModule, { secrets: { prefix: 'SECRET_' } }),
+      ).rejects.toThrow('SECRET_DB');
+    });
+
+    // Sin perfil no hay prefijo que adivinar: `true` sólo desdobla lo que se
+    // nombra en tiempo de ejecución.
+    it('reads only NOVA_SECRETS when told true without a profile', async () => {
+      process.env['SECRET_DB'] = JSON.stringify({ DB_HOST: 'academic' });
+
+      await bootstrap(AppModule, { secrets: true });
+      expect(process.env['DB_HOST']).toBeUndefined();
+
+      process.env['NOVA_SECRETS'] = 'SECRET_DB';
+      await bootstrap(AppModule, { secrets: true });
+      expect(process.env['DB_HOST']).toBe('academic');
+    });
+
+    describe('with a profile', () => {
+      const acme = defineProfile({
+        name: 'acme',
+        bootstrap: { secrets: { prefix: 'SECRET_' } },
+      });
+
+      it('unfolds by the convention of the profile', async () => {
+        process.env['SECRET_DB'] = JSON.stringify({ DB_HOST: 'academic' });
+
+        await bootstrap(AppModule, { profile: acme });
+
+        expect(process.env['DB_HOST']).toBe('academic');
+      });
+
+      it('lets the service turn it off', async () => {
+        process.env['SECRET_DB'] = JSON.stringify({ DB_HOST: 'academic' });
+
+        await bootstrap(AppModule, { profile: acme, secrets: false });
+
+        expect(process.env['DB_HOST']).toBeUndefined();
+      });
+
+      it('lets the service add to the convention', async () => {
+        process.env['LEGACY_CREDENTIALS'] = JSON.stringify({ DB_HOST: 'erp' });
+
+        await bootstrap(AppModule, {
+          profile: acme,
+          secrets: { variables: ['LEGACY_CREDENTIALS'] },
+        });
+
+        expect(process.env['DB_HOST']).toBe('erp');
+        delete process.env['LEGACY_CREDENTIALS'];
+      });
+    });
+  });
+
+  describe('a profile', () => {
+    const acme = defineProfile({
+      name: 'acme',
+      bootstrap: { globalPrefix: 'api/v1' },
+      health: { legacyPath: 'api/v1/health' },
+    });
+
+    beforeEach(() => {
+      app.get.mockImplementation((token: unknown) => {
+        if (token === NOVA_PROFILE) {
+          return 'acme';
+        }
+        throw new Error('not registered');
+      });
+    });
+
+    it('brings its prefix and keeps its legacy probe out of it', async () => {
+      await bootstrap(AppModule, { profile: acme });
+
+      expect(app.setGlobalPrefix).toHaveBeenCalledWith('api/v1', {
+        exclude: ['health/live', 'health/ready', 'api/v1/health'],
+      });
+    });
+
+    it('gives way to what the service declares', async () => {
+      await bootstrap(AppModule, { profile: acme, globalPrefix: 'api/v2' });
+
+      expect(app.setGlobalPrefix).toHaveBeenCalledWith(
+        'api/v2',
+        expect.anything(),
       );
+    });
+
+    // Declarado en dos lugares, el olvido de uno se ve al arrancar y no como
+    // una configuración mitad de cada perfil.
+    it('stops the boot when the module received another one', async () => {
+      await expect(bootstrap(AppModule)).rejects.toThrow(
+        'NovaModule.forRoot() received the profile acme but bootstrap() received none',
+      );
+      expect(app.close).toHaveBeenCalled();
+      expect(app.listen).not.toHaveBeenCalled();
+    });
+
+    it('is not compared when the application does not use NovaModule', async () => {
+      app.get.mockImplementation(() => {
+        throw new Error('not registered');
+      });
+
+      await expect(bootstrap(AppModule, { profile: acme })).resolves.toBe(app);
     });
   });
 

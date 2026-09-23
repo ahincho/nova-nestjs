@@ -31,12 +31,13 @@ pasó a usar el `fetch` de undici y no el global, porque el de Node rechaza un
 despachador del paquete. Se apaga con `pool: false`, y una llamada puede traer su
 propio `dispatcher`.
 
-**`bootstrap()` desdobla los secretos inyectados** con `secrets: true`, antes de
-que exista la aplicación. No lleva ninguna lista de nombres: descubre por
-convención cualquier variable `SECRET_*`, acepta otro prefijo o nombres propios, y
-`NOVA_SECRETS` permite agregar uno desde la task definition sin tocar el código.
-Un secreto ausente no falla; uno malformado corta el arranque nombrando la
-variable y nunca su contenido.
+**`bootstrap()` desdobla los secretos inyectados**, antes de que exista la
+aplicación. No lleva ninguna lista de nombres: descubre por el prefijo que
+declara el perfil de la organización, acepta nombres propios, y `NOVA_SECRETS`
+permite agregar uno desde la task definition sin tocar el código. Un secreto
+ausente no falla; uno malformado corta el arranque nombrando la variable y nunca
+su contenido.
 
-**El puerto sale de `APP_PORT` y después de `PORT`.** La primera es la que
-inyecta la task definition y la que operaciones puede mover sin tocar la imagen.
+**El puerto se puede leer de otra variable**, con `portVariables` o desde el
+perfil: la que inyecta la task definition, que operaciones puede mover sin tocar
+la imagen.

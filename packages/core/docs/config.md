@@ -160,14 +160,14 @@ función `(config) => config` y no necesita nada instalado.
 
 ## Los secretos inyectados
 
-La task definition inyecta cada secreto de Secrets Manager como **una sola
-variable con el JSON completo**, nunca una variable por clave. ECS permite
-seleccionar una clave agregando `:CLAVE::` al ARN, pero ningún template de esta
-cuenta lo usa, así que parsear el JSON es responsabilidad de la aplicación: es el
+Una task definition de ECS que inyecta un secreto de Secrets Manager entero lo
+pone en **una sola variable con el JSON completo**, no una variable por clave.
+ECS permite seleccionar una clave agregando `:CLAVE::` al ARN, pero cuando la
+plataforma no lo usa, parsear el JSON es responsabilidad de la aplicación: es el
 contrato, no un parche.
 
 ```ts
-void bootstrap(AppModule, { secrets: true });
+void bootstrap(AppModule, { secrets: { prefix: 'SECRET_' } });
 ```
 
 Corre **antes de que exista la aplicación**, porque cada `registerAs` valida sus
@@ -175,17 +175,26 @@ variables al instanciarse el módulo. De ahí para abajo todo lee variables plan
 sin enterarse de que hubo un secreto.
 
 **No lleva ninguna lista de nombres.** Descubre por convención cualquier variable
-que empiece con `SECRET_`; eso alcanza para los servicios de hoy y para los que
+que empiece con el prefijo; eso alcanza para los servicios de hoy y para los que
 todavía no existen. Escribir los nombres en la plataforma haría que agregar un
 secreto exija publicar una versión del framework.
 
-Tres formas de nombrar uno que no siga la convención, y se suman:
+**El prefijo es de la organización, no de Nova.** Por defecto no hay ninguno: la
+plataforma no conoce el entorno donde corre, y un prefijo adivinado puede toparse
+con una variable que se llama así y no trae JSON, lo que corta el arranque. Quien
+sabe que ninguna otra variable empieza así es la organización, y lo declara en su
+[perfil](profile.md); con el perfil, el desdoblado se enciende solo y un servicio
+lo apaga con `secrets: false`.
+
+Tres fuentes, y se suman:
 
 | Fuente         | Para qué                                                             |
 | -------------- | -------------------------------------------------------------------- |
-| `prefix`       | otra convención — `{ prefix: 'VAULT_' }`                             |
+| `prefix`       | la convención de la organización — `{ prefix: 'SECRET_' }`           |
 | `variables`    | el servicio nombra la suya — `{ variables: ['LEGACY_CREDENTIALS'] }` |
 | `NOVA_SECRETS` | operaciones la agrega a la task definition, sin tocar el código      |
+
+`secrets: true` sin perfil sólo lee `NOVA_SECRETS`.
 
 La última es la que importa en esta topología: el ambiente lo gobierna
 operaciones y el código lo gobierna el equipo, y un nombre nuevo no debería

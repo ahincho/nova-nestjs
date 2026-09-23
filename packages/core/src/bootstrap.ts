@@ -17,29 +17,38 @@ import {
   type UnfoldSecretsOptions,
 } from './config';
 import { setupOpenApi, type OpenApiOptions } from './openapi';
+import { NOVA_PROFILE, mergeOptions, type NovaProfile } from './profile';
 
 /**
  * Variables de las que sale el puerto, en orden de preferencia.
  *
- * `APP_PORT` primero porque es la que inyecta la task definition a partir del
- * puerto del contenedor, o sea la que operaciones puede mover sin tocar la
- * imagen; `PORT` es la que fija el Dockerfile y queda como respaldo.
+ * `PORT` es la convención de Node y de casi todo orquestador. Una organización
+ * cuya plataforma inyecta otra la declara en su perfil (ADR-036).
  */
-export const DEFAULT_PORT_VARIABLES = ['APP_PORT', 'PORT'] as const;
+export const DEFAULT_PORT_VARIABLES = ['PORT'] as const;
 
 /** Puerto cuando ninguna de esas variables está puesta. */
 export const DEFAULT_PORT = 3000;
 
 export type BootstrapOptions = {
   /**
+   * El mismo perfil que recibió `NovaModule.forRoot()`. Aporta lo que se decide
+   * antes de que exista la aplicación: el puerto, los secretos, el prefijo.
+   *
+   * Si no coincide con el del módulo, el arranque corta: dos perfiles distintos
+   * en un mismo servicio son dos configuraciones que nadie eligió.
+   */
+  readonly profile?: NovaProfile;
+
+  /**
    * Puerto explícito. Omitirlo lo lee de {@link BootstrapOptions.portVariables}.
    */
   readonly port?: number;
 
   /**
-   * De qué variables se lee el puerto, en orden. Por defecto
-   * {@link DEFAULT_PORT_VARIABLES}. Gana la primera que esté puesta, y si su
-   * valor no es un número el arranque corta nombrándola.
+   * De qué variables se lee el puerto, en orden. Por defecto las del perfil, y
+   * sin perfil {@link DEFAULT_PORT_VARIABLES}. Gana la primera que esté puesta,
+   * y si su valor no es un número el arranque corta nombrándola.
    */
   readonly portVariables?: readonly string[];
 
@@ -47,14 +56,15 @@ export type BootstrapOptions = {
    * Desdobla los secretos que la plataforma inyecta como JSON, antes de que
    * exista la aplicación.
    *
-   * `true` los descubre por convención — cualquier variable que empiece con
-   * `SECRET_`, más las que nombre `NOVA_SECRETS` en tiempo de ejecución. Un
-   * objeto ajusta esa convención sin enumerar nada. Omitirlo lo deja apagado.
+   * Un perfil que declara `secrets` lo enciende con su convención -su prefijo,
+   * sus variables-, y un servicio lo apaga con `false`. Sin perfil, `true` sólo
+   * desdobla las variables que nombre `NOVA_SECRETS` y un objeto declara el
+   * resto.
    *
    * No viene encendido porque descubrir por prefijo sobre un entorno que la
    * plataforma no conoce puede toparse con una variable que se llama así y no
-   * es un secreto JSON, y eso cortaría un arranque que hoy funciona. Un
-   * servicio nuevo lo declara en una palabra.
+   * es un secreto JSON, y eso cortaría un arranque que hoy funciona. Quien
+   * conoce ese entorno es la organización, y por eso el prefijo es de su perfil.
    */
   readonly secrets?: UnfoldSecretsOptions | boolean;
 
@@ -77,17 +87,21 @@ export type BootstrapOptions = {
    */
   readonly logger?: LoggerService;
 
-  /** Prefix applied to every route except the health probes. */
+  /**
+   * Prefix applied to every route except the health probes. Por defecto el del
+   * perfil.
+   */
   readonly globalPrefix?: string;
 
   /**
    * Route prefix of the probes, kept out of `globalPrefix`. Must match what
-   * `NovaHealthModule` was given.
+   * `NovaHealthModule` was given. Por defecto el `path` de salud del perfil.
    */
   readonly healthPath?: string;
   /**
    * Ruta heredada de salud, también fuera de `globalPrefix`. Debe coincidir
-   * con el `legacyPath` que recibió `NovaHealthModule`.
+   * con el `legacyPath` que recibió `NovaHealthModule`; si esa ruta vino del
+   * perfil, se toma de ahí y no hay que repetirla.
    */
   readonly legacyHealthPath?: string;
 
@@ -129,15 +143,54 @@ const DEFAULT_ROUTE_CONFLICTS: RouteConflictPolicy = {
 };
 
 /**
- * Normaliza la opción `secrets` y desdobla. Devuelve qué variables traían uno.
+ * Qué desdoblar, combinando el perfil con lo que dice el servicio.
+ *
+ * `false` apaga aunque el perfil lo encienda; `true` enciende con la convención
+ * del perfil; un objeto la ajusta opción por opción; y sin decir nada vale lo
+ * del perfil, que puede ser no desdoblar.
  */
-function unfoldSecretsFrom(
-  secrets: UnfoldSecretsOptions | boolean | undefined,
-): string[] {
-  if (secrets === undefined || secrets === false) {
-    return [];
+function secretsOptions(
+  profile: UnfoldSecretsOptions | undefined,
+  service: UnfoldSecretsOptions | boolean | undefined,
+): UnfoldSecretsOptions | undefined {
+  if (service === false) {
+    return undefined;
   }
-  return unfoldSecrets(secrets === true ? {} : secrets);
+  if (service === true) {
+    return profile ?? {};
+  }
+  return mergeOptions(profile, service);
+}
+
+/**
+ * Corta el arranque si el módulo y el arranque recibieron perfiles distintos.
+ *
+ * Se declaran en dos lugares porque no puede ser de otra forma -los secretos
+ * se desdoblan antes de que el módulo exista-, y este chequeo convierte el
+ * olvido de uno de los dos en un error que se ve al arrancar, no en una
+ * configuración mitad de cada perfil.
+ */
+function assertSameProfile(
+  app: INestApplication,
+  profile: NovaProfile | undefined,
+): void {
+  let declared: unknown;
+  try {
+    declared = app.get(NOVA_PROFILE, { strict: false });
+  } catch {
+    // La aplicación no usa `NovaModule`: no hay nada con qué comparar.
+    return;
+  }
+
+  const expected = profile?.name ?? null;
+  if (declared !== expected) {
+    const inModule = typeof declared === 'string' ? declared : 'none';
+    throw new Error(
+      `NovaModule.forRoot() received the profile ${inModule} ` +
+        `but bootstrap() received ${expected ?? 'none'}. ` +
+        'Pass the same profile to both.',
+    );
+  }
 }
 
 /**
@@ -194,10 +247,13 @@ export async function bootstrap(
   rootModule: unknown,
   options: BootstrapOptions = {},
 ): Promise<INestApplication> {
+  const { profile } = options;
+
   // Antes de crear la aplicación, no después: cada `registerAs` valida sus
   // variables cuando se instancia su módulo, así que para entonces las claves
   // del secreto ya tienen que estar en el entorno.
-  const unfolded = unfoldSecretsFrom(options.secrets);
+  const secrets = secretsOptions(profile?.bootstrap?.secrets, options.secrets);
+  const unfolded = secrets === undefined ? [] : unfoldSecrets(secrets);
 
   const app = await NestFactory.create(
     rootModule as Parameters<typeof NestFactory.create>[0],
@@ -224,6 +280,13 @@ export async function bootstrap(
   // apagado ordenado de las sondas existe solo si los hooks están activos.
   app.enableShutdownHooks();
 
+  try {
+    assertSameProfile(app, profile);
+  } catch (error) {
+    await app.close();
+    throw error;
+  }
+
   const logger = options.logger ?? platformLogger(app);
   if (logger) {
     app.useLogger(logger);
@@ -246,18 +309,23 @@ export async function bootstrap(
     }),
   );
 
-  if (options.globalPrefix) {
-    const healthPath = options.healthPath ?? DEFAULT_HEALTH_PATH;
+  const globalPrefix = options.globalPrefix ?? profile?.bootstrap?.globalPrefix;
+
+  if (globalPrefix) {
+    const healthPath =
+      options.healthPath ?? profile?.health?.path ?? DEFAULT_HEALTH_PATH;
+    const legacyHealthPath =
+      options.legacyHealthPath ?? profile?.health?.legacyPath;
 
     // The probes stay where the target group looks for them. A prefix that
     // quietly moves /health/live to /api/health/live makes the task deregister
     // about nine seconds after it registers, and the deploy dies ten minutes
     // later on a timeout that reads like a resource problem.
     const exclude = [`${healthPath}/live`, `${healthPath}/ready`];
-    if (options.legacyHealthPath) {
-      exclude.push(options.legacyHealthPath);
+    if (legacyHealthPath) {
+      exclude.push(legacyHealthPath);
     }
-    app.setGlobalPrefix(options.globalPrefix, { exclude });
+    app.setGlobalPrefix(globalPrefix, { exclude });
   }
 
   if (options.cors) {
@@ -274,7 +342,11 @@ export async function bootstrap(
 
   const port =
     options.port ??
-    resolvePort(options.portVariables ?? DEFAULT_PORT_VARIABLES);
+    resolvePort(
+      options.portVariables ??
+        profile?.bootstrap?.portVariables ??
+        DEFAULT_PORT_VARIABLES,
+    );
   const host = options.host ?? '0.0.0.0';
 
   await app.listen(port, host);

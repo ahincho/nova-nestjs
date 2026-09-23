@@ -78,31 +78,53 @@ type Principal = {
 `claims` queda entero para lo que la aplicación necesite y la plataforma no
 conoce: un `email`, un `campus`, lo que el emisor ponga.
 
+### Los defaults son de los estándares, no de un proveedor
+
+Sin perfil, el módulo lee lo que dicen los estándares y nada más:
+`preferred_username` de OpenID Connect para el identificador, y `roles` de
+RFC 9068 para los roles. El identificador llega sin los espacios de los bordes y
+sin ninguna otra transformación, porque cualquier otra sería inventar la
+convención de alguien.
+
+Cada proveedor pone lo suyo donde quiere, y **eso lo declara el perfil de la
+organización** (ver [profile](profile.md)). Un token de Keycloak, por ejemplo:
+
+```ts
+auth: {
+  rolesClaim: 'realm_access.roles',
+  ignoredRoles: ['offline_access', 'uma_authorization'],
+  ignoredRolePrefixes: ['default-roles-'],
+}
+```
+
+Hasta la 0.15 esos eran los defaults del núcleo, y un token de cualquier otro
+proveedor salía 401 porque sus roles no estaban donde se buscaban.
+
 ### El identificador
 
-Sale de `preferred_username` y se normaliza sin espacios, sin la arroba inicial
-y en mayúsculas, así el mismo usuario es la misma cadena en todos los logs.
+Sale de `preferred_username`. A propósito no sale de `sub`: `sub` es el
+identificador interno del emisor, no le sirve a nadie aguas abajo, no aparece en
+ninguna base de datos del negocio, y cambia si el usuario se recrea.
 
-A propósito no sale de `sub`. `sub` es el identificador interno del emisor: no
-le sirve a nadie aguas abajo, no aparece en ninguna base de datos del negocio, y
-cambia si el usuario se recrea.
+Se normaliza con `normalizeId`. Una organización que quiere el mismo usuario
+como la misma cadena en todos sus logs lo declara ahí; `normalizeUserId`, que
+quita la arroba inicial y pasa a mayúsculas, queda disponible para eso:
 
-| Claim            | Principal        |
-| ---------------- | ---------------- |
-| `@u12345`        | `U12345`         |
-| `  U12345  `     | `U12345`         |
-| `ana@utp.edu.pe` | `ANA@UTP.EDU.PE` |
+| Claim             | Con `trimUserId`, el default | Con `normalizeUserId` |
+| ----------------- | ---------------------------- | --------------------- |
+| `@u12345`         | `@u12345`                    | `U12345`              |
+| `  U12345  `      | `U12345`                     | `U12345`              |
+| `ana@example.edu` | `ana@example.edu`            | `ANA@EXAMPLE.EDU`     |
 
-La arroba del medio se queda: recortarla inventaría un identificador que no
-existe. Se cambia entero con `idClaim` y `normalizeId`.
+La arroba del medio se queda en los dos: recortarla inventaría un identificador
+que no existe.
 
 ### El rol
 
-Sale de `realm_access.roles`, que es donde lo pone Keycloak, y se resuelve así:
+Sale de `rolesClaim` y se resuelve así:
 
 1. Se descartan los roles que describen lo que el token puede hacer y no quién
-   lo trae: `offline_access`, `uma_authorization` y todo lo que empiece con
-   `default-roles-`.
+   lo trae: los de `ignoredRoles` y los que empiezan con un `ignoredRolePrefixes`.
 2. Si queda alguno de `preferredRoles`, gana, venga en la posición que venga.
 3. Si no, gana el primero que quedó.
 4. Si no quedó ninguno, es un 401.
@@ -132,16 +154,19 @@ autenticando, y lo único que se pierde es esa propagación.
 
 ## Opciones
 
-| Opción                | Por defecto                           | Para qué                                   |
-| --------------------- | ------------------------------------- | ------------------------------------------ |
-| `idClaim`             | `preferred_username`                  | de qué claim sale el identificador         |
-| `normalizeId`         | sin arroba inicial, en mayúsculas     | cómo se normaliza                          |
-| `rolesClaim`          | `realm_access.roles`                  | ruta con puntos hacia el arreglo de roles  |
-| `preferredRoles`      | `[]`                                  | cuál gana si hay varios                    |
-| `ignoredRoles`        | `offline_access`, `uma_authorization` | los que nunca describen a un usuario       |
-| `ignoredRolePrefixes` | `default-roles-`                      | prefijos con el mismo trato                |
-| `userIdHeader`        | `x-user-id`                           | con qué cabecera viaja hacia los upstreams |
-| `verify`              | ninguna                               | comprobación real de la firma              |
+| Opción                | Por defecto                | Para qué                                   |
+| --------------------- | -------------------------- | ------------------------------------------ |
+| `idClaim`             | `preferred_username`       | de qué claim sale el identificador         |
+| `normalizeId`         | `trimUserId`, sin espacios | cómo se normaliza                          |
+| `rolesClaim`          | `roles`                    | ruta con puntos hacia el arreglo de roles  |
+| `preferredRoles`      | `[]`                       | cuál gana si hay varios                    |
+| `ignoredRoles`        | `[]`                       | los que nunca describen a un usuario       |
+| `ignoredRolePrefixes` | `[]`                       | prefijos con el mismo trato                |
+| `userIdHeader`        | `x-user-id`                | con qué cabecera viaja hacia los upstreams |
+| `verify`              | ninguna                    | comprobación real de la firma              |
+
+Todas se pueden declarar en el perfil de la organización, que no enciende la
+autenticación: la enciende el servicio declarando `auth`.
 
 ## Autorizar es otra cosa
 

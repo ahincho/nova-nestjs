@@ -1,5 +1,4 @@
 import {
-  DEFAULT_SECRET_PREFIX,
   SECRET_VARIABLES_VARIABLE,
   SecretUnfoldError,
   secretVariables,
@@ -10,12 +9,20 @@ function env(entries: Record<string, string>): NodeJS.ProcessEnv {
   return { ...entries };
 }
 
+/**
+ * La convención de una organización cuya plataforma inyecta cada secreto en una
+ * variable `SECRET_*`. Es lo que declararía su perfil: el núcleo no trae
+ * ningún prefijo.
+ */
+const PREFIX = 'SECRET_';
+
 describe('secretVariables', () => {
   // Lo que la plataforma NO puede hacer es traer escrita la lista de secretos
   // de un servicio: enumerarlos acá haría que agregar uno exija publicar una
   // versión del framework.
-  it('discovers every variable under the conventional prefix', () => {
+  it('discovers every variable under the declared prefix', () => {
     const variables = secretVariables({
+      prefix: PREFIX,
       env: env({
         SECRET_DB: '{}',
         SECRET_LEGACY: '{}',
@@ -40,6 +47,13 @@ describe('secretVariables', () => {
     ).toEqual(['VAULT_DB']);
   });
 
+  // Adivinar un prefijo sobre un entorno ajeno puede toparse con una variable
+  // que se llama así y no trae JSON, y eso corta el arranque. Quien conoce el
+  // entorno es la organización.
+  it('discovers nothing when no prefix is declared', () => {
+    expect(secretVariables({ env: env({ SECRET_DB: '{}' }) })).toEqual([]);
+  });
+
   it('discovers nothing when the convention is turned off', () => {
     expect(
       secretVariables({ prefix: false, env: env({ SECRET_DB: '{}' }) }),
@@ -62,6 +76,7 @@ describe('secretVariables', () => {
   it('adds the ones the service declares to the ones it discovers', () => {
     expect(
       secretVariables({
+        prefix: PREFIX,
         variables: ['LEGACY_CREDENTIALS'],
         env: env({ SECRET_DB: '{}' }),
       }),
@@ -71,6 +86,7 @@ describe('secretVariables', () => {
   it('names a variable once even when every source lists it', () => {
     expect(
       secretVariables({
+        prefix: PREFIX,
         variables: ['SECRET_DB'],
         env: env({
           [SECRET_VARIABLES_VARIABLE]: 'SECRET_DB',
@@ -78,10 +94,6 @@ describe('secretVariables', () => {
         }),
       }),
     ).toEqual(['SECRET_DB']);
-  });
-
-  it('uses SECRET_ as the convention', () => {
-    expect(DEFAULT_SECRET_PREFIX).toBe('SECRET_');
   });
 });
 
@@ -95,7 +107,9 @@ describe('unfoldSecrets', () => {
       }),
     });
 
-    expect(unfoldSecrets({ env: environment })).toEqual(['SECRET_DB']);
+    expect(unfoldSecrets({ prefix: PREFIX, env: environment })).toEqual([
+      'SECRET_DB',
+    ]);
     expect(environment['DB_HOST']).toBe('academic.internal');
     // Todo llega como texto: es lo que un proceso recibe por el entorno, y lo
     // que los esquemas de configuración esperan convertir.
@@ -106,25 +120,27 @@ describe('unfoldSecrets', () => {
   // Un secreto ausente no falla: es lo que permite que una corrida local y los
   // tests anden con sus propias variables.
   it('says nothing about a variable that is absent or blank', () => {
-    expect(unfoldSecrets({ env: env({}) })).toEqual([]);
-    expect(unfoldSecrets({ env: env({ SECRET_DB: '   ' }) })).toEqual([]);
+    expect(unfoldSecrets({ prefix: PREFIX, env: env({}) })).toEqual([]);
+    expect(
+      unfoldSecrets({ prefix: PREFIX, env: env({ SECRET_DB: '   ' }) }),
+    ).toEqual([]);
   });
 
   // Lo contrario de lo intuitivo y lo correcto: dejarlo pasar produce un
   // contenedor que muere sin decir por qué.
   it('stops the boot when the secret is not JSON', () => {
     expect(() =>
-      unfoldSecrets({ env: env({ SECRET_DB: 'not json' }) }),
+      unfoldSecrets({ prefix: PREFIX, env: env({ SECRET_DB: 'not json' }) }),
     ).toThrow(SecretUnfoldError);
   });
 
   it('stops the boot when the secret is not a JSON object', () => {
-    expect(() => unfoldSecrets({ env: env({ SECRET_DB: '["a"]' }) })).toThrow(
-      SecretUnfoldError,
-    );
-    expect(() => unfoldSecrets({ env: env({ SECRET_DB: '"a"' }) })).toThrow(
-      SecretUnfoldError,
-    );
+    expect(() =>
+      unfoldSecrets({ prefix: PREFIX, env: env({ SECRET_DB: '["a"]' }) }),
+    ).toThrow(SecretUnfoldError);
+    expect(() =>
+      unfoldSecrets({ prefix: PREFIX, env: env({ SECRET_DB: '"a"' }) }),
+    ).toThrow(SecretUnfoldError);
   });
 
   // El valor de un secreto no llega a un log ni siquiera dentro de un catch, y
@@ -133,7 +149,7 @@ describe('unfoldSecrets', () => {
     const secret = 'super-secret-password';
 
     try {
-      unfoldSecrets({ env: env({ SECRET_DB: secret }) });
+      unfoldSecrets({ prefix: PREFIX, env: env({ SECRET_DB: secret }) });
       expect.unreachable('should have thrown');
     } catch (error) {
       const message = (error as Error).message;
@@ -148,7 +164,7 @@ describe('unfoldSecrets', () => {
       SECRET_DB: JSON.stringify({ DB_HOST: 'academic.internal' }),
     });
 
-    unfoldSecrets({ env: environment });
+    unfoldSecrets({ prefix: PREFIX, env: environment });
 
     expect(environment['DB_HOST']).toBe('academic.internal');
   });
@@ -159,7 +175,7 @@ describe('unfoldSecrets', () => {
       SECRET_DB: JSON.stringify({ DB_HOST: 'academic.internal' }),
     });
 
-    unfoldSecrets({ env: environment, override: false });
+    unfoldSecrets({ prefix: PREFIX, env: environment, override: false });
 
     expect(environment['DB_HOST']).toBe('localhost');
   });
@@ -176,7 +192,7 @@ describe('unfoldSecrets', () => {
       }),
     });
 
-    unfoldSecrets({ env: environment });
+    unfoldSecrets({ prefix: PREFIX, env: environment });
 
     expect(environment['DB_HOST']).toBe('academic.internal');
     expect(environment['DB_OPTIONS']).toBeUndefined();
@@ -190,7 +206,7 @@ describe('unfoldSecrets', () => {
       SECRET_LEGACY: JSON.stringify({ LEGACY_USER: 'b' }),
     });
 
-    expect(unfoldSecrets({ env: environment })).toEqual([
+    expect(unfoldSecrets({ prefix: PREFIX, env: environment })).toEqual([
       'SECRET_DB',
       'SECRET_LEGACY',
     ]);

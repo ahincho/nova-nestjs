@@ -37,6 +37,7 @@ Cada módulo tiene su carpeta en `src/` y su documento:
 | [`observability`](docs/observability.md) | contexto de request, `x-request-id` y opciones de pino                          |
 | [`health`](docs/health.md)               | sondas `live`, `ready` y heredada sobre terminus                                |
 | [`openapi`](docs/openapi.md)             | documento OpenAPI, su interfaz y el cuerpo del estándar activo                  |
+| [`profile`](docs/profile.md)             | las convenciones de una organización, declaradas una vez                        |
 
 ## Un servicio completo
 
@@ -109,25 +110,24 @@ Y dos que llegaron con NestJS 12:
 
 | Opción                    | Por defecto                              |
 | ------------------------- | ---------------------------------------- |
-| `port`                    | `APP_PORT`, si no `PORT`, si no 3000     |
-| `portVariables`           | `['APP_PORT', 'PORT']`                   |
+| `profile`                 | ninguno; el mismo de `NovaModule`        |
+| `port`                    | `PORT`, o las del perfil; si no 3000     |
+| `portVariables`           | `['PORT']`, o las del perfil             |
 | `host`                    | `0.0.0.0`                                |
 | `cors`                    | apagado                                  |
-| `secrets`                 | apagado; `true` descubre los `SECRET_*`  |
+| `secrets`                 | el del perfil; sin perfil, apagado       |
 | `logger`                  | el estructurado de la plataforma         |
-| `globalPrefix`            | ninguno                                  |
+| `globalPrefix`            | el del perfil; sin perfil, ninguno       |
 | `healthPath`              | `'health'`                               |
 | `forbidUnknownProperties` | `true`                                   |
 | `routeConflicts`          | `{ duplicate: 'error', shadow: 'warn' }` |
 
-`APP_PORT` va primero porque es la que inyecta la task definition a partir del
-puerto del contenedor, o sea la que operaciones puede mover sin tocar la imagen;
-`PORT` es la que fija el Dockerfile.
-
-`secrets` no viene encendido porque descubrir por prefijo sobre un entorno que la
-plataforma no conoce puede toparse con una variable que se llama así y no es un
-secreto JSON, y eso cortaría un arranque que hoy funciona. Un servicio nuevo lo
-declara en una palabra, y el generador ya lo trae puesto.
+Los defaults son genéricos a propósito: `PORT` es la convención de Node, y el
+prefijo de los secretos no lo puede adivinar una plataforma que no conoce el
+entorno. **Las convenciones de una organización -de qué variable sale el puerto,
+cómo llegan sus secretos, bajo qué prefijo expone sus rutas- van en su perfil**,
+que se declara una vez y no en cada servicio. Está en
+[docs/profile.md](docs/profile.md).
 
 `forbidUnknownProperties` está encendido porque un campo ignorado en silencio es
 como un cliente termina creyendo que mandó un filtro que el servicio nunca aplicó.

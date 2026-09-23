@@ -1,13 +1,4 @@
 /**
- * Prefijo por el que se descubren las variables que traen un secreto entero.
- *
- * Es una convención, no una lista: la plataforma no puede saber cómo se llaman
- * los secretos de un servicio que todavía no existe, y enumerarlos acá haría
- * que agregar uno nuevo exija publicar una versión.
- */
-export const DEFAULT_SECRET_PREFIX = 'SECRET_';
-
-/**
  * Variable que nombra, separadas por coma, las variables a desdoblar.
  *
  * Es la salida de emergencia para el secreto que no sigue la convención: quien
@@ -26,8 +17,15 @@ export type UnfoldSecretsOptions = {
   readonly variables?: readonly string[];
 
   /**
-   * Prefijo por el que se descubren. Por defecto {@link DEFAULT_SECRET_PREFIX}.
-   * En `false` no se descubre nada y sólo valen las nombradas.
+   * Prefijo por el que se descubren: cualquier variable que empiece así trae
+   * un secreto entero. Es una convención y no una lista, porque la plataforma no
+   * puede saber cómo se llaman los secretos de un servicio que todavía no existe.
+   *
+   * Por defecto no hay ninguno, y sólo valen las variables nombradas. **El
+   * prefijo es de la organización**, que es quien conoce su entorno y sabe que
+   * ninguna otra variable empieza así; va en su perfil (ADR-036). Adivinarlo
+   * sobre un entorno ajeno puede toparse con una variable que se llama así y no
+   * trae JSON, y eso corta el arranque.
    */
   readonly prefix?: string | false;
 
@@ -83,7 +81,7 @@ function discovered(env: NodeJS.ProcessEnv, prefix: string | false): string[] {
  */
 export function secretVariables(options: UnfoldSecretsOptions = {}): string[] {
   const env = options.env ?? process.env;
-  const prefix = options.prefix ?? DEFAULT_SECRET_PREFIX;
+  const prefix = options.prefix ?? false;
 
   return [
     ...new Set([
@@ -97,11 +95,11 @@ export function secretVariables(options: UnfoldSecretsOptions = {}): string[] {
 /**
  * Desdobla en el entorno los secretos que la plataforma inyecta como JSON.
  *
- * La task definition inyecta cada secreto de Secrets Manager como UNA sola
- * variable con el JSON completo, nunca una variable por clave. ECS permite
- * seleccionar una clave agregando `:CLAVE::` al ARN, pero ningún template de
- * esta cuenta lo usa, así que parsear el JSON es responsabilidad de la
- * aplicación: es el contrato, no un parche.
+ * Una task definition de ECS que inyecta un secreto de Secrets Manager entero
+ * lo pone en UNA sola variable con el JSON completo, no una variable por clave.
+ * ECS permite seleccionar una clave agregando `:CLAVE::` al ARN, pero cuando la
+ * plataforma no lo usa, parsear el JSON es responsabilidad de la aplicación: es
+ * el contrato, no un parche.
  *
  * Corre **antes de que exista la aplicación**, porque cada `registerAs` valida
  * sus variables al instanciarse el módulo y para entonces las claves ya tienen
@@ -119,11 +117,12 @@ export function secretVariables(options: UnfoldSecretsOptions = {}): string[] {
  * @throws {SecretUnfoldError} cuando una de ellas no es un objeto JSON.
  *
  * @example
- * // Descubre por convención: cualquier SECRET_* que la task definition inyecte.
- * unfoldSecrets();
+ * // Descubre por la convención de la organización: cualquier SECRET_* que la
+ * // task definition inyecte. El prefijo lo trae su perfil.
+ * unfoldSecrets({ prefix: 'SECRET_' });
  *
  * // Un secreto que no sigue la convención, sumado a los que sí.
- * unfoldSecrets({ variables: ['LEGACY_CREDENTIALS'] });
+ * unfoldSecrets({ prefix: 'SECRET_', variables: ['LEGACY_CREDENTIALS'] });
  */
 export function unfoldSecrets(options: UnfoldSecretsOptions = {}): string[] {
   const env = options.env ?? process.env;

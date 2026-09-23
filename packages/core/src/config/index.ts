@@ -19,7 +19,6 @@ export {
   type NovaConfigModuleOptions,
 } from './nova-config.module';
 export {
-  DEFAULT_SECRET_PREFIX,
   SECRET_VARIABLES_VARIABLE,
   SecretUnfoldError,
   secretVariables,
