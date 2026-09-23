@@ -97,6 +97,13 @@ export type NovaAuthModuleOptions = {
   readonly userIdHeader?: string;
 
   /**
+   * Con qué cabecera viaja el rol hacia los upstreams. Sin default: el rol no
+   * sale del servicio si nadie lo pide, porque qué capa lo necesita es decisión
+   * de cada organización.
+   */
+  readonly roleHeader?: string;
+
+  /**
    * Comprueba la firma y devuelve los claims.
    *
    * **Sin esto no se verifica ninguna firma**: los claims se leen del token tal
@@ -115,6 +122,7 @@ export type ResolvedAuthOptions = {
   readonly ignoredRoles: readonly string[];
   readonly ignoredRolePrefixes: readonly string[];
   readonly userIdHeader: string;
+  readonly roleHeader: string | undefined;
   readonly verify:
     ((token: string) => JwtClaims | Promise<JwtClaims>) | undefined;
 };
@@ -131,6 +139,7 @@ export function resolveAuthOptions(
     ignoredRolePrefixes:
       options.ignoredRolePrefixes ?? DEFAULT_IGNORED_ROLE_PREFIXES,
     userIdHeader: options.userIdHeader ?? DEFAULT_USER_ID_HEADER,
+    roleHeader: options.roleHeader,
     verify: options.verify,
   };
 }

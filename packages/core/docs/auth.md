@@ -137,7 +137,7 @@ Un token sin identificador o sin un rol utilizable no describe a nadie. Dejarlo
 pasar es peor que rechazarlo, porque el servicio termina autorizando contra un
 `undefined`.
 
-## El identificador viaja solo
+## La identidad viaja sola, y sólo desde el token
 
 Cuando el módulo de observabilidad está activo -lo está con `NovaModule`-, el
 guard agrega el identificador al contexto de la petición. Desde ahí sale como
@@ -149,8 +149,21 @@ pase:
 await this.academic.get('/courses');
 ```
 
-Se cambia con `userIdHeader`. Sin el módulo de observabilidad el guard sigue
-autenticando, y lo único que se pierde es esa propagación.
+Se cambia con `userIdHeader`. El rol no viaja salvo que se pida con
+`roleHeader`, porque qué capa lo necesita lo decide cada organización. Sin el
+módulo de observabilidad el guard sigue autenticando, y lo único que se pierde es
+esa propagación.
+
+**Esas cabeceras las escribe sólo la autenticación** (ADR-037). Si el contexto
+copió de la petición una con el mismo nombre -porque está en
+`correlationHeaders`-, el guard la quita en toda ruta, también en una
+`@Public()`: en una protegida la reemplaza por lo que dice el token, y en una
+pública no viaja. Antes, una ruta pública reenviaba hacia adentro el `x-user-id`
+que mandara el cliente, como si fuera el usuario.
+
+Es una regla y no una opción. Un servicio que confía en una identidad escrita
+antes que él -un gateway que ya validó el token y la inyecta- no declara `auth`,
+y entonces la copia como cualquier otra cabecera de correlación.
 
 ## Opciones
 
@@ -163,6 +176,7 @@ autenticando, y lo único que se pierde es esa propagación.
 | `ignoredRoles`        | `[]`                       | los que nunca describen a un usuario       |
 | `ignoredRolePrefixes` | `[]`                       | prefijos con el mismo trato                |
 | `userIdHeader`        | `x-user-id`                | con qué cabecera viaja hacia los upstreams |
+| `roleHeader`          | ninguna: el rol no viaja   | con qué cabecera viaja el rol              |
 | `verify`              | ninguna                    | comprobación real de la firma              |
 
 Todas se pueden declarar en el perfil de la organización, que no enciende la

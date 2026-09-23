@@ -165,6 +165,104 @@ describe('NovaAuthGuard', () => {
 
       await expect(guard().canActivate(execution(target))).resolves.toBe(true);
     });
+
+    it('carries the role too when a header is named for it', async () => {
+      const context = new RequestContextService();
+      const target = request({ authorization: `Bearer ${student}` });
+
+      await context.run({ requestId: 'req-1', headers: {} }, async () => {
+        const withRole = guard(
+          {
+            preferredRoles: ['student'],
+            userIdHeader: 'user-id',
+            roleHeader: 'user-role',
+          },
+          context,
+        );
+        await withRole.canActivate(execution(target));
+        expect(context.headers()).toEqual({
+          'user-id': 'U12345',
+          'user-role': 'student',
+        });
+      });
+    });
+
+    // Qué capa necesita el rol lo decide cada organización.
+    it('keeps the role to itself by default', async () => {
+      const context = new RequestContextService();
+      const target = request({ authorization: `Bearer ${student}` });
+
+      await context.run({ requestId: 'req-1', headers: {} }, async () => {
+        await guard(undefined, context).canActivate(execution(target));
+        expect(Object.keys(context.headers())).toEqual(['x-user-id']);
+      });
+    });
+  });
+
+  // La identidad que viaja hacia adentro la escribe sólo la autenticación
+  // (ADR-037). Lo que el contexto copió de la petición con esos nombres lo
+  // escribió quien llama.
+  describe('an identity the caller wrote', () => {
+    const forged = {
+      'x-request-id': 'req-1',
+      'user-id': 'SOMEONE-ELSE',
+      'user-role': 'admin',
+    };
+    const identity = {
+      preferredRoles: ['student'],
+      userIdHeader: 'user-id',
+      roleHeader: 'user-role',
+    };
+
+    it('is replaced by the token on a protected route', async () => {
+      const context = new RequestContextService();
+      const target = request({ authorization: `Bearer ${student}` });
+
+      await context.run({ requestId: 'req-1', headers: forged }, async () => {
+        await guard(identity, context).canActivate(execution(target));
+        expect(context.headers()).toEqual({
+          'x-request-id': 'req-1',
+          'user-id': 'U12345',
+          'user-role': 'student',
+        });
+      });
+    });
+
+    // Es el caso que fallaba: el guard termina antes en una ruta pública, y lo
+    // que mandó el cliente viajaba como si fuera el usuario.
+    it('never travels from a public route', async () => {
+      const context = new RequestContextService();
+      const target = execution(request(), SampleController.prototype.open);
+
+      await context.run({ requestId: 'req-1', headers: forged }, async () => {
+        await guard(identity, context).canActivate(target);
+        expect(context.headers()).toEqual({ 'x-request-id': 'req-1' });
+      });
+    });
+
+    it('does not travel after a rejected token either', async () => {
+      const context = new RequestContextService();
+
+      await context.run({ requestId: 'req-1', headers: forged }, async () => {
+        await expect(
+          guard(identity, context).canActivate(execution(request())),
+        ).rejects.toThrow(UnauthorizedException);
+        expect(context.headers()).toEqual({ 'x-request-id': 'req-1' });
+      });
+    });
+
+    it('is matched whatever the case of its name', async () => {
+      const context = new RequestContextService();
+      const target = execution(request(), SampleController.prototype.open);
+
+      await context.run(
+        { requestId: 'req-1', headers: { 'X-User-Id': 'SOMEONE-ELSE' } },
+        async () => {
+          await guard(undefined, context).canActivate(target);
+          expect(context.headers()).toEqual({});
+        },
+      );
+    });
   });
 
   describe('a real signature check', () => {

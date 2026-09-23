@@ -32,10 +32,10 @@ export type RequestLoggerOptions = {
   readonly redactHeaders?: readonly string[];
 
   /**
-   * Cabecera de la que se lee el id de correlación. Por defecto
-   * {@link DEFAULT_REQUEST_ID_HEADER}.
+   * Cabecera de la que se lee el id de correlación, o varias en orden: gana la
+   * primera que traiga un valor. Por defecto {@link DEFAULT_REQUEST_ID_HEADER}.
    */
-  readonly requestIdHeader?: string;
+  readonly requestIdHeader?: string | readonly string[];
 
   /**
    * Fuente alternativa del id, consultada sólo cuando la petición no trae la
@@ -90,7 +90,7 @@ function headerValue(
   request: RequestLike | undefined,
   name: string,
 ): string | undefined {
-  const value = request?.headers?.[name];
+  const value = request?.headers?.[name.toLowerCase()];
   const first = Array.isArray(value) ? value[0] : value;
   return first === undefined || first === '' ? undefined : first;
 }
@@ -104,7 +104,10 @@ function headerValue(
 export function createRequestLoggerOptions(
   options: RequestLoggerOptions = {},
 ): RequestLoggerParams {
-  const idHeader = options.requestIdHeader ?? DEFAULT_REQUEST_ID_HEADER;
+  const idHeaders =
+    typeof options.requestIdHeader === 'string'
+      ? [options.requestIdHeader]
+      : (options.requestIdHeader ?? [DEFAULT_REQUEST_ID_HEADER]);
 
   const pinoHttp: Record<string, unknown> = {
     level: options.level ?? 'info',
@@ -117,11 +120,13 @@ export function createRequestLoggerOptions(
     //
     // pino-http hace `req.id = req.id || genReqId(req, res)`, así que cuando el
     // contexto de la plataforma ya escribió `req.id` esto ni se llama y el id es
-    // uno solo. Si pino llegara a mirar primero, leer la misma cabecera con la
-    // misma regla da el mismo valor, y el contexto adopta el `req.id` que
+    // uno solo. Si pino llegara a mirar primero, leer las mismas cabeceras en
+    // el mismo orden da el mismo valor, y el contexto adopta el `req.id` que
     // encuentre. Las dos direcciones convergen.
     genReqId: (request?: RequestLike): string =>
-      headerValue(request, idHeader) ??
+      idHeaders
+        .map((name) => headerValue(request, name))
+        .find((value) => value !== undefined) ??
       options.requestId?.() ??
       crypto.randomUUID(),
     // Sin esto un Error logueado sale como `{}`: sus propiedades no son

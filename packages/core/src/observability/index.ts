@@ -27,5 +27,7 @@ export {
   OBSERVABILITY_OPTIONS,
   resolveObservabilityOptions,
   type NovaObservabilityModuleOptions,
+  type RequestIdOptions,
   type ResolvedObservabilityOptions,
+  type ResolvedRequestIdOptions,
 } from './tokens';

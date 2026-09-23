@@ -63,6 +63,19 @@ describe('createRequestLoggerOptions', () => {
     expect(genReqId()).toEqual(expect.any(String));
   });
 
+  it('reads the id from the first of several headers that carries one', () => {
+    const genReqId = pinoHttp({
+      requestIdHeader: ['transaction-id', 'x-request-id'],
+    })['genReqId'] as (request: unknown) => string;
+
+    expect(genReqId({ headers: { 'x-request-id': 'r-1' } })).toBe('r-1');
+    expect(
+      genReqId({
+        headers: { 'transaction-id': 'tx-1', 'x-request-id': 'r-1' },
+      }),
+    ).toBe('tx-1');
+  });
+
   // Fixed messages, because the searchable part of a request log is the
   // structured fields; a message that interpolates the path makes every line
   // unique and the aggregation useless.

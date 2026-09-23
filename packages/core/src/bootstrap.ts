@@ -14,8 +14,13 @@ import {
   numberEnv,
   unfoldSecrets,
   type CorsPolicyOptions,
+  type CorsRequestIdHeaders,
   type UnfoldSecretsOptions,
 } from './config';
+import {
+  OBSERVABILITY_OPTIONS,
+  type ResolvedObservabilityOptions,
+} from './observability';
 import { setupOpenApi, type OpenApiOptions } from './openapi';
 import { NOVA_PROFILE, mergeOptions, type NovaProfile } from './profile';
 
@@ -211,6 +216,30 @@ function platformLogger(app: INestApplication): LoggerService | undefined {
 }
 
 /**
+ * Con qué cabeceras entra y sale el id de correlación, tal como las resolvió
+ * `NovaObservabilityModule` con el perfil y las opciones del servicio.
+ *
+ * Se leen del contenedor para que CORS permita justo las que el contexto lee:
+ * declararlas en dos lugares es cómo un borde termina aceptando una cabecera
+ * que el navegador no puede mandar.
+ */
+function requestIdHeaders(
+  app: INestApplication,
+): CorsRequestIdHeaders | undefined {
+  try {
+    return app.get<symbol, ResolvedObservabilityOptions>(
+      OBSERVABILITY_OPTIONS,
+      {
+        strict: false,
+      },
+    ).requestId;
+  } catch {
+    // La aplicación no monta la observabilidad de la plataforma.
+    return undefined;
+  }
+}
+
+/**
  * El puerto donde escuchar, de la primera variable que esté puesta.
  *
  * @throws {EnvironmentError} cuando esa variable no es un número. Se valida la
@@ -331,7 +360,7 @@ export async function bootstrap(
   if (options.cors) {
     // After create(), not inside its options: the allowed origins usually come
     // from configuration, which does not exist until the app does.
-    app.enableCors(buildCorsOptions(options.cors));
+    app.enableCors(buildCorsOptions(options.cors, requestIdHeaders(app)));
   }
 
   // Después del prefijo global, porque `useGlobalPrefix` lo necesita puesto, y

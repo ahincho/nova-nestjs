@@ -48,12 +48,14 @@ export class NovaObservabilityModule implements NestModule {
     ];
 
     if (resolved.logger !== false) {
-      // La cabecera del id no se declara dos veces: sale de la misma lista de
-      // correlación, así que cambiarla ahí mueve el contexto y el log juntos.
-      const [requestIdHeader] = resolved.correlationHeaders;
-
+      // Las cabeceras del id no se declaran dos veces: el log lee las mismas de
+      // las que lo toma el contexto, en el mismo orden, así que cambiarlas mueve
+      // el contexto y el log juntos.
       const loggerModule = LoggerModule.forRoot(
-        createRequestLoggerOptions({ requestIdHeader, ...resolved.logger }),
+        createRequestLoggerOptions({
+          requestIdHeader: resolved.requestId.accept,
+          ...resolved.logger,
+        }),
       );
 
       imports.push(loggerModule);

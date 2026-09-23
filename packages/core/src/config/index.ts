@@ -5,7 +5,11 @@ export {
   appEnvironment,
   type AppEnvironment,
 } from './app-environment';
-export { buildCorsOptions, type CorsPolicyOptions } from './cors';
+export {
+  buildCorsOptions,
+  type CorsPolicyOptions,
+  type CorsRequestIdHeaders,
+} from './cors';
 export {
   EnvironmentError,
   booleanEnv,

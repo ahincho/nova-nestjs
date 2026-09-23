@@ -1,6 +1,10 @@
 import { ValidationPipe, type INestApplication } from '@nestjs/common';
 import { NestFactory } from '@nestjs/core';
 import { bootstrap } from './bootstrap';
+import {
+  OBSERVABILITY_OPTIONS,
+  resolveObservabilityOptions,
+} from './observability';
 import { setupOpenApi } from './openapi';
 import { NOVA_PROFILE, defineProfile } from './profile';
 import type { Mock } from 'vitest';
@@ -104,6 +108,34 @@ describe('bootstrap', () => {
     });
     expect(app.enableCors).toHaveBeenCalledWith(
       expect.objectContaining({ origin: ['https://nova.example.edu'] }),
+    );
+  });
+
+  // CORS permite justo las cabeceras que el contexto lee, porque las toma del
+  // mismo lugar: declararlas dos veces es cómo un borde acepta una cabecera que
+  // el navegador no puede mandar (ADR-037).
+  it('lets the browser send and read the request id the edge uses', async () => {
+    app.get.mockImplementation((token: unknown) => {
+      if (token === OBSERVABILITY_OPTIONS) {
+        return resolveObservabilityOptions({
+          requestId: { accept: ['transaction-id', 'x-request-id'] },
+        });
+      }
+      throw new Error('not registered');
+    });
+
+    await bootstrap(AppModule, {
+      cors: { origins: 'https://nova.example.edu' },
+    });
+
+    expect(app.enableCors).toHaveBeenCalledWith(
+      expect.objectContaining({
+        allowedHeaders: expect.arrayContaining([
+          'transaction-id',
+          'x-request-id',
+        ]) as string[],
+        exposedHeaders: ['transaction-id'],
+      }),
     );
   });
 

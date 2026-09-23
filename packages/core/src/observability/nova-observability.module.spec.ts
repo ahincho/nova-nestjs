@@ -68,6 +68,29 @@ describe('NovaObservabilityModule', () => {
         params.pinoHttp.genReqId({ headers: { 'x-trace-id': 'from-header' } }),
       ).toBe('from-header');
     });
+
+    // Si pino mira antes que el contexto, tiene que llegar al mismo id: por eso
+    // lee las cabeceras del borde en el mismo orden.
+    it('gives the logger the headers the edge accepts, in order', () => {
+      const module = NovaObservabilityModule.forRoot({
+        requestId: { accept: ['transaction-id', 'x-request-id'] },
+      });
+      const logger = module.imports?.[0] as {
+        providers?: ValueProvider[];
+      };
+      const params = logger.providers?.find(
+        (provider) => provider.provide === 'pino-params',
+      )?.useValue as { pinoHttp: { genReqId: (r: unknown) => string } };
+
+      expect(
+        params.pinoHttp.genReqId({
+          headers: { 'transaction-id': 'tx-1', 'x-request-id': 'r-1' },
+        }),
+      ).toBe('tx-1');
+      expect(
+        params.pinoHttp.genReqId({ headers: { 'x-request-id': 'r-1' } }),
+      ).toBe('r-1');
+    });
   });
 
   describe('configure', () => {

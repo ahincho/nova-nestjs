@@ -39,6 +39,7 @@ export class RequestContextMiddleware implements NestMiddleware {
       // generar otro. Dos ids para una misma petición es lo mismo que ninguno,
       // porque la traza se corta justo donde alguien la va a buscar.
       request.id,
+      this.options.requestId.accept,
     );
 
     // `req.id` es la convención que leen pino-http y el filtro de excepciones
@@ -47,9 +48,10 @@ export class RequestContextMiddleware implements NestMiddleware {
     // que alguien va a querer seguir la traza.
     request.id = context.requestId;
 
+    // Con el nombre del borde, no con el de adentro: el llamador lo recibe como
+    // lo mandó, aunque hacia los upstreams viaje con otro.
     if (this.options.echoRequestId) {
-      const [idHeader = 'x-request-id'] = this.options.correlationHeaders;
-      response.setHeader?.(idHeader, context.requestId);
+      response.setHeader?.(this.options.requestId.echo, context.requestId);
     }
 
     this.context.run(context, next);

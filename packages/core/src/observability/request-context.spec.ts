@@ -115,4 +115,66 @@ describe('buildRequestContext', () => {
       'x-request-id': 'generated-id',
     });
   });
+
+  // Vacío es lo mismo que ausente: un id vacío correlaciona todo con todo.
+  it('generates an id when the caller sent it empty', () => {
+    expect(build({ 'x-request-id': '' }).requestId).toBe('generated-id');
+  });
+});
+
+// El borde recibe el id con su propio nombre y hacia adentro viaja con el de
+// siempre (ADR-037).
+describe('buildRequestContext at the edge', () => {
+  const accept = ['transaction-id', 'x-request-id'];
+
+  function atEdge(headers: Record<string, string | undefined>) {
+    return buildRequestContext(
+      headers,
+      ['x-request-id', 'user-id'],
+      generateId,
+      undefined,
+      accept,
+    );
+  }
+
+  it('takes the id the edge accepts and sends it on under the inner name', () => {
+    const context = atEdge({ 'transaction-id': 'tx-1' });
+
+    expect(context.requestId).toBe('tx-1');
+    expect(context.headers).toEqual({ 'x-request-id': 'tx-1' });
+  });
+
+  it('prefers the accepted headers in their order', () => {
+    const context = atEdge({ 'transaction-id': 'tx-1', 'x-request-id': 'r-1' });
+
+    expect(context.requestId).toBe('tx-1');
+  });
+
+  // Así el mismo perfil sirve al borde y a los servicios de adentro, que
+  // reciben el id con el nombre con que viaja.
+  it('falls back to the next accepted header', () => {
+    expect(atEdge({ 'x-request-id': 'r-1' }).requestId).toBe('r-1');
+  });
+
+  it('skips an accepted header that came empty', () => {
+    const context = atEdge({ 'transaction-id': '', 'x-request-id': 'r-1' });
+
+    expect(context.requestId).toBe('r-1');
+  });
+
+  it('generates an id when no accepted header came', () => {
+    expect(atEdge({}).requestId).toBe('generated-id');
+  });
+
+  it('never takes the caller id when nothing is accepted', () => {
+    const context = buildRequestContext(
+      { 'x-request-id': 'r-1' },
+      DEFAULT_CORRELATION_HEADERS,
+      generateId,
+      undefined,
+      [],
+    );
+
+    expect(context.requestId).toBe('generated-id');
+  });
 });
