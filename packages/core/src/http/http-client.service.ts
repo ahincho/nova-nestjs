@@ -12,7 +12,9 @@ import {
 import {
   UpstreamException,
   classifyTransportError,
+  statusForReceived,
   statusForType,
+  type OutboundCall,
   type UpstreamErrorType,
   type UpstreamFailure,
   type UpstreamFailureCategory,
@@ -41,6 +43,9 @@ export type HttpRequestOptions = {
    * Raises {@link UpstreamHttpError} with the upstream status and body instead
    * of translating the failure to a 502 or a 504. Use it when the caller has to
    * map the upstream's own semantics - a 404 that should stay a 404, say.
+   *
+   * Lo que el llamador no traduzca y relance sale igual que sin esta opción:
+   * 502 o 504, clasificado.
    */
   readonly forwardError?: boolean;
 
@@ -80,13 +85,17 @@ type FailureDetail = {
  *
  * What it adds over a bare `fetch` is the part that was being rewritten in
  * every service: a timeout that is always set, a connection pool instead of a
- * socket per call, correlation headers that travel on their own, an upstream
- * failure that cannot reach the client verbatim, and a log line that never
- * carries the response body.
+ * socket per call, correlation headers that travel on their own, and an
+ * upstream failure that cannot reach the client verbatim.
  *
  * Todo fallo sale como {@link UpstreamException}, clasificado con el registro
  * de RFC 9209: el tipo y la categoría dicen de quién es el problema, y viajan
  * como campos del log en vez de perderse en un stack (ADR-035).
+ *
+ * El cliente no registra los fallos: lanza, y la excepción lleva los campos. Lo
+ * registra una sola vez quien decide qué hacer con él -el filtro de errores si
+ * nadie lo atrapa-. Registrarlo también acá dejaba dos líneas de error por cada
+ * fallo, y una tercera, falsa, cuando el llamador lo había resuelto.
  */
 @Injectable()
 export class HttpClientService {
@@ -183,7 +192,7 @@ export class HttpClientService {
     } catch (cause) {
       const { type, category, code } = classifyTransportError(cause, 'request');
 
-      throw this.failure(
+      throw this.exception(
         call,
         {
           type,
@@ -212,7 +221,7 @@ export class HttpClientService {
     } catch (cause) {
       const { type, category, code } = classifyTransportError(cause, 'body');
 
-      throw this.failure(
+      throw this.exception(
         call,
         {
           type,
@@ -232,30 +241,30 @@ export class HttpClientService {
     text: string,
     options: HttpRequestOptions,
   ): T {
-    if (options.forwardError) {
-      // The body is deliberately absent from the log: an upstream error
-      // payload routinely echoes back the identifiers of the person the
-      // request was about.
-      this.logger.error(
-        `${call.method} ${this.safeUrl(call.target)} responded ${response.status}`,
-      );
+    // El upstream contestó, así que no es un tipo de error del RFC sino su
+    // `received-status`. Se sigue sin reenviar el status propio del upstream:
+    // describe una topología que el cliente no tiene por qué conocer.
+    const failure = this.failure(call, {
+      category: 'response',
+      phase: 'response',
+      receivedStatus: response.status,
+      status: statusForReceived(response.status),
+    });
 
+    if (options.forwardError) {
+      // El cuerpo va en la excepción, para el llamador, y nunca al log: un
+      // cuerpo de error del upstream suele devolver los identificadores de la
+      // persona sobre la que era la petición.
       throw new UpstreamHttpError(
         response.status,
         this.parseLenient(text),
         Object.fromEntries(response.headers),
+        failure,
+        this.outbound(call),
       );
     }
 
-    // El upstream contestó, así que no es un tipo de error del RFC sino su
-    // `received-status`. Se sigue sin reenviar el status propio del upstream:
-    // describe una topología que el cliente no tiene por qué conocer.
-    throw this.failure(call, {
-      category: 'response',
-      phase: 'response',
-      receivedStatus: response.status,
-      status: response.status === 504 || response.status === 408 ? 504 : 502,
-    });
+    throw new UpstreamException(failure, undefined, this.outbound(call));
   }
 
   private parse<T>(call: Call, text: string): T {
@@ -269,7 +278,7 @@ export class HttpClientService {
       // Antes se devolvía el texto como si fuera un `T`, y el error aparecía más
       // adelante, en el código que usó el resultado, lejos de la causa. Un 2xx
       // que no se puede interpretar es un contrato roto y se dice acá.
-      throw this.failure(
+      throw this.exception(
         call,
         {
           type: 'http_response_content_invalid',
@@ -299,35 +308,39 @@ export class HttpClientService {
     }
   }
 
-  /**
-   * Arma la excepción y deja la única línea de log del fallo, con la
-   * clasificación como campos y no dentro del mensaje: un tablero cuenta por
-   * `upstream.category` sin parsear texto.
-   */
-  private failure(
+  /** Arma la excepción de un fallo que no fue una respuesta de error. */
+  private exception(
     call: Call,
     detail: FailureDetail,
-    cause?: unknown,
+    cause: unknown,
   ): UpstreamException {
-    const failure: UpstreamFailure = {
+    return new UpstreamException(
+      this.failure(call, detail),
+      cause,
+      this.outbound(call),
+    );
+  }
+
+  /**
+   * La clasificación, con el upstream nombrado por su host y la duración de la
+   * llamada. Va como campos del log y no dentro del mensaje: un tablero cuenta
+   * por `upstream.category` sin parsear texto.
+   */
+  private failure(call: Call, detail: FailureDetail): UpstreamFailure {
+    return {
       upstream: this.hostOf(call.target),
       elapsedMs: Date.now() - call.startedAt,
       ...detail,
     };
+  }
 
-    this.logger.error(
-      {
-        upstream: failure,
-        method: call.method,
-        url: this.safeUrl(call.target),
-        timeoutMs: call.timeoutMs,
-      },
-      `${call.method} ${this.safeUrl(call.target)} failed: ${
-        failure.type ?? `responded ${failure.receivedStatus}`
-      }`,
-    );
-
-    return new UpstreamException(failure, cause);
+  /** La llamada, tal como puede llegar a un log. */
+  private outbound(call: Call): OutboundCall {
+    return {
+      method: call.method,
+      url: this.safeUrl(call.target),
+      timeoutMs: call.timeoutMs,
+    };
   }
 
   private dispatcherFor(options: HttpRequestOptions): {
@@ -343,8 +356,12 @@ export class HttpClientService {
     } catch (cause) {
       // Losing the correlation id degrades a trace. Failing the call because
       // the context could not be read would turn that into an outage.
+      //
+      // La causa va en `err` y no pegada al mensaje, que así queda uno solo
+      // para agrupar.
       this.logger.warn(
-        `Could not build the propagated headers: ${String(cause)}`,
+        { err: cause },
+        'Could not build the propagated headers',
       );
       return {};
     }

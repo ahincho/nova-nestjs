@@ -66,6 +66,11 @@ try {
 }
 ```
 
+Lo que se relanza sin traducir -el `throw error` del final- sale igual que sin
+`forwardError`: 502 o 504, clasificado. `UpstreamHttpError` es una
+`UpstreamException`, así que el patrón de traducir lo que se entiende y relanzar
+el resto no convierte un fallo del upstream en uno propio.
+
 **El log nunca lleva el cuerpo ni el query string.** Un cuerpo de error del
 upstream suele devolver los identificadores de la persona sobre la que era la
 petición, y un query string los lleva directamente. Del URL se registra sólo
@@ -101,11 +106,14 @@ cambiara sus códigos.
 
 ### Dónde se ve
 
-En el log, como campos y no dentro del mensaje:
+En una sola línea de log, la del filtro de errores, con la clasificación y la
+llamada como campos y no dentro del mensaje:
 
 ```jsonc
 {
   "level": 50,
+  "context": "AllExceptionsFilter",
+  "msg": "Upstream service error",
   "upstream": {
     "upstream": "academic.internal:8080",
     "category": "connectivity",
@@ -115,23 +123,56 @@ En el log, como campos y no dentro del mensaje:
     "elapsedMs": 3,
     "status": 502,
   },
-  "method": "GET",
-  "url": "http://academic.internal:8080/v1/courses",
-  "timeoutMs": 3000,
-  "context": "HttpClientService",
-  "msg": "GET http://academic.internal:8080/v1/courses failed: connection_refused",
+  "outbound": {
+    "method": "GET",
+    "url": "http://academic.internal:8080/v1/courses",
+    "timeoutMs": 3000,
+  },
+  "statusCode": 502,
+  "traceId": "5077a1db-d22b-4d8f-96f1-4648cbb04901",
+  "err": {
+    "type": "UpstreamException",
+    "message": "Upstream service error: fetch failed: connect ECONNREFUSED 10.0.3.14:8080",
+    "stack": "UpstreamException: Upstream service error\n    at ...",
+  },
 }
 ```
 
-La línea del filtro de errores lleva el mismo objeto `upstream`, junto a su
-`traceId`. Un tablero cuenta fallos por `upstream.category` sin parsear texto, y
-una alerta sobre `connectivity` no se dispara por un 404 de negocio.
+Un tablero cuenta fallos por `upstream.category` sin parsear texto, y una alerta
+sobre `connectivity` no se dispara por un 404 de negocio. `upstream` nombra al
+upstream sólo por su host, porque es lo que se agrupa; la ruta, que puede llevar
+identificadores de la persona, va aparte en `outbound`, para leer esa línea y no
+para contar.
+
+**El cliente no registra el fallo: lo registra quien decide qué hacer con él.**
+Si nadie lo atrapa, es el filtro, con esa línea. Registrarlo también en el
+cliente dejaba dos líneas de error por cada fallo, y una falsa cuando el
+llamador ya lo había resuelto, como el 404 que se traduce a propósito.
+
+El costo es que un fallo que el llamador atrapa para degradar la respuesta no
+deja rastro si el llamador no lo registra. Ese log es suyo, y la excepción trae
+los campos listos:
+
+```ts
+try {
+  return await this.http.get<Banner[]>(url);
+} catch (error) {
+  if (error instanceof UpstreamException) {
+    this.logger.warn(
+      error.logFields,
+      'Banners unavailable, answering without them',
+    );
+    return [];
+  }
+  throw error;
+}
+```
 
 **En el cuerpo, nada.** El 5xx sigue saliendo con el mensaje genérico: el tipo y
 el nombre del upstream describen la topología, y el RFC mismo advierte que
 mostrárselos a un cliente le dice a un atacante dónde está cada servicio.
 
-### Dos cosas que cambiaron
+### Tres cosas que cambiaron
 
 - **Un corte a mitad del cuerpo es un 502.** Antes se leía fuera de la
   traducción de errores y salía como un 500 sin clasificar: el tablero contaba un
@@ -139,6 +180,9 @@ mostrárselos a un cliente le dice a un atacante dónde está cada servicio.
 - **Un 2xx que no es JSON falla.** Antes se devolvía el texto como si fuera el
   `T` prometido, y el error aparecía más adelante, lejos de la causa. Con
   `forwardError`, el cuerpo de un error sigue llegando como texto si no es JSON.
+- **Un error de `forwardError` que se relanza es un 502.** Antes era un `Error`
+  suelto, y el filtro lo contestaba como un fallo propio: 500, el mismo defecto
+  contado del lado equivocado.
 
 ## Probar un servicio que llama a otros
 

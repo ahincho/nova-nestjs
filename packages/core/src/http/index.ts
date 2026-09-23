@@ -26,9 +26,11 @@ export {
   categoryForType,
   classifyTransportError,
   statusForType,
+  type OutboundCall,
   type UpstreamErrorType,
   type UpstreamFailure,
   type UpstreamFailureCategory,
   type UpstreamFailurePhase,
+  type UpstreamLogFields,
 } from './upstream-failure';
 export { UpstreamHttpError } from './upstream-http.error';

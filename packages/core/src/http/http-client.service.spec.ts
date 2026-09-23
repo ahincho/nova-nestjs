@@ -44,10 +44,14 @@ function brokenBodyResponse(): Response {
   return response;
 }
 
-async function failureOf(call: Promise<unknown>): Promise<UpstreamFailure> {
+async function exceptionOf(call: Promise<unknown>): Promise<UpstreamException> {
   const error: unknown = await call.catch((caught: unknown) => caught);
   expect(error).toBeInstanceOf(UpstreamException);
-  return (error as UpstreamException).failure;
+  return error as UpstreamException;
+}
+
+async function failureOf(call: Promise<unknown>): Promise<UpstreamFailure> {
+  return (await exceptionOf(call)).failure;
 }
 
 describe('HttpClientService', () => {
@@ -205,6 +209,11 @@ describe('HttpClientService', () => {
       await expect(
         client(provider).get('http://academic.internal/courses'),
       ).resolves.toEqual({ id: 7 });
+      // La causa va como campo, y el mensaje queda uno solo para agrupar.
+      expect(Logger.prototype.warn).toHaveBeenCalledWith(
+        { err: new Error('no request context') },
+        'Could not build the propagated headers',
+      );
     });
 
     it('defaults the content type to JSON', async () => {
@@ -442,53 +451,123 @@ describe('HttpClientService', () => {
         client().get('http://academic.internal/x', { forwardError: true }),
       ).rejects.toBeInstanceOf(UpstreamHttpError);
     });
+
+    // El patrón de siempre es traducir el status que se entiende y relanzar el
+    // resto. Cuando el error pedido era un `Error` suelto, lo relanzado llegaba
+    // al filtro como un fallo propio y salía 500.
+    it.each([
+      [503, 502],
+      [504, 504],
+    ])(
+      'classifies a forwarded %i the caller rethrows as a %i',
+      async (received, answered) => {
+        transport.mockResolvedValue(jsonResponse({}, received));
+
+        const error = await exceptionOf(
+          client().get('http://academic.internal/x', { forwardError: true }),
+        );
+
+        expect(error).toBeInstanceOf(UpstreamHttpError);
+        expect(error.getStatus()).toBe(answered);
+        expect(error.message).toBe(`Upstream responded ${received}`);
+        expect(error.failure).toMatchObject({
+          upstream: 'academic.internal',
+          category: 'response',
+          phase: 'response',
+          receivedStatus: received,
+          status: answered,
+        });
+      },
+    );
   });
 
+  // El cliente no registra el fallo: lanza, y la excepción lleva los campos. Lo
+  // registra una sola vez quien decide qué hacer con él -el filtro de errores
+  // si nadie lo atrapa-. Registrarlo acá también dejaba dos líneas de error por
+  // cada fallo, y una falsa cuando el llamador lo había resuelto.
   describe('logging', () => {
-    // An upstream error payload routinely echoes back the identifiers of the
-    // person the request was about, and a query string carries them outright.
-    it('never writes the response body or the query string', async () => {
-      const errorLog = vi.spyOn(Logger.prototype, 'error');
-      transport.mockResolvedValue(
-        jsonResponse({ studentEmail: 'someone@example.edu' }, 500),
-      );
+    it.each([
+      [
+        'a refused connection',
+        () => transport.mockRejectedValue(networkError('ECONNREFUSED')),
+      ],
+      [
+        'an upstream that answers 503',
+        () => transport.mockResolvedValue(jsonResponse({}, 503)),
+      ],
+      [
+        'a 2xx that is not JSON',
+        () => transport.mockResolvedValue(new Response('<html></html>')),
+      ],
+    ])('leaves no line of its own for %s', async (_, arrange) => {
+      arrange();
+
+      await exceptionOf(client().get('http://academic.internal/courses'));
+
+      expect(Logger.prototype.error).not.toHaveBeenCalled();
+      expect(Logger.prototype.warn).not.toHaveBeenCalled();
+    });
+
+    // El 404 que el llamador pidió para traducirlo no es un error de nadie.
+    it('leaves no line for an error the caller asked to receive', async () => {
+      transport.mockResolvedValue(jsonResponse({}, 404));
 
       await client()
-        .get('http://academic.internal/students', {
-          query: { documentNumber: '70123456' },
-        })
+        .get('http://academic.internal/students/7', { forwardError: true })
         .catch(() => undefined);
 
-      const logged = JSON.stringify(errorLog.mock.calls);
-      expect(logged).not.toContain('someone@example.edu');
-      expect(logged).not.toContain('70123456');
-      expect(logged).toContain('http://academic.internal/students');
-      expect(logged).toContain('500');
+      expect(Logger.prototype.error).not.toHaveBeenCalled();
     });
 
     // La clasificación va como campos, no dentro del mensaje: un tablero cuenta
     // por categoría sin parsear texto.
-    it('writes the classification as fields', async () => {
-      const errorLog = vi.spyOn(Logger.prototype, 'error');
+    it('hands the classification and the call to the log line', async () => {
       transport.mockRejectedValue(networkError('ECONNREFUSED'));
 
-      await client()
-        .get('http://academic.internal/courses/7?token=abc')
-        .catch(() => undefined);
-
-      expect(errorLog).toHaveBeenCalledWith(
-        expect.objectContaining({
-          upstream: expect.objectContaining({
-            upstream: 'academic.internal',
-            type: 'connection_refused',
-            category: 'connectivity',
-            code: 'ECONNREFUSED',
-          }),
-          url: 'http://academic.internal/courses/7',
+      const error = await exceptionOf(
+        client().get('http://academic.internal/courses/7?token=abc', {
+          timeoutMs: 800,
         }),
-        expect.any(String),
       );
+
+      expect(error.logFields).toEqual({
+        upstream: expect.objectContaining({
+          upstream: 'academic.internal',
+          type: 'connection_refused',
+          category: 'connectivity',
+          code: 'ECONNREFUSED',
+        }),
+        outbound: {
+          method: 'GET',
+          url: 'http://academic.internal/courses/7',
+          timeoutMs: 800,
+        },
+      });
     });
+
+    // An upstream error payload routinely echoes back the identifiers of the
+    // person the request was about, and a query string carries them outright.
+    it.each([false, true])(
+      'never hands the body or the query string to the log (forwardError: %s)',
+      async (forwardError) => {
+        transport.mockResolvedValue(
+          jsonResponse({ studentEmail: 'someone@example.edu' }, 500),
+        );
+
+        const error = await exceptionOf(
+          client().get('http://user:s3cr3t@academic.internal/students', {
+            query: { documentNumber: '70123456' },
+            forwardError,
+          }),
+        );
+
+        const logged = JSON.stringify(error.logFields);
+        expect(logged).not.toContain('someone@example.edu');
+        expect(logged).not.toContain('70123456');
+        expect(logged).not.toContain('s3cr3t');
+        expect(logged).toContain('http://academic.internal/students');
+      },
+    );
 
     it('names the upstream by its host only', async () => {
       transport.mockRejectedValue(networkError('ECONNREFUSED'));

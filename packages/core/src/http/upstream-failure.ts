@@ -71,6 +71,31 @@ export type UpstreamFailure = {
   readonly status: number;
 };
 
+/**
+ * La llamada que falló: el método, la URL sin query ni credenciales y el plazo
+ * que tenía.
+ *
+ * Va aparte de {@link UpstreamFailure} porque sirven para cosas distintas. La
+ * clasificación es para contar y alertar, y por eso nombra al upstream sólo por
+ * su host. La ruta puede llevar identificadores de la persona sobre la que era
+ * la petición: sirve para leer una línea concreta, no para agrupar.
+ */
+export type OutboundCall = {
+  readonly method: string;
+  /** Esquema, host y ruta. */
+  readonly url: string;
+  readonly timeoutMs: number;
+};
+
+/**
+ * Los campos que una excepción de upstream agrega a la línea de log del filtro
+ * de errores.
+ */
+export type UpstreamLogFields = {
+  readonly upstream: UpstreamFailure;
+  readonly outbound?: OutboundCall;
+};
+
 type Classification = {
   readonly type: UpstreamErrorType;
   readonly category: UpstreamFailureCategory;
@@ -287,6 +312,15 @@ export function statusForType(type: UpstreamErrorType): number {
   return STATUS_BY_TYPE[type];
 }
 
+/**
+ * El status con el que contesta este servicio cuando el upstream contestó con
+ * uno de error. No se reenvía el del upstream: describe una topología que el
+ * cliente no tiene por qué conocer.
+ */
+export function statusForReceived(receivedStatus: number): number {
+  return receivedStatus === 504 || receivedStatus === 408 ? 504 : 502;
+}
+
 /** La categoría de un tipo de fallo. */
 export function categoryForType(
   type: UpstreamErrorType,
@@ -311,17 +345,24 @@ function messageFor(failure: UpstreamFailure): string {
  * servicio que no la atrapa contesta lo correcto sin hacer nada. El mensaje es
  * genérico a propósito: el filtro lo sanea igual, y el detalle va en
  * {@link UpstreamException.failure}, que llega al log y nunca al cuerpo.
+ *
+ * El cliente no registra el fallo: lo registra una sola vez quien termina
+ * decidiendo qué hacer con él. Si nadie la atrapa, es el filtro de errores, con
+ * estos campos en su línea; si el llamador la atrapa para degradar la
+ * respuesta, el log es suyo, y {@link UpstreamException.logFields} es lo que
+ * tiene que registrar.
  */
 export class UpstreamException extends HttpException {
   /**
    * Los campos que esta excepción agrega a la línea de log del filtro de
    * errores. El filtro los lee por su forma, sin importar este módulo.
    */
-  readonly logFields: { readonly upstream: UpstreamFailure };
+  readonly logFields: UpstreamLogFields;
 
   constructor(
     readonly failure: UpstreamFailure,
     cause?: unknown,
+    call?: OutboundCall,
   ) {
     super(
       messageFor(failure),
@@ -329,6 +370,9 @@ export class UpstreamException extends HttpException {
       cause === undefined ? undefined : { cause },
     );
     this.name = 'UpstreamException';
-    this.logFields = { upstream: failure };
+    this.logFields =
+      call === undefined
+        ? { upstream: failure }
+        : { upstream: failure, outbound: call };
   }
 }
