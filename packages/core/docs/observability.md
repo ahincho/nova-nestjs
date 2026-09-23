@@ -116,6 +116,28 @@ qué middleware corrió primero: `pino-http` hace
 que encuentre en vez de generar otro. Dos ids para una misma petición es igual
 que ninguno, porque la traza se corta justo donde alguien la va a buscar.
 
+### Una línea por petición, y una por fallo
+
+Cada petición deja su línea en `info` -`request completed`, o `request errored`
+en un 5xx- con el status y la duración. Es de tráfico, no de fallos, y por eso no
+sube de nivel con el status: el fallo tiene su propia línea, la del filtro de
+errores, en `error` para un 5xx y en `warn` para un 4xx, con el mismo `req.id`.
+Si la de la petición también subiera, cada 5xx contaría dos veces en cualquier
+alerta sobre errores.
+
+A la línea de todo 5xx, pino-http le agrega un error inventado, con el mensaje
+`failed with status code 502` y un stack que apunta a su propio código. La
+plataforma se lo quita: no dice nada que el status no diga.
+
+**`err` tiene siempre la misma forma**: `type`, `message` y `stack`, con las
+causas encadenadas, y `code` como texto cuando es un error del sistema. El
+serializador estándar de pino copia además cada propiedad enumerable del error,
+y en un índice eso rompe de dos maneras. Un campo que en unas líneas es texto y
+en otras un objeto -el `response` de una `HttpException`- hace que el índice
+rechace enteras las líneas del tipo que llegó segundo, así que el error se
+pierde justo cuando pasa. Y un error puede cargar lo que nunca debió llegar al
+log, como el cuerpo de error de un upstream.
+
 ## Redacción de logs
 
 Redacta `authorization`, `proxy-authorization`, `cookie`, `set-cookie` y

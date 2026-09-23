@@ -1,8 +1,16 @@
-import { Controller, Get, Module, type INestApplication } from '@nestjs/common';
+import { createServer, type Server } from 'node:http';
+import {
+  Controller,
+  Get,
+  Module,
+  NotFoundException,
+  type INestApplication,
+} from '@nestjs/common';
 import { NestFactory } from '@nestjs/core';
 import { Logger } from 'nestjs-pino';
 import { fetch } from 'undici';
 import { DEFAULT_HEALTH_PATH } from '../health';
+import { HttpClientService } from '../http';
 import { NovaModule } from '../nova.module';
 
 @Controller('courses')
@@ -13,9 +21,33 @@ class CoursesController {
   }
 }
 
+/** Una URL donde no escucha nadie: el upstream caído de las pruebas. */
+let downUrl = '';
+
+@Controller('failures')
+class FailuresController {
+  constructor(private readonly http: HttpClientService) {}
+
+  @Get('internal')
+  internal(): never {
+    throw new Error('boom');
+  }
+
+  @Get('missing')
+  missing(): never {
+    throw new NotFoundException('Course not found');
+  }
+
+  @Get('upstream')
+  upstream(): Promise<unknown> {
+    return this.http.get(`${downUrl}/courses/7`, { timeoutMs: 500 });
+  }
+}
+
 type LogLine = Record<string, unknown> & {
   req?: { id?: string; url?: string };
   res?: { statusCode?: number };
+  err?: Record<string, unknown>;
 };
 
 const lines: LogLine[] = [];
@@ -34,9 +66,26 @@ const destination = {
 
 @Module({
   imports: [NovaModule.forRoot({ observability: { logger: { destination } } })],
-  controllers: [CoursesController],
+  controllers: [CoursesController, FailuresController],
 })
 class TestModule {}
+
+function listen(server: Server): Promise<number> {
+  return new Promise((resolve) => {
+    server.listen(0, '127.0.0.1', () => {
+      const address = server.address();
+      resolve(typeof address === 'object' && address ? address.port : 0);
+    });
+  });
+}
+
+/** Un puerto que se abre y se cierra enseguida, así que nadie escucha ahí. */
+async function closedPort(): Promise<number> {
+  const probe = createServer();
+  const port = await listen(probe);
+  await new Promise((resolve) => probe.close(resolve));
+  return port;
+}
 
 /**
  * Levanta la aplicación como lo hace `bootstrap()` -- mismo prefijo global,
@@ -135,5 +184,89 @@ describe('request logging', () => {
 
     expect(serialised).not.toContain('a-live-token');
     expect(serialised).toContain('[redacted]');
+  });
+
+  // Lo que se comprueba acá es lo que llega al índice: una línea de error por
+  // fallo, con un mensaje que agrupa y el stack donde el índice lo busca.
+  describe('a failed request', () => {
+    beforeAll(async () => {
+      downUrl = `http://127.0.0.1:${await closedPort()}`;
+    });
+
+    function of(id: string): LogLine[] {
+      return lines.filter((line) => line.req?.id === id);
+    }
+
+    function at(id: string, level: number): LogLine[] {
+      return of(id).filter((line) => line.level === level);
+    }
+
+    it('logs a 5xx once, with the stack in err and not in the message', async () => {
+      expect(
+        await call('/api/v1/failures/internal', { 'x-request-id': 'req-500' }),
+      ).toBe(500);
+
+      const errors = at('req-500', 50);
+
+      expect(errors).toHaveLength(1);
+      expect(errors[0]).toMatchObject({
+        context: 'AllExceptionsFilter',
+        msg: 'boom',
+        statusCode: 500,
+        traceId: 'req-500',
+      });
+      expect(errors[0]?.err).toEqual({
+        type: 'Error',
+        message: 'boom',
+        stack: expect.stringContaining('Error: boom'),
+      });
+    });
+
+    it('keeps the line of the request free of an invented error', async () => {
+      await call('/api/v1/failures/internal', { 'x-request-id': 'req-500' });
+
+      const request = of('req-500').find(
+        (line) => line.msg === 'request errored',
+      );
+
+      expect(request?.res?.statusCode).toBe(500);
+      expect(request?.level).toBe(30);
+      expect(request).not.toHaveProperty('err');
+    });
+
+    it('logs a 4xx as a warning with its message and no stack', async () => {
+      expect(
+        await call('/api/v1/failures/missing', { 'x-request-id': 'req-404' }),
+      ).toBe(404);
+
+      const warnings = at('req-404', 40);
+
+      expect(warnings).toHaveLength(1);
+      expect(warnings[0]?.msg).toBe('Course not found');
+      expect(warnings[0]).not.toHaveProperty('err');
+    });
+
+    // El cliente HTTP no registra: la excepción lleva los campos y el filtro
+    // deja la única línea, con la clasificación y la llamada.
+    it('logs an upstream failure once, from the filter', async () => {
+      expect(
+        await call('/api/v1/failures/upstream', { 'x-request-id': 'req-502' }),
+      ).toBe(502);
+
+      const errors = at('req-502', 50);
+
+      expect(errors).toHaveLength(1);
+      expect(errors[0]).toMatchObject({
+        context: 'AllExceptionsFilter',
+        msg: 'Upstream service error',
+        upstream: { category: 'connectivity', type: 'connection_refused' },
+        outbound: {
+          method: 'GET',
+          url: `${downUrl}/courses/7`,
+          timeoutMs: 500,
+        },
+        err: { type: 'UpstreamException' },
+      });
+    });
   });
 });

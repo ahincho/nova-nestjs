@@ -60,6 +60,26 @@ function logFieldsOf(exception: unknown): Record<string, unknown> {
 }
 
 /**
+ * El mensaje de la línea de log: el de la excepción, sin el stack.
+ *
+ * El stack va en `err`. Pegado al mensaje hacía única cada línea, y agrupar por
+ * mensaje en el índice dejaba de servir justo para los errores. El de una
+ * excepción de la plataforma es estable por tipo -«Upstream service timed
+ * out»-, así que agrupa.
+ */
+function logMessageOf(exception: unknown): string {
+  if (exception instanceof Error && exception.message !== '') {
+    return exception.message;
+  }
+
+  if (typeof exception === 'string' && exception !== '') {
+    return exception;
+  }
+
+  return 'Unhandled exception';
+}
+
+/**
  * Catches every unhandled exception and answers with the active standard.
  *
  * El reparto con el estándar es la razón de ser de este filtro. Acá se decide
@@ -71,6 +91,11 @@ function logFieldsOf(exception: unknown): Record<string, unknown> {
  * Logs through Nest's own `Logger`, so an application that installed a logger
  * with `app.useLogger()` gets these entries in its own format without this
  * package depending on any logging library.
+ *
+ * Los argumentos van con la forma de pino -los campos primero, el mensaje
+ * después-, que es como los lee el logger de la plataforma. Con la forma del
+ * `ConsoleLogger` de Nest, `error(campos, stack)`, pino toma el segundo
+ * argumento como mensaje, y el stack terminaba en `msg`.
  */
 @Catch()
 export class AllExceptionsFilter implements ExceptionFilter {
@@ -91,8 +116,8 @@ export class AllExceptionsFilter implements ExceptionFilter {
       // Nothing to answer on. Reported rather than swallowed, because a
       // silent drop here looks like the handler simply never ran.
       this.logger.error(
+        { err: exception },
         'Unhandled exception outside an HTTP context',
-        exception instanceof Error ? exception.stack : undefined,
       );
       return;
     }
@@ -242,16 +267,18 @@ export class AllExceptionsFilter implements ExceptionFilter {
       ),
     };
 
+    const message = logMessageOf(exception);
+
     // A 4xx is the client being told it got something wrong, not a fault of
     // ours. Logging it at error level is what buries the 5xx that matter.
+    //
+    // Sólo el 5xx lleva el error con su stack: en un 4xx el stack apunta al
+    // código que rechazó la petición, que funcionó bien.
     if (failure.status >= 500) {
-      this.logger.error(
-        detail,
-        exception instanceof Error ? exception.stack : undefined,
-      );
+      this.logger.error({ ...detail, err: exception }, message);
       return;
     }
 
-    this.logger.warn(detail);
+    this.logger.warn(detail, message);
   }
 }

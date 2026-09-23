@@ -1,3 +1,4 @@
+import { inspect } from 'node:util';
 import { stdSerializers } from 'pino';
 
 /**
@@ -74,6 +75,94 @@ type RequestLike = {
   readonly headers?: Readonly<Record<string, string | string[] | undefined>>;
 };
 
+type ResponseLike = {
+  readonly statusCode?: number;
+  readonly err?: unknown;
+};
+
+type SerializedError = {
+  readonly type?: unknown;
+  readonly message?: unknown;
+  readonly stack?: unknown;
+  readonly code?: unknown;
+};
+
+/**
+ * La forma de `err` en el log: el tipo, el mensaje, el stack y, si lo trae, el
+ * código del sistema. Nada más.
+ *
+ * El serializador estándar de pino copia además cada propiedad enumerable del
+ * error, y en un índice eso rompe de dos maneras. Una `HttpException` trae
+ * `response`, que en unas es un texto y en otras un objeto: el índice fija el
+ * tipo del campo con la primera línea que ve y rechaza entera cada línea que
+ * traiga el otro, así que el error se pierde justo cuando pasa. Y un error
+ * puede cargar lo que nunca debió llegar al log: el `body` de un
+ * `UpstreamHttpError` es el cuerpo de error del upstream, con los datos de la
+ * persona.
+ *
+ * El mensaje y el stack siguen trayendo las causas encadenadas: eso lo arma el
+ * serializador estándar, y esta función parte de lo que él devuelve.
+ */
+export function serializeError(value: unknown): unknown {
+  // Con `wrapSerializers`, pino-http ya lo pasó por el estándar antes de
+  // llegar acá. Un Error crudo es el caso de usar estas opciones sin él.
+  const serialized: unknown =
+    value instanceof Error ? stdSerializers.err(value) : value;
+  const error =
+    typeof serialized === 'object' && serialized !== null
+      ? (serialized as SerializedError)
+      : undefined;
+
+  // Lo que no es un error -un texto lanzado, un objeto cualquiera- queda como
+  // mensaje, para que `err` tenga siempre la misma forma.
+  if (typeof error?.message !== 'string') {
+    return {
+      message:
+        typeof serialized === 'string'
+          ? serialized
+          : inspect(serialized, { depth: 2, breakLength: Infinity }),
+    };
+  }
+
+  const { type, message, stack, code } = error;
+
+  return {
+    ...(typeof type === 'string' ? { type } : {}),
+    message,
+    ...(typeof stack === 'string' ? { stack } : {}),
+    // Como texto siempre: hay librerías que lo dan como número, y un campo con
+    // dos tipos es el mismo problema de arriba.
+    ...(typeof code === 'string' || typeof code === 'number'
+      ? { code: String(code) }
+      : {}),
+  };
+}
+
+/**
+ * La línea de la petición, sin el error que pino-http inventa.
+ *
+ * pino-http arma un `Error('failed with status code 502')` para todo 5xx que no
+ * le trae uno, con un stack que apunta a su propio código. No dice nada que el
+ * status no diga, y el error de verdad ya lo registró el filtro de errores con
+ * el mismo id: la línea de la petición es de tráfico, no de fallos. Un error
+ * real del socket, que sí llega hasta acá, se conserva.
+ */
+function withoutInventedError(
+  _request: unknown,
+  response: ResponseLike,
+  error: unknown,
+  value: Readonly<Record<string, unknown>>,
+): Record<string, unknown> {
+  const invented =
+    response.err === undefined &&
+    error instanceof Error &&
+    error.message === `failed with status code ${response.statusCode}`;
+
+  return invented
+    ? Object.fromEntries(Object.entries(value).filter(([key]) => key !== 'err'))
+    : { ...value };
+}
+
 function redactionPaths(extra: readonly string[]): string[] {
   const headers = [...SENSITIVE_HEADERS, ...extra];
 
@@ -130,12 +219,13 @@ export function createRequestLoggerOptions(
       options.requestId?.() ??
       crypto.randomUUID(),
     // Sin esto un Error logueado sale como `{}`: sus propiedades no son
-    // enumerables, así que el serializador estándar es lo único que rescata
-    // `message` y `stack`.
-    serializers: { err: stdSerializers.err },
+    // enumerables, así que el serializador es lo único que rescata `message` y
+    // `stack`. Por qué no el estándar a secas, en `serializeError`.
+    serializers: { err: serializeError },
     wrapSerializers: true,
     customSuccessMessage: () => 'request completed',
     customErrorMessage: () => 'request errored',
+    customErrorObject: withoutInventedError,
   };
 
   if (options.pretty === true) {

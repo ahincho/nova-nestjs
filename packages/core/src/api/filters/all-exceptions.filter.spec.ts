@@ -257,10 +257,61 @@ describe('AllExceptionsFilter', () => {
   });
 
   it('reports instead of answering when there is no HTTP context', () => {
-    filter.catch(new Error('boom'), hostDouble(captured, 'rpc'));
+    const boom = new Error('boom');
+
+    filter.catch(boom, hostDouble(captured, 'rpc'));
 
     expect(captured.status).toBeUndefined();
-    expect(errorLog).toHaveBeenCalledTimes(1);
+    expect(errorLog).toHaveBeenCalledWith(
+      { err: boom },
+      'Unhandled exception outside an HTTP context',
+    );
+  });
+
+  // Con la forma del ConsoleLogger, `error(campos, stack)`, pino toma el
+  // segundo argumento como mensaje: cada línea era distinta y agrupar por
+  // mensaje dejaba de servir justo para los errores.
+  describe('the message and the stack of the log line', () => {
+    it('keeps the stack out of the message, in err', () => {
+      const boom = new Error('boom');
+
+      filter.catch(boom, hostDouble(captured));
+
+      expect(errorLog).toHaveBeenCalledWith(
+        expect.objectContaining({ err: boom }),
+        'boom',
+      );
+      const [, message] = errorLog.mock.calls[0] as [unknown, string];
+      expect(message).not.toContain('\n');
+    });
+
+    it('logs a 4xx with its message and without a stack', () => {
+      filter.catch(
+        new NotFoundException('Student not found'),
+        hostDouble(captured),
+      );
+
+      expect(warnLog).toHaveBeenCalledWith(
+        expect.not.objectContaining({ err: expect.anything() }),
+        'Student not found',
+      );
+    });
+
+    it('names a thrown value that is not an Error', () => {
+      filter.catch('boom', hostDouble(captured));
+      filter.catch({ reason: 'boom' }, hostDouble(captured));
+
+      expect(errorLog).toHaveBeenNthCalledWith(
+        1,
+        expect.objectContaining({ err: 'boom' }),
+        'boom',
+      );
+      expect(errorLog).toHaveBeenNthCalledWith(
+        2,
+        expect.objectContaining({ err: { reason: 'boom' } }),
+        'Unhandled exception',
+      );
+    });
   });
 
   // Los nombres de estos campos son un contrato con el índice de logs, no una
@@ -283,6 +334,7 @@ describe('AllExceptionsFilter', () => {
         method: 'GET',
         path: '/v1/students/7',
       }),
+      'Already enrolled',
     );
   });
 
@@ -455,6 +507,7 @@ describe('AllExceptionsFilter', () => {
             { code: 'CONFLICT', message: 'Already enrolled', field: null },
           ],
         }),
+        'Already enrolled',
       );
     });
   });

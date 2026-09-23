@@ -111,7 +111,7 @@ Vale con cualquier estándar: la forma de una sonda no es de la organización.
 Las dos deprecadas apagan el interceptor o el filtro, y apagarlos se lleva con
 ellos las reglas. Siguen funcionando para no romper a quien las usa.
 
-## Dos decisiones que conviene conocer
+## Tres decisiones que conviene conocer
 
 **Ningún 5xx llega con su mensaje real.** `connect ECONNREFUSED 10.0.3.14:5432`
 va al log; el cliente recibe el mensaje genérico, con cualquier estándar.
@@ -120,9 +120,18 @@ va al log; el cliente recibe el mensaje genérico, con cualquier estándar.
 equivocándose, no una falla nuestra; registrarlo como error entierra los 5xx que
 sí importan.
 
+**El stack va en `err`, nunca en el mensaje.** La línea de un 5xx lleva el
+mensaje de la excepción -«Upstream service timed out»- y el error en `err`, con
+su tipo, su mensaje y su stack. Pegado al mensaje, el stack hacía única cada
+línea, y agrupar por mensaje en el índice dejaba de servir justo para los
+errores. Un 4xx lleva su mensaje y ningún stack: apuntaría al código que
+rechazó la petición, que funcionó bien.
+
 El filtro escribe con el `Logger` de Nest, así que si la aplicación instaló pino
 con `app.useLogger()`, estas entradas salen en ese formato. El paquete no depende
-de ninguna librería de logging.
+de ninguna librería de logging. Los argumentos van con la forma de pino -los
+campos primero, el mensaje después-, que es como los lee el logger de la
+plataforma.
 
 La línea de log **no cambia con el estándar**: sus códigos salen siempre del
 catálogo de Nova. Es de observabilidad, y cambiar la forma de la respuesta no
