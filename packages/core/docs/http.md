@@ -91,12 +91,41 @@ una política automática y global.
 El detalle, con las consecuencias negativas y el disparador que obliga a
 revisarlo, está en ADR-029.
 
+## El pool de conexiones
+
+Viene encendido. Todas las llamadas salientes comparten un `Agent` de undici, y
+sin él cada petición abre y cierra su propio socket:
+
+```ts
+NovaHttpModule.forRoot({ pool: { connections: 100 } });
+```
+
+Medido sobre un servidor real, doce llamadas concurrentes al mismo upstream:
+**doce sockets sin pool, dos con `connections: 2`**. El pool se cierra al apagar
+esperando a las llamadas en vuelo, con un tope, para que un upstream atascado no
+deje el cierre colgado hasta que llegue el SIGKILL.
+
+**Uno solo y no uno por upstream.** Un pool por upstream multiplica la
+configuración y las métricas, y lo que se quiere mirar -cuántas conexiones tiene
+vivas este contenedor- deja de ser un número. El upstream que de verdad necesita
+el suyo -otro TLS, un certificado fijado- lo pasa por llamada como `dispatcher`.
+
+El cliente usa el `fetch` **de undici**, no el global. No es una preferencia: el
+`fetch` de Node trae su propia copia de undici embebida y rechaza un despachador
+de la del paquete con `InvalidArgumentError: invalid onRequestStart method`.
+Comprobado sobre Node 24.18 y undici 8.10.
+
 ## Opciones
 
 | Opción             | Por defecto | Para qué                                            |
 | ------------------ | ----------- | --------------------------------------------------- |
 | `defaultTimeoutMs` | `5000`      | timeout cuando el punto de llamada no dice          |
 | `defaultHeaders`   | `{}`        | cabeceras en toda llamada, debajo de las propagadas |
+| `pool`             | encendido   | `false` lo apaga y cada llamada abre su socket      |
 
-Por llamada: `headers`, `query`, `body`, `timeoutMs`, `forwardError`. La
-precedencia de cabeceras es defaults → propagadas → las del punto de llamada.
+Del pool: `connections` (50), `pipelining` (10), `keepAliveTimeoutMs` (30000),
+`closeTimeoutMs` (5000).
+
+Por llamada: `headers`, `query`, `body`, `timeoutMs`, `forwardError`,
+`dispatcher`. La precedencia de cabeceras es defaults → propagadas → las del
+punto de llamada.

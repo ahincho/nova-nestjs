@@ -3,12 +3,24 @@ import {
   GatewayTimeoutException,
   Logger,
 } from '@nestjs/common';
-import { HttpClientService } from './http-client.service';
 import { resolveNovaHttpOptions, type OutboundHeadersProvider } from './tokens';
 import { UpstreamHttpError } from './upstream-http.error';
-import type { Mock } from 'vitest';
 
-type FetchArgs = [string, RequestInit];
+// El cliente usa el `fetch` de undici y no el global, porque el pool tiene que
+// ser un `Agent` de esa misma undici. Por eso se sustituye el módulo y no
+// `global.fetch`: asignar el global ya no interceptaría nada.
+const fetchMock = vi.hoisted(() => vi.fn());
+
+vi.mock('undici', async (importOriginal) => ({
+  ...(await importOriginal<typeof import('undici')>()),
+  fetch: fetchMock,
+}));
+
+// El import va después del `vi.mock` sólo para leerse en orden: vitest iza la
+// sustitución por encima de los imports, así que el estático alcanza.
+import { HttpClientService } from './http-client.service';
+
+type FetchArgs = [string, RequestInit & { dispatcher?: unknown }];
 
 function jsonResponse(body: unknown, status = 200): Response {
   return new Response(JSON.stringify(body), {
@@ -24,11 +36,8 @@ function timeoutError(): Error {
 }
 
 describe('HttpClientService', () => {
-  let fetchMock: Mock;
-
   beforeEach(() => {
-    fetchMock = vi.fn();
-    global.fetch = fetchMock;
+    fetchMock.mockReset();
     vi.spyOn(Logger.prototype, 'error').mockImplementation(() => {});
     vi.spyOn(Logger.prototype, 'warn').mockImplementation(() => {});
   });

@@ -140,9 +140,18 @@ export class AllExceptionsFilter implements ExceptionFilter {
     errors: readonly ApiErrorItem[],
     request: HttpRequestLike,
   ): void {
+    // Los nombres de estos campos son un contrato con el índice de logs, no una
+    // preferencia: `traceId` y `statusCode` son por los que están escritas las
+    // consultas y los tableros que ya existen. Nombrarlos `requestId` y `status`
+    // deja las líneas de error dentro del índice y fuera de toda búsqueda, que
+    // es peor que no loguearlas -- se ven en un `docker logs` y no aparecen
+    // cuando alguien investiga un incidente.
+    //
+    // `traceId` es además el mismo valor que pino-http publica como `req.id` en
+    // la línea de la petición, así que una búsqueda por el UUID trae las dos.
     const detail = {
-      status,
-      requestId: request.id,
+      statusCode: status,
+      traceId: request.id,
       method: request.method,
       path: request.url,
       errors,

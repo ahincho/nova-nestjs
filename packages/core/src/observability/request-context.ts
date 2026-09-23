@@ -47,11 +47,17 @@ function firstValue(value: string | string[] | undefined): string | undefined {
  * @param headers - the incoming headers, read case-insensitively.
  * @param correlationHeaders - which headers to carry, the first being the id.
  * @param generateId - produces an id when the caller did not send one.
+ * @param existingId - un id que alguien ya puso sobre la petición, típicamente
+ * el `req.id` de pino-http. Gana sobre generar uno nuevo, y por eso el contexto
+ * y el log dicen lo mismo sin importar cuál de los dos middlewares corrió
+ * primero. No gana sobre la cabecera: si el llamador mandó un id, ese es el que
+ * hay que propagar.
  */
 export function buildRequestContext(
   headers: IncomingHeaders,
   correlationHeaders: readonly string[],
   generateId: () => string,
+  existingId?: string,
 ): RequestContext {
   const lowercased: Record<string, string | string[] | undefined> = {};
   for (const [name, value] of Object.entries(headers)) {
@@ -59,7 +65,8 @@ export function buildRequestContext(
   }
 
   const [idHeader = 'x-request-id', ...rest] = correlationHeaders;
-  const requestId = firstValue(lowercased[idHeader]) ?? generateId();
+  const adopted = existingId === '' ? undefined : existingId;
+  const requestId = firstValue(lowercased[idHeader]) ?? adopted ?? generateId();
 
   const propagated: Record<string, string> = { [idHeader]: requestId };
 

@@ -6,14 +6,57 @@ import {
   type RouteConflictPolicy,
 } from '@nestjs/common';
 import { NestFactory } from '@nestjs/core';
+import { Logger as PinoLogger } from 'nestjs-pino';
 import { validationExceptionFactory } from './api';
 import { DEFAULT_HEALTH_PATH } from './health';
-import { buildCorsOptions, numberEnv, type CorsPolicyOptions } from './config';
+import {
+  buildCorsOptions,
+  numberEnv,
+  unfoldSecrets,
+  type CorsPolicyOptions,
+  type UnfoldSecretsOptions,
+} from './config';
 import { setupOpenApi, type OpenApiOptions } from './openapi';
 
+/**
+ * Variables de las que sale el puerto, en orden de preferencia.
+ *
+ * `APP_PORT` primero porque es la que inyecta la task definition a partir del
+ * puerto del contenedor, o sea la que operaciones puede mover sin tocar la
+ * imagen; `PORT` es la que fija el Dockerfile y queda como respaldo.
+ */
+export const DEFAULT_PORT_VARIABLES = ['APP_PORT', 'PORT'] as const;
+
+/** Puerto cuando ninguna de esas variables está puesta. */
+export const DEFAULT_PORT = 3000;
+
 export type BootstrapOptions = {
-  /** Defaults to the `PORT` variable, and to 3000 when it is unset. */
+  /**
+   * Puerto explícito. Omitirlo lo lee de {@link BootstrapOptions.portVariables}.
+   */
   readonly port?: number;
+
+  /**
+   * De qué variables se lee el puerto, en orden. Por defecto
+   * {@link DEFAULT_PORT_VARIABLES}. Gana la primera que esté puesta, y si su
+   * valor no es un número el arranque corta nombrándola.
+   */
+  readonly portVariables?: readonly string[];
+
+  /**
+   * Desdobla los secretos que la plataforma inyecta como JSON, antes de que
+   * exista la aplicación.
+   *
+   * `true` los descubre por convención — cualquier variable que empiece con
+   * `SECRET_`, más las que nombre `NOVA_SECRETS` en tiempo de ejecución. Un
+   * objeto ajusta esa convención sin enumerar nada. Omitirlo lo deja apagado.
+   *
+   * No viene encendido porque descubrir por prefijo sobre un entorno que la
+   * plataforma no conoce puede toparse con una variable que se llama así y no
+   * es un secreto JSON, y eso cortaría un arranque que hoy funciona. Un
+   * servicio nuevo lo declara en una palabra.
+   */
+  readonly secrets?: UnfoldSecretsOptions | boolean;
 
   /**
    * Defaults to `0.0.0.0`. Binding to localhost inside a container makes the
@@ -24,7 +67,14 @@ export type BootstrapOptions = {
   /** Enables CORS with the given policy. Omit to leave CORS off. */
   readonly cors?: CorsPolicyOptions;
 
-  /** Installed with `app.useLogger()`. Logs are buffered until it is set. */
+  /**
+   * Instalado con `app.useLogger()`. Los logs quedan en buffer hasta entonces.
+   *
+   * Omitirlo usa el logger estructurado que monta `NovaObservabilityModule`, que
+   * es lo que corresponde: pasar uno acá es para el servicio que loguea de otra
+   * forma, y en ese caso conviene además apagar el de la plataforma con
+   * `observability: { logger: false }`.
+   */
   readonly logger?: LoggerService;
 
   /** Prefix applied to every route except the health probes. */
@@ -79,6 +129,52 @@ const DEFAULT_ROUTE_CONFLICTS: RouteConflictPolicy = {
 };
 
 /**
+ * Normaliza la opción `secrets` y desdobla. Devuelve qué variables traían uno.
+ */
+function unfoldSecretsFrom(
+  secrets: UnfoldSecretsOptions | boolean | undefined,
+): string[] {
+  if (secrets === undefined || secrets === false) {
+    return [];
+  }
+  return unfoldSecrets(secrets === true ? {} : secrets);
+}
+
+/**
+ * El logger estructurado que montó `NovaObservabilityModule`, si está.
+ *
+ * Se resuelve del contenedor en vez de construirse acá para que sea el mismo
+ * que inyectan los servicios: dos instancias significan dos configuraciones que
+ * pueden separarse sin que nadie lo note. Devuelve `undefined` cuando el módulo
+ * no está montado -porque el servicio apagó el logger de la plataforma-, y ahí
+ * queda el de Nest.
+ */
+function platformLogger(app: INestApplication): LoggerService | undefined {
+  try {
+    return app.get(PinoLogger, { strict: false });
+  } catch {
+    return undefined;
+  }
+}
+
+/**
+ * El puerto donde escuchar, de la primera variable que esté puesta.
+ *
+ * @throws {EnvironmentError} cuando esa variable no es un número. Se valida la
+ * que se encontró y no la lista entera, para que el mensaje nombre la que hay
+ * que arreglar.
+ */
+function resolvePort(variables: readonly string[]): number {
+  for (const name of variables) {
+    const raw = process.env[name];
+    if (raw !== undefined && raw.trim() !== '') {
+      return numberEnv(name);
+    }
+  }
+  return DEFAULT_PORT;
+}
+
+/**
  * Starts a Nova service.
  *
  * Replaces the `main.ts` every service was copying, and with it the four
@@ -98,6 +194,11 @@ export async function bootstrap(
   rootModule: unknown,
   options: BootstrapOptions = {},
 ): Promise<INestApplication> {
+  // Antes de crear la aplicación, no después: cada `registerAs` valida sus
+  // variables cuando se instancia su módulo, así que para entonces las claves
+  // del secreto ya tienen que estar en el entorno.
+  const unfolded = unfoldSecretsFrom(options.secrets);
+
   const app = await NestFactory.create(
     rootModule as Parameters<typeof NestFactory.create>[0],
     {
@@ -123,8 +224,17 @@ export async function bootstrap(
   // apagado ordenado de las sondas existe solo si los hooks están activos.
   app.enableShutdownHooks();
 
-  if (options.logger) {
-    app.useLogger(options.logger);
+  const logger = options.logger ?? platformLogger(app);
+  if (logger) {
+    app.useLogger(logger);
+  }
+
+  // Después de instalar el logger, para que la línea salga en el mismo formato
+  // que el resto. Nombra las variables y **nunca su contenido**: es la respuesta
+  // a «¿este contenedor recibió el secreto?», que es la primera pregunta cuando
+  // una credencial no aparece.
+  if (unfolded.length > 0) {
+    new Logger('Secrets').log(`Unfolded ${unfolded.join(', ')}`);
   }
 
   app.useGlobalPipes(
@@ -162,7 +272,9 @@ export async function bootstrap(
     setupOpenApi(app, options.openapi);
   }
 
-  const port = options.port ?? numberEnv('PORT', 3000);
+  const port =
+    options.port ??
+    resolvePort(options.portVariables ?? DEFAULT_PORT_VARIABLES);
   const host = options.host ?? '0.0.0.0';
 
   await app.listen(port, host);

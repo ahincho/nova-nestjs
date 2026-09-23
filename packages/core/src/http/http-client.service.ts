@@ -6,6 +6,8 @@ import {
   Logger,
   Optional,
 } from '@nestjs/common';
+import { fetch, type Dispatcher } from 'undici';
+import { NovaHttpAgent } from './http-agent';
 import {
   NOVA_HTTP_OPTIONS,
   OUTBOUND_HEADERS_PROVIDER,
@@ -37,16 +39,29 @@ export type HttpRequestOptions = {
    * map the upstream's own semantics - a 404 that should stay a 404, say.
    */
   readonly forwardError?: boolean;
+
+  /**
+   * Despachador propio para esta llamada, en vez del pool compartido. Es la
+   * salida para el upstream que necesita el suyo -- otro TLS, un certificado
+   * fijado -- sin que eso obligue a un pool por upstream.
+   */
+  readonly dispatcher?: Dispatcher;
 };
 
 /**
  * The outbound HTTP client every Nova service calls its upstreams through.
  *
- * Built on the global `fetch`, so the package ships no HTTP dependency of its
- * own. What it adds over a bare `fetch` is the part that was being rewritten in
- * every service: a timeout that is always set, correlation headers that travel
- * on their own, an upstream failure that cannot reach the client verbatim, and
- * a log line that never carries the response body.
+ * Built on undici's `fetch` -- not the global one -- because the pool has to be
+ * an `Agent` of this same undici, and el `fetch` de Node no lo acepta: viene con
+ * su propia copia de undici embebida y rechaza un despachador de la otra con
+ * `InvalidArgumentError: invalid onRequestStart method`. Comprobado sobre Node
+ * 24.18 y undici 8.10.
+ *
+ * What it adds over a bare `fetch` is the part that was being rewritten in
+ * every service: a timeout that is always set, a connection pool instead of a
+ * socket per call, correlation headers that travel on their own, an upstream
+ * failure that cannot reach the client verbatim, and a log line that never
+ * carries the response body.
  */
 @Injectable()
 export class HttpClientService {
@@ -58,6 +73,8 @@ export class HttpClientService {
     @Optional()
     @Inject(OUTBOUND_HEADERS_PROVIDER)
     private readonly headersProvider?: OutboundHeadersProvider,
+    @Optional()
+    private readonly agent?: NovaHttpAgent,
   ) {}
 
   get<T>(url: string, options?: HttpRequestOptions): Promise<T> {
@@ -127,6 +144,9 @@ export class HttpClientService {
         // timeout even if the upstream keeps the socket open while sending
         // nothing, which a header-only deadline does not cover.
         signal: AbortSignal.timeout(timeoutMs),
+        // Sin despachador cae en el global de undici, que abre un socket por
+        // llamada. Es lo que pasa cuando el módulo apagó el pool.
+        dispatcher: options.dispatcher ?? this.agent?.dispatcher(),
       });
     } catch (cause) {
       const safeTarget = this.safeUrl(target);

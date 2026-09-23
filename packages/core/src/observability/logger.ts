@@ -1,3 +1,5 @@
+import { stdSerializers } from 'pino';
+
 /**
  * Headers that must never reach a log.
  *
@@ -13,6 +15,9 @@ export const SENSITIVE_HEADERS = [
   'x-api-key',
 ] as const;
 
+/** Cabecera de la que sale el id de correlación cuando el llamador lo manda. */
+export const DEFAULT_REQUEST_ID_HEADER = 'x-request-id';
+
 export type RequestLoggerOptions = {
   /** pino level. Defaults to `info`. */
   readonly level?: string;
@@ -26,19 +31,47 @@ export type RequestLoggerOptions = {
   /** Extra headers to redact, on top of {@link SENSITIVE_HEADERS}. */
   readonly redactHeaders?: readonly string[];
 
-  /** Reads the correlation id of the request in flight. */
+  /**
+   * Cabecera de la que se lee el id de correlación. Por defecto
+   * {@link DEFAULT_REQUEST_ID_HEADER}.
+   */
+  readonly requestIdHeader?: string;
+
+  /**
+   * Fuente alternativa del id, consultada sólo cuando la petición no trae la
+   * cabecera. Existe para un servicio que lo saque de otro lado; el contexto de
+   * la plataforma no la necesita, porque para cuando pino mira ya escribió
+   * `req.id`.
+   */
   readonly requestId?: () => string | undefined;
+
+  /**
+   * Dónde escribe pino. Por defecto la salida estándar, que es de donde el
+   * recolector de un contenedor toma los documentos.
+   *
+   * Cambiarla es para el caso raro -- escribir a un archivo, a un socket -- y
+   * para poder leer lo que se emitió desde un test: pino escribe al descriptor
+   * 1 directamente, así que sustituir `process.stdout.write` no lo intercepta.
+   */
+  readonly destination?: LogDestination;
 };
+
+/** Lo mínimo que pino necesita de un destino. */
+export type LogDestination = { write(chunk: string): void };
 
 /**
  * The shape `nestjs-pino` expects, declared structurally.
  *
- * Declaring it rather than importing keeps `nestjs-pino` and `pino` optional:
- * a service that logs another way can ignore this factory and the package still
- * installs with no logging dependency at all.
+ * Se declara en vez de importarse para no atar la firma pública de este paquete
+ * a la versión de `pino-http` que resuelva el consumidor.
  */
 export type RequestLoggerParams = {
-  readonly pinoHttp: Record<string, unknown>;
+  readonly pinoHttp:
+    Record<string, unknown> | [Record<string, unknown>, LogDestination];
+};
+
+type RequestLike = {
+  readonly headers?: Readonly<Record<string, string | string[] | undefined>>;
 };
 
 function redactionPaths(extra: readonly string[]): string[] {
@@ -53,30 +86,49 @@ function redactionPaths(extra: readonly string[]): string[] {
   ]);
 }
 
+function headerValue(
+  request: RequestLike | undefined,
+  name: string,
+): string | undefined {
+  const value = request?.headers?.[name];
+  const first = Array.isArray(value) ? value[0] : value;
+  return first === undefined || first === '' ? undefined : first;
+}
+
 /**
  * Builds the pino options every Nova service logs through.
  *
  * @example
- * LoggerModule.forRoot(
- *   createRequestLoggerOptions({
- *     level: process.env.LOG_LEVEL,
- *     requestId: () => context.requestId(),
- *   }),
- * );
+ * LoggerModule.forRoot(createRequestLoggerOptions({ level: 'debug' }));
  */
 export function createRequestLoggerOptions(
   options: RequestLoggerOptions = {},
 ): RequestLoggerParams {
+  const idHeader = options.requestIdHeader ?? DEFAULT_REQUEST_ID_HEADER;
+
   const pinoHttp: Record<string, unknown> = {
     level: options.level ?? 'info',
     redact: {
       paths: redactionPaths(options.redactHeaders ?? []),
       censor: '[redacted]',
     },
-    // Tying the log's request id to the same context the outbound headers read
-    // is what makes one id follow a call across services instead of each hop
-    // inventing its own.
-    genReqId: () => options.requestId?.() ?? crypto.randomUUID(),
+    // Se lee de la petición y no del contexto a propósito, para que el id no
+    // dependa de qué middleware corrió primero.
+    //
+    // pino-http hace `req.id = req.id || genReqId(req, res)`, así que cuando el
+    // contexto de la plataforma ya escribió `req.id` esto ni se llama y el id es
+    // uno solo. Si pino llegara a mirar primero, leer la misma cabecera con la
+    // misma regla da el mismo valor, y el contexto adopta el `req.id` que
+    // encuentre. Las dos direcciones convergen.
+    genReqId: (request?: RequestLike): string =>
+      headerValue(request, idHeader) ??
+      options.requestId?.() ??
+      crypto.randomUUID(),
+    // Sin esto un Error logueado sale como `{}`: sus propiedades no son
+    // enumerables, así que el serializador estándar es lo único que rescata
+    // `message` y `stack`.
+    serializers: { err: stdSerializers.err },
+    wrapSerializers: true,
     customSuccessMessage: () => 'request completed',
     customErrorMessage: () => 'request errored',
   };
@@ -90,6 +142,10 @@ export function createRequestLoggerOptions(
         translateTime: 'SYS:standard',
       },
     };
+  }
+
+  if (options.destination) {
+    return { pinoHttp: [pinoHttp, options.destination] };
   }
 
   return { pinoHttp };

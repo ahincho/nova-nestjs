@@ -35,14 +35,73 @@ export type NovaHttpModuleOptions = {
    * the ones the call site passes.
    */
   readonly defaultHeaders?: Record<string, string>;
+
+  /**
+   * El pool de conexiones compartido por todas las llamadas salientes. En
+   * `false` cada llamada usa el despachador global de undici.
+   *
+   * Sin pool, cada petición abre y cierra un socket: a 20 llamadas concurrentes
+   * contra el mismo upstream son 20 handshakes TCP. Medido con `connections: 2`
+   * las mismas 20 llamadas usan 2 sockets.
+   */
+  readonly pool?: NovaHttpPoolOptions | false;
+};
+
+export type NovaHttpPoolOptions = {
+  /** Techo de conexiones por origen. Por defecto 50. */
+  readonly connections?: number;
+
+  /** Peticiones encoladas por conexión. Por defecto 10. */
+  readonly pipelining?: number;
+
+  /** Cuánto se mantiene viva una conexión ociosa. Por defecto 30000. */
+  readonly keepAliveTimeoutMs?: number;
+
+  /**
+   * Cuánto se espera a que terminen las llamadas en vuelo al apagar. Por
+   * defecto 5000, por debajo del `stopTimeout` de una tarea de ECS -30 s-, para
+   * volver a arrancar con un estado limpio en vez de que un upstream atascado
+   * deje el cierre colgado hasta el SIGKILL.
+   */
+  readonly closeTimeoutMs?: number;
 };
 
 export type ResolvedNovaHttpOptions = {
   readonly defaultTimeoutMs: number;
   readonly defaultHeaders: Record<string, string>;
+  readonly pool: ResolvedNovaHttpPoolOptions | false;
+};
+
+export type ResolvedNovaHttpPoolOptions = {
+  readonly connections: number;
+  readonly pipelining: number;
+  readonly keepAliveTimeoutMs: number;
+  readonly closeTimeoutMs: number;
 };
 
 export const DEFAULT_HTTP_TIMEOUT_MS = 5000;
+
+export const DEFAULT_HTTP_POOL: ResolvedNovaHttpPoolOptions = {
+  connections: 50,
+  pipelining: 10,
+  keepAliveTimeoutMs: 30_000,
+  closeTimeoutMs: 5_000,
+};
+
+function resolvePool(
+  pool: NovaHttpPoolOptions | false | undefined,
+): ResolvedNovaHttpPoolOptions | false {
+  if (pool === false) {
+    return false;
+  }
+  return {
+    connections: pool?.connections ?? DEFAULT_HTTP_POOL.connections,
+    pipelining: pool?.pipelining ?? DEFAULT_HTTP_POOL.pipelining,
+    keepAliveTimeoutMs:
+      pool?.keepAliveTimeoutMs ?? DEFAULT_HTTP_POOL.keepAliveTimeoutMs,
+    closeTimeoutMs: pool?.closeTimeoutMs ?? DEFAULT_HTTP_POOL.closeTimeoutMs,
+  };
+}
 
 /**
  * Applies defaults field by field, so an explicitly passed `undefined` cannot
@@ -54,5 +113,6 @@ export function resolveNovaHttpOptions(
   return {
     defaultTimeoutMs: options.defaultTimeoutMs ?? DEFAULT_HTTP_TIMEOUT_MS,
     defaultHeaders: options.defaultHeaders ?? {},
+    pool: resolvePool(options.pool),
   };
 }

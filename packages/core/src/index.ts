@@ -1,4 +1,9 @@
-export { bootstrap, type BootstrapOptions } from './bootstrap';
+export {
+  DEFAULT_PORT,
+  DEFAULT_PORT_VARIABLES,
+  bootstrap,
+  type BootstrapOptions,
+} from './bootstrap';
 export { NovaModule, type NovaModuleOptions } from './nova.module';
 // Cada módulo conserva su index.ts como superficie pública y acá se reexporta
 // entera: lo que antes se instalaba como seis paquetes hoy se importa de este.

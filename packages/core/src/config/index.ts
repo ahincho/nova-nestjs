@@ -19,6 +19,14 @@ export {
   type NovaConfigModuleOptions,
 } from './nova-config.module';
 export {
+  DEFAULT_SECRET_PREFIX,
+  SECRET_VARIABLES_VARIABLE,
+  SecretUnfoldError,
+  secretVariables,
+  unfoldSecrets,
+  type UnfoldSecretsOptions,
+} from './secrets';
+export {
   DEFAULT_UPSTREAM_TIMEOUT_MS,
   defineUpstream,
   toEnvPrefix,

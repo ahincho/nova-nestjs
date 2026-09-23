@@ -226,4 +226,27 @@ describe('AllExceptionsFilter', () => {
     expect(captured.status).toBeUndefined();
     expect(errorLog).toHaveBeenCalledTimes(1);
   });
+
+  // Los nombres de estos campos son un contrato con el índice de logs, no una
+  // preferencia: las consultas y los tableros que ya existen están escritos
+  // sobre `traceId` y `statusCode`. Llamarlos de otra forma deja las líneas
+  // dentro del índice y fuera de toda búsqueda, que es peor que no loguearlas.
+  //
+  // `traceId` es además el mismo valor que pino-http publica como `req.id`, así
+  // que una búsqueda por el UUID trae la línea de la petición y la del error.
+  it('logs the fields the log index is queried by', () => {
+    filter.catch(
+      new ConflictException('Already enrolled'),
+      hostDouble(captured),
+    );
+
+    expect(warnLog).toHaveBeenCalledWith(
+      expect.objectContaining({
+        traceId: 'req-1',
+        statusCode: 409,
+        method: 'GET',
+        path: '/v1/students/7',
+      }),
+    );
+  });
 });

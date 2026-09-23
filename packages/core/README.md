@@ -107,16 +107,27 @@ Y dos que llegaron con NestJS 12:
   Actúa sobre las conexiones **ya establecidas**, que es la distinción que
   importa al probarlo — está en [docs/health.md](docs/health.md#el-503-del-apagado-es-sobre-conexiones-ya-abiertas).
 
-| Opción                    | Por defecto                                         |
-| ------------------------- | --------------------------------------------------- |
-| `port`                    | la variable `PORT`, o 3000                          |
-| `host`                    | `0.0.0.0`                                           |
-| `cors`                    | apagado                                             |
-| `logger`                  | ninguno; los logs se bufferean hasta que se instala |
-| `globalPrefix`            | ninguno                                             |
-| `healthPath`              | `'health'`                                          |
-| `forbidUnknownProperties` | `true`                                              |
-| `routeConflicts`          | `{ duplicate: 'error', shadow: 'warn' }`            |
+| Opción                    | Por defecto                              |
+| ------------------------- | ---------------------------------------- |
+| `port`                    | `APP_PORT`, si no `PORT`, si no 3000     |
+| `portVariables`           | `['APP_PORT', 'PORT']`                   |
+| `host`                    | `0.0.0.0`                                |
+| `cors`                    | apagado                                  |
+| `secrets`                 | apagado; `true` descubre los `SECRET_*`  |
+| `logger`                  | el estructurado de la plataforma         |
+| `globalPrefix`            | ninguno                                  |
+| `healthPath`              | `'health'`                               |
+| `forbidUnknownProperties` | `true`                                   |
+| `routeConflicts`          | `{ duplicate: 'error', shadow: 'warn' }` |
+
+`APP_PORT` va primero porque es la que inyecta la task definition a partir del
+puerto del contenedor, o sea la que operaciones puede mover sin tocar la imagen;
+`PORT` es la que fija el Dockerfile.
+
+`secrets` no viene encendido porque descubrir por prefijo sobre un entorno que la
+plataforma no conoce puede toparse con una variable que se llama así y no es un
+secreto JSON, y eso cortaría un arranque que hoy funciona. Un servicio nuevo lo
+declara en una palabra, y el generador ya lo trae puesto.
 
 `forbidUnknownProperties` está encendido porque un campo ignorado en silencio es
 como un cliente termina creyendo que mandó un filtro que el servicio nunca aplicó.

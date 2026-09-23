@@ -42,20 +42,48 @@ El id se devuelve además en la respuesta, para que el llamador pueda reportar u
 falla citándolo. Un navegador sólo puede leerlo porque la política de CORS expone
 esa cabecera.
 
-## Redacción de logs
+## El logger
+
+Viene montado. `NovaModule.forRoot()` levanta `nestjs-pino` sobre pino, y
+`bootstrap()` lo instala con `app.useLogger()`, así que un `new Logger('X')` de
+`@nestjs/common` de toda la vida ya escribe JSON estructurado:
 
 ```ts
-LoggerModule.forRoot(
-  createRequestLoggerOptions({
-    level: process.env.LOG_LEVEL,
-    requestId: () => context.requestId(),
-  }),
-);
+NovaModule.forRoot({
+  observability: { logger: { level: process.env.LOG_LEVEL } },
+});
 ```
 
-Devuelve las opciones que espera `nestjs-pino`, **sin importarlo**: `pino` y
-`nestjs-pino` quedan opcionales y el paquete instala sin ninguna dependencia de
-logging.
+**No es opcional a propósito.** El formato del documento de log es un contrato
+con quien lo recolecta e indexa: `req.id`, `context`, `level` y `err` son los
+campos por los que alguien filtra a las tres de la mañana. Un servicio que arma
+el suyo produce líneas que llegan al índice y no aparecen en ninguna consulta
+guardada — un contenedor sano e invisible, que es peor que uno caído.
+
+Apagarlo es una decisión explícita, para el servicio que loguea de otra forma:
+
+```ts
+NovaModule.forRoot({ observability: { logger: false } });
+```
+
+| Opción            | Por defecto        | Para qué                                        |
+| ----------------- | ------------------ | ----------------------------------------------- |
+| `level`           | `info`             | el nivel de pino                                |
+| `pretty`          | `false`            | salida legible en local, nunca en un contenedor |
+| `redactHeaders`   | `[]`               | cabeceras a censurar además de las de abajo     |
+| `requestIdHeader` | la de correlación  | de dónde sale el id                             |
+| `destination`     | la salida estándar | escribir a otro lado, o leerlo desde un test    |
+
+### El id, sin depender del orden
+
+`genReqId` lee la cabecera de la petición, no el contexto. Es lo que hace que el
+id sea uno solo sin importar qué middleware corrió primero: `pino-http` hace
+`req.id = req.id || genReqId(...)`, así que cuando el contexto ya escribió
+`req.id` ni se llama; y si pino mirara primero, el contexto adopta el `req.id`
+que encuentre en vez de generar otro. Dos ids para una misma petición es igual
+que ninguno, porque la traza se corta justo donde alguien la va a buscar.
+
+## Redacción de logs
 
 Redacta `authorization`, `proxy-authorization`, `cookie`, `set-cookie` y
 `x-api-key`, **en petición y en respuesta**. Un índice de logs lo lee más gente

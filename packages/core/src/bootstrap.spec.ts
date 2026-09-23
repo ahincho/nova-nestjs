@@ -20,7 +20,17 @@ type AppDouble = {
   enableCors: Mock;
   enableShutdownHooks: Mock;
   listen: Mock;
+  get: Mock;
 };
+
+const PORT_VARIABLES = ['APP_PORT', 'PORT', 'HTTP_PORT'];
+const SECRET_VARIABLES = ['SECRET_DB', 'NOVA_SECRETS', 'DB_HOST'];
+
+function clearEnvironment(): void {
+  for (const name of [...PORT_VARIABLES, ...SECRET_VARIABLES]) {
+    delete process.env[name];
+  }
+}
 
 describe('bootstrap', () => {
   let app: AppDouble;
@@ -33,17 +43,22 @@ describe('bootstrap', () => {
       enableCors: vi.fn(),
       enableShutdownHooks: vi.fn(),
       listen: vi.fn().mockResolvedValue(undefined),
+      // Por defecto no hay nada que resolver: es el servicio que apagó el
+      // logger de la plataforma, y ahí queda el de Nest.
+      get: vi.fn().mockImplementation(() => {
+        throw new Error('not registered');
+      }),
     };
 
     vi.spyOn(NestFactory, 'create').mockResolvedValue(
       app as unknown as INestApplication,
     );
-    delete process.env['PORT'];
+    clearEnvironment();
   });
 
   afterEach(() => {
     vi.restoreAllMocks();
-    delete process.env['PORT'];
+    clearEnvironment();
   });
 
   class AppModule {}
@@ -139,6 +154,113 @@ describe('bootstrap', () => {
     await bootstrap(AppModule, { logger });
 
     expect(app.useLogger).toHaveBeenCalledWith(logger);
+  });
+
+  // El logger estructurado se resuelve del contenedor en vez de construirse
+  // acá, para que sea el mismo que inyectan los servicios: dos instancias son
+  // dos configuraciones que se pueden separar sin que nadie lo note.
+  it('installs the platform logger when no other is given', async () => {
+    const platform = { log: vi.fn(), error: vi.fn(), warn: vi.fn() };
+    app.get.mockReturnValue(platform);
+
+    await bootstrap(AppModule);
+
+    expect(app.useLogger).toHaveBeenCalledWith(platform);
+  });
+
+  it('leaves the Nest logger alone when the platform mounted none', async () => {
+    await bootstrap(AppModule);
+
+    expect(app.useLogger).not.toHaveBeenCalled();
+  });
+
+  describe('the port', () => {
+    // APP_PORT es la que inyecta la task definition a partir del puerto del
+    // contenedor, o sea la que operaciones puede mover sin tocar la imagen;
+    // PORT es la que fija el Dockerfile.
+    it('prefers APP_PORT over PORT', async () => {
+      process.env['APP_PORT'] = '8080';
+      process.env['PORT'] = '3000';
+
+      await bootstrap(AppModule);
+
+      expect(app.listen).toHaveBeenCalledWith(8080, '0.0.0.0');
+    });
+
+    it('falls back to PORT', async () => {
+      process.env['PORT'] = '4001';
+
+      await bootstrap(AppModule);
+
+      expect(app.listen).toHaveBeenCalledWith(4001, '0.0.0.0');
+    });
+
+    it('skips a variable that was left blank', async () => {
+      process.env['APP_PORT'] = '   ';
+      process.env['PORT'] = '4002';
+
+      await bootstrap(AppModule);
+
+      expect(app.listen).toHaveBeenCalledWith(4002, '0.0.0.0');
+    });
+
+    it('lets a service name its own variables', async () => {
+      process.env['HTTP_PORT'] = '9000';
+      process.env['APP_PORT'] = '8080';
+
+      await bootstrap(AppModule, { portVariables: ['HTTP_PORT'] });
+
+      expect(app.listen).toHaveBeenCalledWith(9000, '0.0.0.0');
+    });
+
+    // Nombrar la que se encontró y no la lista entera es lo que hace el mensaje
+    // accionable.
+    it('dies naming the variable that is not a number', async () => {
+      process.env['APP_PORT'] = 'eight thousand';
+
+      await expect(bootstrap(AppModule)).rejects.toThrow('APP_PORT');
+    });
+  });
+
+  describe('the injected secrets', () => {
+    it('does nothing unless the service asks', async () => {
+      process.env['SECRET_DB'] = JSON.stringify({ DB_HOST: 'academic' });
+
+      await bootstrap(AppModule);
+
+      expect(process.env['DB_HOST']).toBeUndefined();
+    });
+
+    // Antes de crear la aplicación, no después: cada registerAs valida sus
+    // variables al instanciarse el módulo.
+    it('unfolds before the application exists', async () => {
+      process.env['SECRET_DB'] = JSON.stringify({ DB_HOST: 'academic' });
+      let hostWhenCreated: string | undefined;
+      vi.mocked(NestFactory.create).mockImplementation(() => {
+        hostWhenCreated = process.env['DB_HOST'];
+        return Promise.resolve(app as unknown as INestApplication);
+      });
+
+      await bootstrap(AppModule, { secrets: true });
+
+      expect(hostWhenCreated).toBe('academic');
+    });
+
+    it('takes the options straight through', async () => {
+      process.env['SECRET_DB'] = JSON.stringify({ DB_HOST: 'academic' });
+
+      await bootstrap(AppModule, { secrets: { prefix: false } });
+
+      expect(process.env['DB_HOST']).toBeUndefined();
+    });
+
+    it('stops the boot on a malformed secret', async () => {
+      process.env['SECRET_DB'] = 'not json';
+
+      await expect(bootstrap(AppModule, { secrets: true })).rejects.toThrow(
+        'SECRET_DB',
+      );
+    });
   });
 
   it('buffers the logs until the logger is installed', async () => {
