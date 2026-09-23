@@ -1,3 +1,4 @@
+import { fetch } from 'undici';
 import { NovaHttpAgent } from './http-agent';
 import { HttpClientService } from './http-client.service';
 import { NovaHttpModule } from './nova-http.module';
@@ -5,6 +6,7 @@ import {
   DEFAULT_HTTP_POOL,
   DEFAULT_HTTP_TIMEOUT_MS,
   NOVA_HTTP_OPTIONS,
+  NOVA_HTTP_TRANSPORT,
   resolveNovaHttpOptions,
 } from './tokens';
 
@@ -83,6 +85,20 @@ describe('NovaHttpModule.forRoot', () => {
       HttpClientService,
       NovaHttpAgent,
       NOVA_HTTP_OPTIONS,
+      NOVA_HTTP_TRANSPORT,
     ]);
+  });
+
+  // El transporte es un proveedor para que una prueba lo reemplace con
+  // `overrideProvider`: el cliente no usa el `fetch` global, así que
+  // sustituirlo no intercepta nada.
+  it('provides the undici fetch as the transport', () => {
+    const providers = (NovaHttpModule.forRoot().providers ??
+      []) as ValueProvider[];
+
+    expect(
+      providers.find((provider) => provider.provide === NOVA_HTTP_TRANSPORT)
+        ?.useValue,
+    ).toBe(fetch);
   });
 });

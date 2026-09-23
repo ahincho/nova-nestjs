@@ -40,6 +40,26 @@ type HttpRequestLike = {
 };
 
 /**
+ * Los campos que una excepción quiere en su línea de log, si trae alguno.
+ *
+ * Se leen por su forma y no por su clase, para que este filtro no dependa del
+ * módulo que la lanza: el cliente HTTP pone ahí la clasificación del fallo de
+ * upstream, y el día que otro módulo necesite lo mismo no hay que tocar el
+ * filtro. Lo que llega acá va al log y nunca al cuerpo.
+ */
+function logFieldsOf(exception: unknown): Record<string, unknown> {
+  if (typeof exception !== 'object' || exception === null) {
+    return {};
+  }
+
+  const { logFields } = exception as { logFields?: unknown };
+
+  return typeof logFields === 'object' && logFields !== null
+    ? { ...(logFields as Record<string, unknown>) }
+    : {};
+}
+
+/**
  * Catches every unhandled exception and answers with the active standard.
  *
  * El reparto con el estándar es la razón de ser de este filtro. Acá se decide
@@ -203,7 +223,11 @@ export class AllExceptionsFilter implements ExceptionFilter {
     // Los códigos salen del catálogo de Nova y no del estándar activo, a
     // propósito: la línea de log es de observabilidad, y cambiar la forma de la
     // respuesta no puede cambiar lo que buscan las consultas.
+    //
+    // Los campos propios de la excepción van primero, para que ninguno pise a
+    // los de arriba: son el contrato con el índice y no se negocian.
     const detail = {
+      ...logFieldsOf(exception),
       statusCode: failure.status,
       traceId: request.id,
       method: request.method,

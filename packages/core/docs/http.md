@@ -6,9 +6,9 @@ Cliente HTTP de salida para servicios NestJS de Nova Platform.
 pnpm add @ahincho/nova-nestjs
 ```
 
-Construido sobre el `fetch` global de Node, así que **el paquete no trae ninguna
-dependencia HTTP**. Lo que agrega sobre un `fetch` pelado es justo lo que cada
-servicio venía reescribiendo.
+Construido sobre el `fetch` de undici. Lo que agrega sobre un `fetch` pelado es
+justo lo que cada servicio venía reescribiendo, y una cosa que ninguno hacía:
+decir **qué falló y de quién es el problema** cuando una llamada no sale.
 
 ## Uso
 
@@ -47,9 +47,10 @@ sepa cómo se guarda el contexto. `@ahincho/nova-nestjs` provee uno
 sobre `AsyncLocalStorage`. **Si el proveedor falla, la llamada sigue**: perder el
 id degrada una traza; hacer fallar la llamada sería una caída.
 
-**El error del upstream no llega al cliente tal cual.** Un timeout es 504, todo
-lo demás es 502. El status propio del upstream describe una topología que el
-llamador no debería aprender de un cuerpo de error.
+**El error del upstream no llega al cliente tal cual.** Sale como 502, 503 o 504
+según qué falló -la tabla está más abajo- y con el mensaje genérico. El status
+propio del upstream describe una topología que el llamador no debería aprender
+de un cuerpo de error.
 
 Cuando el caller sí necesita mapear la semántica del upstream — un 404 que debe
 seguir siendo 404 — lo pide explícito:
@@ -70,11 +71,98 @@ upstream suele devolver los identificadores de la persona sobre la que era la
 petición, y un query string los lleva directamente. Del URL se registra sólo
 esquema, host y ruta.
 
+## Qué falló, y de quién es el problema
+
+Todo fallo sale como `UpstreamException`, clasificado con el registro de
+**RFC 9209**, el estándar que define los errores de un intermediario que no pudo
+obtener respuesta del siguiente salto. Un BFF y un ACL son exactamente eso. La
+decisión está en ADR-035.
+
+La categoría es lo que contesta «¿a quién le toca?»:
+
+| Categoría      | Qué pasó                                       | Tipos                                                                                                                                              | Status                        |
+| -------------- | ---------------------------------------------- | -------------------------------------------------------------------------------------------------------------------------------------------------- | ----------------------------- |
+| `connectivity` | no se llegó a hablar con el upstream           | `dns_error`, `dns_timeout`, `destination_ip_unroutable`, `connection_refused`, `connection_timeout`, `tls_certificate_error`, `tls_protocol_error` | 502; 504 los timeouts         |
+| `timeout`      | se llegó, y no contestó a tiempo               | `http_response_timeout`, `connection_read_timeout`                                                                                                 | 504                           |
+| `network`      | la conexión se cortó o la respuesta llegó rota | `connection_terminated`, `http_response_incomplete`, `http_protocol_error`                                                                         | 502                           |
+| `response`     | contestó con un status de error                | ninguno: se registra el `receivedStatus`                                                                                                           | 502; 504 si recibió 504 o 408 |
+| `contract`     | contestó 2xx con un cuerpo que no es JSON      | `http_response_content_invalid`                                                                                                                    | 502                           |
+| `internal`     | el fallo es nuestro, antes de salir            | `proxy_internal_error`, `proxy_configuration_error`                                                                                                | 500                           |
+
+**Un timeout al conectar es conectividad, no lentitud.** Que la conexión no se
+establezca casi nunca es un upstream lento: en una red con grupos de seguridad es
+un paquete que alguien descarta, y se arregla con configuración de red. Es el
+error de triage más caro de esta familia, y la tabla lo separa a propósito.
+
+La clasificación sale de provocar cada fallo contra un servidor real y mirar qué
+lanza undici, no de la documentación. Una prueba de integración lo repite en cada
+build, porque es lo primero que se rompería si una versión mayor de undici
+cambiara sus códigos.
+
+### Dónde se ve
+
+En el log, como campos y no dentro del mensaje:
+
+```jsonc
+{
+  "level": 50,
+  "upstream": {
+    "upstream": "academic.internal:8080",
+    "category": "connectivity",
+    "type": "connection_refused",
+    "code": "ECONNREFUSED",
+    "phase": "connect",
+    "elapsedMs": 3,
+    "status": 502,
+  },
+  "method": "GET",
+  "url": "http://academic.internal:8080/v1/courses",
+  "timeoutMs": 3000,
+  "context": "HttpClientService",
+  "msg": "GET http://academic.internal:8080/v1/courses failed: connection_refused",
+}
+```
+
+La línea del filtro de errores lleva el mismo objeto `upstream`, junto a su
+`traceId`. Un tablero cuenta fallos por `upstream.category` sin parsear texto, y
+una alerta sobre `connectivity` no se dispara por un 404 de negocio.
+
+**En el cuerpo, nada.** El 5xx sigue saliendo con el mensaje genérico: el tipo y
+el nombre del upstream describen la topología, y el RFC mismo advierte que
+mostrárselos a un cliente le dice a un atacante dónde está cada servicio.
+
+### Dos cosas que cambiaron
+
+- **Un corte a mitad del cuerpo es un 502.** Antes se leía fuera de la
+  traducción de errores y salía como un 500 sin clasificar: el tablero contaba un
+  defecto propio donde hubo un problema de red.
+- **Un 2xx que no es JSON falla.** Antes se devolvía el texto como si fuera el
+  `T` prometido, y el error aparecía más adelante, lejos de la causa. Con
+  `forwardError`, el cuerpo de un error sigue llegando como texto si no es JSON.
+
+## Probar un servicio que llama a otros
+
+El cliente no usa el `fetch` global, así que `global.fetch = vi.fn()` ya no
+intercepta nada. Lo que se reemplaza es el transporte:
+
+```ts
+import { NOVA_HTTP_TRANSPORT } from '@ahincho/nova-nestjs';
+
+const moduleRef = await Test.createTestingModule({ imports: [AppModule] })
+  .overrideProvider(NOVA_HTTP_TRANSPORT)
+  .useValue(fetchMock)
+  .compile();
+```
+
+`fetchMock` recibe la URL y un objeto con `method`, `headers`, `body` y `signal`,
+y devuelve un `Response`. Es el mismo contrato que tenía el `fetch` global, así
+que una suite que lo simulaba sólo cambia dónde lo engancha.
+
 ## Lo que no hace: reintentar
 
 **No hay reintentos ni corte de circuito, y es deliberado.** Una llamada es una
-llamada: si el upstream falla, el fallo se traduce -502 si cayó, 504 si tardó- y
-sale con su id de correlación.
+llamada: si el upstream falla, el fallo se clasifica y sale con su id de
+correlación.
 
 Tres razones. Un reintento automático **amplifica** el incidente que pretende
 cubrir: el caso donde aparece de verdad no es el fallo aislado sino el upstream
@@ -111,9 +199,9 @@ vivas este contenedor- deja de ser un número. El upstream que de verdad necesit
 el suyo -otro TLS, un certificado fijado- lo pasa por llamada como `dispatcher`.
 
 El cliente usa el `fetch` **de undici**, no el global. No es una preferencia: el
-`fetch` de Node trae su propia copia de undici embebida y rechaza un despachador
-de la del paquete con `InvalidArgumentError: invalid onRequestStart method`.
-Comprobado sobre Node 24.18 y undici 8.10.
+`fetch` de Node trae su propia copia de undici embebida -la 7.28 en Node 24.18- y
+rechaza un despachador del paquete, que es la 8.10, con `InvalidArgumentError:
+invalid onRequestStart method`.
 
 ## Opciones
 

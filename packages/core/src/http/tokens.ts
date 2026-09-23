@@ -1,7 +1,39 @@
+import type { Dispatcher } from 'undici';
+
 /**
  * DI token holding the resolved {@link NovaHttpModuleOptions}.
  */
 export const NOVA_HTTP_OPTIONS = Symbol('NOVA_HTTP_OPTIONS');
+
+/**
+ * Token del transporte con el que el cliente hace cada llamada. Por defecto es
+ * el `fetch` de undici.
+ *
+ * Existe para las pruebas. El cliente no usa el `fetch` global, así que
+ * reemplazar `global.fetch` no intercepta nada; lo que se reemplaza es este
+ * proveedor:
+ *
+ *     moduleRef.overrideProvider(NOVA_HTTP_TRANSPORT).useValue(fetchMock)
+ */
+export const NOVA_HTTP_TRANSPORT = Symbol('NOVA_HTTP_TRANSPORT');
+
+/** Lo que el cliente le pasa al transporte en cada llamada. */
+export type HttpTransportInit = {
+  readonly method: string;
+  readonly headers: Record<string, string>;
+  readonly body?: string;
+  readonly signal: AbortSignal;
+  readonly dispatcher?: Dispatcher;
+};
+
+/**
+ * La forma del transporte: la de `fetch`, reducida a lo que el cliente usa.
+ * Una prueba lo reemplaza con un `vi.fn()` que devuelve un `Response`.
+ */
+export type HttpTransport = (
+  url: string,
+  init: HttpTransportInit,
+) => Promise<Response>;
 
 /**
  * DI token for the optional {@link OutboundHeadersProvider}.

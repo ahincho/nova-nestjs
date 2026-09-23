@@ -286,6 +286,65 @@ describe('AllExceptionsFilter', () => {
     );
   });
 
+  // Una excepción puede traer campos para su línea de log. El cliente HTTP los
+  // usa para la clasificación del fallo de upstream, y el filtro los lee por su
+  // forma, sin importar el módulo que la lanzó.
+  describe('the fields an exception brings for its log', () => {
+    function withLogFields(logFields: unknown): HttpException {
+      return Object.assign(
+        new HttpException('Upstream service error', HttpStatus.BAD_GATEWAY),
+        { logFields },
+      );
+    }
+
+    it('adds them to the log line', () => {
+      filter.catch(
+        withLogFields({ upstream: { category: 'connectivity' } }),
+        hostDouble(captured),
+      );
+
+      expect(errorLog).toHaveBeenCalledWith(
+        expect.objectContaining({
+          upstream: { category: 'connectivity' },
+          statusCode: 502,
+          traceId: 'req-1',
+        }),
+        expect.anything(),
+      );
+    });
+
+    // Los campos del índice son un contrato; ninguna excepción los pisa.
+    it('never lets them overwrite the fields the index is queried by', () => {
+      filter.catch(
+        withLogFields({ traceId: 'forged', statusCode: 200 }),
+        hostDouble(captured),
+      );
+
+      expect(errorLog).toHaveBeenCalledWith(
+        expect.objectContaining({ traceId: 'req-1', statusCode: 502 }),
+        expect.anything(),
+      );
+    });
+
+    it('keeps them out of the response body', () => {
+      filter.catch(
+        withLogFields({ upstream: { upstream: 'academic.internal' } }),
+        hostDouble(captured),
+      );
+
+      expect(JSON.stringify(captured.body)).not.toContain('academic.internal');
+    });
+
+    it('ignores a logFields that is not an object', () => {
+      filter.catch(withLogFields('not an object'), hostDouble(captured));
+
+      expect(errorLog).toHaveBeenCalledWith(
+        expect.not.objectContaining({ 0: 'n' }),
+        expect.anything(),
+      );
+    });
+  });
+
   // Con otro estándar la respuesta cambia de forma, pero lo que el filtro le
   // entrega sigue pasando por las mismas reglas. Estas pruebas miran esa
   // entrega y no el cuerpo, porque el cuerpo ya no es de la plataforma.
