@@ -4,18 +4,21 @@ import {
   HttpStatus,
   Inject,
   Logger,
+  Optional,
   type ArgumentsHost,
   type ExceptionFilter,
 } from '@nestjs/common';
 import {
-  ApiResponses,
-  INTERNAL_ERROR_CODE,
+  NOVA_ERROR_CATALOG,
+  NovaEnvelopeStandard,
+  errorCodeFor,
   errorItem,
-  statusToErrorCode,
-  type ApiErrorItem,
+  type ApiFailure,
+  type ApiStandard,
 } from '../../api-standard';
 import { ValidationException } from '../exceptions/validation.exception';
 import {
+  API_STANDARD,
   API_STANDARD_OPTIONS,
   type ResolvedApiStandardOptions,
 } from '../tokens';
@@ -23,11 +26,11 @@ import {
 /**
  * The slice of the platform response object this filter uses.
  *
- * Typed structurally so the package does not depend on `@types/express`: the
- * same filter works under Fastify.
+ * Typed structurally so the package does not depend on `@types/express`.
  */
 type HttpResponseLike = {
   status(code: number): { json(body: unknown): unknown };
+  setHeader?(name: string, value: string): unknown;
 };
 
 type HttpRequestLike = {
@@ -37,7 +40,13 @@ type HttpRequestLike = {
 };
 
 /**
- * Catches every unhandled exception and answers with the standard envelope.
+ * Catches every unhandled exception and answers with the active standard.
+ *
+ * El reparto con el estándar es la razón de ser de este filtro. Acá se decide
+ * **qué se puede decir**: el status de cada excepción, que un 5xx no lleve ni
+ * su mensaje ni su código de dominio, qué campos fallaron en una validación. El
+ * estándar recibe eso ya decidido y sólo le da forma, así que un estándar mal
+ * escrito no tiene de dónde filtrar lo que este filtro le quitó.
  *
  * Logs through Nest's own `Logger`, so an application that installed a logger
  * with `app.useLogger()` gets these entries in its own format without this
@@ -50,6 +59,11 @@ export class AllExceptionsFilter implements ExceptionFilter {
   constructor(
     @Inject(API_STANDARD_OPTIONS)
     private readonly options: ResolvedApiStandardOptions,
+    // Opcional por la misma razón que en el interceptor: instanciarlo a mano
+    // sigue contestando con el sobre de Nova.
+    @Optional()
+    @Inject(API_STANDARD)
+    private readonly standard: ApiStandard = new NovaEnvelopeStandard(),
   ) {}
 
   catch(exception: unknown, host: ArgumentsHost): void {
@@ -65,15 +79,20 @@ export class AllExceptionsFilter implements ExceptionFilter {
 
     const context = host.switchToHttp();
     const request = context.getRequest<HttpRequestLike>();
-    const status = this.statusOf(exception);
-    const errors = this.errorsOf(exception, status);
+    const failure = this.failureOf(exception, request);
 
-    this.log(exception, status, errors, request);
+    this.log(exception, failure, request);
 
-    context
-      .getResponse<HttpResponseLike>()
-      .status(status)
-      .json(ApiResponses.error(status, ...errors));
+    const wire = this.standard.failure(failure);
+    const response = context.getResponse<HttpResponseLike>();
+
+    // Antes de `json()`: Express sólo pone `application/json` cuando nadie
+    // puso otro, así que un `application/problem+json` sobrevive.
+    if (wire.contentType !== undefined) {
+      response.setHeader?.('Content-Type', wire.contentType);
+    }
+
+    response.status(failure.status).json(wire.body);
   }
 
   private statusOf(exception: unknown): number {
@@ -82,18 +101,43 @@ export class AllExceptionsFilter implements ExceptionFilter {
       : HttpStatus.INTERNAL_SERVER_ERROR;
   }
 
-  private errorsOf(exception: unknown, status: number): ApiErrorItem[] {
+  private failureOf(exception: unknown, request: HttpRequestLike): ApiFailure {
+    const status = this.statusOf(exception);
+    const traceId = request.id;
+
     // Anything that is not an HttpException arrives here as a 500, so folding
     // the two conditions is what makes the rest of this method total: below
     // this line the exception is always an HttpException under 500.
+    //
+    // Es la regla que ningún estándar puede tocar: el mensaje sale del que se
+    // configuró y el código queda vacío. Si viajara el `errorCode` de la
+    // excepción, un 5xx contaría qué falló por dentro.
     if (status >= 500 || !(exception instanceof HttpException)) {
-      return [
-        errorItem(INTERNAL_ERROR_CODE, this.options.internalErrorMessage),
-      ];
+      return {
+        status,
+        kind: 'internal',
+        traceId,
+        errors: [
+          {
+            code: undefined,
+            message: this.options.internalErrorMessage,
+            field: null,
+          },
+        ],
+      };
     }
 
     if (exception instanceof ValidationException) {
-      return [...exception.validationErrors];
+      return {
+        status,
+        kind: 'validation',
+        traceId,
+        errors: exception.violations.map((violation) => ({
+          code: violation.code,
+          message: violation.message,
+          field: violation.field,
+        })),
+      };
     }
 
     // `errorCode` existe desde NestJS 12 y es lo que deja que un servicio diga
@@ -104,12 +148,19 @@ export class AllExceptionsFilter implements ExceptionFilter {
     //     errorCode: 'COURSE_NOT_FOUND',
     //   });
     //
-    // Solo se lee por debajo de 500: un 5xx contesta el mensaje genérico a
-    // propósito, y dejar pasar un código de dominio ahí filtra qué falló por
-    // dentro.
-    const code = exception.errorCode ?? statusToErrorCode(status);
-
-    return [errorItem(code, this.messageOf(exception))];
+    // Cuando no lo trae queda vacío, y el catálogo del estándar pone el suyo.
+    return {
+      status,
+      kind: 'request',
+      traceId,
+      errors: [
+        {
+          code: exception.errorCode,
+          message: this.messageOf(exception),
+          field: null,
+        },
+      ],
+    };
   }
 
   private messageOf(exception: HttpException): string {
@@ -136,8 +187,7 @@ export class AllExceptionsFilter implements ExceptionFilter {
 
   private log(
     exception: unknown,
-    status: number,
-    errors: readonly ApiErrorItem[],
+    failure: ApiFailure,
     request: HttpRequestLike,
   ): void {
     // Los nombres de estos campos son un contrato con el índice de logs, no una
@@ -149,17 +199,28 @@ export class AllExceptionsFilter implements ExceptionFilter {
     //
     // `traceId` es además el mismo valor que pino-http publica como `req.id` en
     // la línea de la petición, así que una búsqueda por el UUID trae las dos.
+    //
+    // Los códigos salen del catálogo de Nova y no del estándar activo, a
+    // propósito: la línea de log es de observabilidad, y cambiar la forma de la
+    // respuesta no puede cambiar lo que buscan las consultas.
     const detail = {
-      statusCode: status,
+      statusCode: failure.status,
       traceId: request.id,
       method: request.method,
       path: request.url,
-      errors,
+      errors: failure.errors.map((error) =>
+        errorItem(
+          error.code ??
+            errorCodeFor(NOVA_ERROR_CATALOG, failure.status, failure.kind),
+          error.message,
+          error.field,
+        ),
+      ),
     };
 
     // A 4xx is the client being told it got something wrong, not a fault of
     // ours. Logging it at error level is what buries the 5xx that matter.
-    if (status >= 500) {
+    if (failure.status >= 500) {
       this.logger.error(
         detail,
         exception instanceof Error ? exception.stack : undefined,

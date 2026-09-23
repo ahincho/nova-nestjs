@@ -7,7 +7,13 @@ import {
   NotFoundException,
   type ArgumentsHost,
 } from '@nestjs/common';
-import { errorItem } from '../../api-standard';
+import {
+  NovaEnvelopeStandard,
+  errorItem,
+  type ApiFailure,
+  type ApiStandard,
+  type ApiWire,
+} from '../../api-standard';
 import { ValidationException } from '../exceptions/validation.exception';
 import { DEFAULT_API_STANDARD_OPTIONS } from '../tokens';
 import { AllExceptionsFilter } from './all-exceptions.filter';
@@ -16,13 +22,43 @@ import type { MockInstance } from 'vitest';
 type Captured = {
   status: number | undefined;
   body: unknown;
+  headers?: Record<string, string>;
 };
+
+/**
+ * Un estándar que anota lo que recibe, para poder mirar qué le entrega el
+ * filtro: es la única forma de probar que el núcleo sanea antes y no después.
+ */
+class RecordingStandard implements ApiStandard {
+  readonly received: ApiFailure[] = [];
+
+  readonly openapi = new NovaEnvelopeStandard().openapi;
+
+  success(payload: unknown): ApiWire {
+    return { body: payload };
+  }
+
+  failure(failure: ApiFailure): ApiWire {
+    this.received.push(failure);
+    return {
+      contentType: 'application/problem+json',
+      body: { title: 'problem', status: failure.status },
+    };
+  }
+
+  owns(): boolean {
+    return false;
+  }
+}
 
 function hostDouble(
   captured: Captured,
   type: 'http' | 'rpc' = 'http',
 ): ArgumentsHost {
   const response = {
+    setHeader(name: string, value: string) {
+      captured.headers = { ...captured.headers, [name]: value };
+    },
     status(code: number) {
       captured.status = code;
       return {
@@ -248,5 +284,119 @@ describe('AllExceptionsFilter', () => {
         path: '/v1/students/7',
       }),
     );
+  });
+
+  // Con otro estándar la respuesta cambia de forma, pero lo que el filtro le
+  // entrega sigue pasando por las mismas reglas. Estas pruebas miran esa
+  // entrega y no el cuerpo, porque el cuerpo ya no es de la plataforma.
+  describe('with another standard', () => {
+    let standard: RecordingStandard;
+
+    beforeEach(() => {
+      standard = new RecordingStandard();
+      filter = new AllExceptionsFilter(DEFAULT_API_STANDARD_OPTIONS, standard);
+    });
+
+    it('answers with the body and the content type of the standard', () => {
+      filter.catch(
+        new NotFoundException('Student not found'),
+        hostDouble(captured),
+      );
+
+      expect(captured.status).toBe(404);
+      expect(captured.body).toEqual({ title: 'problem', status: 404 });
+      expect(captured.headers).toEqual({
+        'Content-Type': 'application/problem+json',
+      });
+    });
+
+    // La regla que ningún estándar puede tocar: lo que el estándar recibe ya
+    // viene saneado, así que no tiene de dónde sacar el mensaje original.
+    it('hands over an unknown failure already sanitised', () => {
+      filter.catch(
+        new Error('connect ECONNREFUSED 10.0.3.14:5432'),
+        hostDouble(captured),
+      );
+
+      expect(standard.received).toEqual([
+        {
+          status: 500,
+          kind: 'internal',
+          traceId: 'req-1',
+          errors: [
+            { code: undefined, message: 'Internal server error', field: null },
+          ],
+        },
+      ]);
+      expect(JSON.stringify(standard.received)).not.toContain('ECONNREFUSED');
+    });
+
+    it('drops the domain code of a 5xx before the standard sees it', () => {
+      filter.catch(
+        new HttpException('Upstream exploded', HttpStatus.BAD_GATEWAY, {
+          errorCode: 'ACADEMIC_UPSTREAM_DOWN',
+        }),
+        hostDouble(captured),
+      );
+
+      expect(standard.received[0]).toMatchObject({
+        status: 502,
+        kind: 'internal',
+        errors: [{ code: undefined, message: 'Internal server error' }],
+      });
+      expect(JSON.stringify(standard.received)).not.toContain('exploded');
+    });
+
+    it('passes the code of the thrower below 500', () => {
+      filter.catch(
+        new NotFoundException('Course not found', {
+          errorCode: 'COURSE_NOT_FOUND',
+        }),
+        hostDouble(captured),
+      );
+
+      expect(standard.received[0]).toMatchObject({
+        kind: 'request',
+        errors: [{ code: 'COURSE_NOT_FOUND', message: 'Course not found' }],
+      });
+    });
+
+    // Sin código: cómo se llama un fallo de validación lo decide el catálogo
+    // del estándar, no el núcleo.
+    it('passes the violations of the input with no code of their own', () => {
+      filter.catch(
+        new ValidationException([
+          { field: 'periodId', message: 'must be an integer' },
+        ]),
+        hostDouble(captured),
+      );
+
+      expect(standard.received[0]).toEqual({
+        status: 400,
+        kind: 'validation',
+        traceId: 'req-1',
+        errors: [
+          { code: undefined, message: 'must be an integer', field: 'periodId' },
+        ],
+      });
+    });
+
+    // La línea de log es de observabilidad: cambiar la forma de la respuesta
+    // no puede cambiar lo que buscan las consultas.
+    it('keeps the log line in the names of the Nova catalog', () => {
+      filter.catch(
+        new ConflictException('Already enrolled'),
+        hostDouble(captured),
+      );
+
+      expect(warnLog).toHaveBeenCalledWith(
+        expect.objectContaining({
+          statusCode: 409,
+          errors: [
+            { code: 'CONFLICT', message: 'Already enrolled', field: null },
+          ],
+        }),
+      );
+    });
   });
 });

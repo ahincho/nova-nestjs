@@ -27,16 +27,16 @@ publicHoistPattern:
 
 Cada módulo tiene su carpeta en `src/` y su documento:
 
-| Módulo                                   | Qué resuelve                                               |
-| ---------------------------------------- | ---------------------------------------------------------- |
-| [`api-standard`](docs/api-standard.md)   | el sobre `{ success, status, data, errors }` y sus códigos |
-| [`api`](docs/api.md)                     | interceptor, filtro y `ValidationPipe` que lo aplican      |
-| [`auth`](docs/auth.md)                   | JWT opcional: guard global, `@Public()` y `@CurrentUser()` |
-| [`config`](docs/config.md)               | variables de entorno tipadas, upstreams y CORS             |
-| [`http`](docs/http.md)                   | cliente HTTP saliente con contexto y errores de upstream   |
-| [`observability`](docs/observability.md) | contexto de request, `x-request-id` y opciones de pino     |
-| [`health`](docs/health.md)               | sondas `live`, `ready` y heredada sobre terminus           |
-| [`openapi`](docs/openapi.md)             | documento OpenAPI, su interfaz y el sobre documentado      |
+| Módulo                                   | Qué resuelve                                                                    |
+| ---------------------------------------- | ------------------------------------------------------------------------------- |
+| [`api-standard`](docs/api-standard.md)   | el puerto del estándar de API y el sobre de Nova, su implementación por defecto |
+| [`api`](docs/api.md)                     | interceptor, filtro y validación que aplican las reglas del estándar            |
+| [`auth`](docs/auth.md)                   | JWT opcional: guard global, `@Public()` y `@CurrentUser()`                      |
+| [`config`](docs/config.md)               | variables de entorno tipadas, upstreams y CORS                                  |
+| [`http`](docs/http.md)                   | cliente HTTP saliente con contexto y errores de upstream                        |
+| [`observability`](docs/observability.md) | contexto de request, `x-request-id` y opciones de pino                          |
+| [`health`](docs/health.md)               | sondas `live`, `ready` y heredada sobre terminus                                |
+| [`openapi`](docs/openapi.md)             | documento OpenAPI, su interfaz y el cuerpo del estándar activo                  |
 
 ## Un servicio completo
 
@@ -87,7 +87,7 @@ este módulo: `nestjs-http` declara que quiere cabeceras salientes de algún lad
 Las cuatro decisiones que se estaban tomando de nuevo en cada `main.ts`:
 
 - El `ValidationPipe` con `validationExceptionFactory`, para que un DTO fallido
-  vuelva como el sobre estándar con una entrada por restricción.
+  vuelva con una entrada por restricción, en la forma del estándar activo.
 - CORS con la política que declara una sola variable, o apagado si no se pasa.
 - Bind a `0.0.0.0`: atarse a localhost dentro de un contenedor deja al servicio
   inalcanzable desde el balanceador mientras se ve sano desde una shell local.
